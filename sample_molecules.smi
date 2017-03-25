@@ -1,0 +1,6 @@
+C1(C=CC=C2)=C2CCCC1         non-aromatic puckers
+N[C@@H](CC1=CNC=N1)C(O)=O   various pHs
+C1=CC=CNC(=O)1              tautomers
+FC(I)=C(Cl)C                double bonds
+I[C@@](C)(F)C(I)(F)C        chirality
+
