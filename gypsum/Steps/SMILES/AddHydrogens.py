@@ -1,8 +1,9 @@
-from ... import multiprocess_v2 as mp
+from ... import mp_queue as mp
 from ... import Utils
 from ... import ChemUtils
 from ... import MyMol
 import random
+import sys
 import os
 
 try:
@@ -10,6 +11,58 @@ try:
 except:
     Utils.log("You need to install rdkit and its dependencies.")
     sys.exit(0)
+
+def addH(pH, flnm, obabel_loc):
+    Utils.log("\tat pH " + str(pH))
+    results = Utils.runit(
+        obabel_loc + ' -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
+    )
+
+    for s in results:
+        s = s.strip()
+        if s != "":
+            prts = s.split()
+            smi = prts[0]
+            mol_info = " ".join(prts[1:])
+            name, contnr_idx, orig_smi, orig_smi_deslt = mol_info.split("____")
+
+            amol = MyMol.MyMol(smi)
+
+            # I once saw it add a C+ here. So do a sanity check at
+            # this point.
+            if amol.rdkit_mol is not None:
+                
+                # Unfortuantely, obabel makes some systematic mistakes
+                # when it comes to pH assignments. Try to correct them
+                # here.
+                
+                amol.fix_common_errors()
+                
+                if amol.crzy_substruc() == False:
+                    amol.contnr_idx = int(
+                        contnr_idx
+                    )
+
+                    amol.genealogy.append(orig_smi + " (source)")
+
+                    if orig_smi != orig_smi_deslt:
+                        amol.genealogy.append(
+                            orig_smi_deslt + " (desalted)"
+                        )
+                    
+                    amol.genealogy.append(
+                        amol.smiles(True) + " (at pH " + 
+                        str(pH) + ")"
+                    )
+
+                    amol.name = name
+
+                    return amol
+                else:
+                    Utils.log(
+                        "\WARNING: " + smi + " (" + name  + 
+                        ") discarded."
+                    )
 
 
 def add_hydrogens(self):
@@ -41,66 +94,14 @@ def add_hydrogens(self):
         params.append((pH, f.name, self.params["openbabel_executable"]))
         pH = pH + self.params["delta_ph_increment"]
 
-    class addH(mp.GeneralTask):
-        def value_func(self, items, results_queue):
-            pH, flnm, obabel_loc = items
-            Utils.log("\tat pH " + str(pH))
-            results = Utils.runit(
-                obabel_loc + ' -p ' + str(pH) + ' -ismi ' +  f.name + ' -ocan'
-            )
-
-            for s in results:
-                s = s.strip()
-                if s != "":
-                    prts = s.split()
-                    smi = prts[0]
-                    mol_info = " ".join(prts[1:])
-                    name, contnr_idx, orig_smi, orig_smi_deslt = mol_info.split("____")
-
-                    amol = MyMol.MyMol(smi)
-
-                    # I once saw it add a C+ here. So do a sanity check at
-                    # this point.
-                    if amol.rdkit_mol is not None:
-                        
-                        # Unfortuantely, obabel makes some systematic mistakes
-                        # when it comes to pH assignments. Try to correct them
-                        # here.
-                        
-                        amol.fix_common_errors()
-                        
-                        if amol.crzy_substruc() == False:
-                            amol.contnr_idx = int(
-                                contnr_idx
-                            )
-
-                            amol.genealogy.append(orig_smi + " (source)")
-
-                            if orig_smi != orig_smi_deslt:
-                                amol.genealogy.append(
-                                    orig_smi_deslt + " (desalted)"
-                                )
-                            
-                            amol.genealogy.append(
-                                amol.smiles(True) + " (at pH " + 
-                                str(pH) + ")"
-                            )
-
-                            amol.name = name
-
-                            self.results.append(amol)
-                        else:
-                            Utils.log(
-                                "\WARNING: " + smi + " (" + name  + 
-                                ") discarded."
-                            )
+    
     tmp = mp.MultiThreading(params, self.params["num_processors"], addH)
         
     # Add back in remaining, using original smiles (no protonation). This is
     # better than nothing.
 
     contnr_indx_no_touch = Utils.contnrs_no_touchd(
-        self, tmp.results
+        self, tmp
     )
 
     for miss_indx in contnr_indx_no_touch:
@@ -119,8 +120,8 @@ def add_hydrogens(self):
             "(WARNING: OBABEL could not assign protonation states)"
         ]
 
-        tmp.results.append(amol)
+        tmp.append(amol)
 
     os.unlink(f.name)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp.results)
+    ChemUtils.bst_for_each_contnr_no_opt(self, tmp)

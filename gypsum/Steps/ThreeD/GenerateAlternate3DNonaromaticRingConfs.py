@@ -1,4 +1,4 @@
-from ... import multiprocess_v2 as mp
+from ... import mp_queue as mp
 from ... import Utils
 from ... import ChemUtils
 import copy
@@ -23,6 +23,119 @@ try:
 except:
     Utils.log("You need to install scipy and its dependencies.")
     sys.exit(0)
+
+
+def GetRingConfs(mol, params):
+    contnr_idx = mol.contnr_idx
+
+    # All the ones in this contnr must have nonatomatic rings.
+    # So just make a new mols list.
+
+    # Get the ring atom indecies
+    rings = mol.m_num_nonaro_rngs()
+
+    # Convert that into the bond indecies.
+    rings_by_bonds = []
+    for ring_atom_indecies in rings:
+        bond_indecies = []
+        for ring_atm_idx in ring_atom_indecies:
+            a = mol.GetAtomWithIdx(ring_atm_idx)
+            bonds = a.GetBonds()
+            for bond in bonds:
+                atom_indecies = [
+                    bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+                ]
+                atom_indecies.remove(ring_atm_idx)
+                other_atm_idx = atom_indecies[0]
+                if other_atm_idx in ring_atom_indecies:
+                    bond_indecies.append(bond.GetIdx())
+        bond_indecies = list(set(bond_indecies))
+        bond_indecies.sort()
+
+        rings_by_bonds.append(bond_indecies)
+    
+    # Generate a bunch of conformations, ordered from best
+    # energy to worst. Note that this is cached.
+    # Minimizing too.
+    mol.add_conformers(
+        params["thoroughness"] * params["max_variants_per_compound"],
+        0.1, True
+    )
+
+    if mol.GetNumConformers() > 0:
+        # Sometimes there are no conformers if it's an impossible structure.
+        # Like [H]c1nc(N2C(=O)[C@@]3(C([H])([H])[H])[C@@]4([H])O[C@@]([H])(C([H])([H])C4([H])[H])[C@]3(C([H])([H])[H])C2=O)sc1[H]
+        # So don't save this one anyway.
+
+        # Get the scores (lowest energy) of these minimized conformers
+        mol.load_conformations_into_mol_3d()
+
+        # Extract just the rings.
+        ring_mols = [Chem.PathToSubmol(mol.rdkit_mol, bi) 
+                        for bi in rings_by_bonds]
+        
+        # Align get the rmsds relative to the first conformation,
+        # for each ring separately.
+        list_of_rmslists = [[]] * len(ring_mols)
+        for k in range(len(ring_mols)):
+            list_of_rmslists[k] = []
+            AllChem.AlignMolConformers(
+                ring_mols[k], RMSlist=list_of_rmslists[k]
+            )
+        
+        # Get points for each conformer (rmsd_ring1, rmsd_ring2,
+        # rmsd_ring3)
+        pts = numpy.array(list_of_rmslists).T
+        pts = numpy.vstack((numpy.array([[0.0] * pts.shape[1]]), pts))
+
+        # cluster those points, get lowest-energy member of each
+        if len(pts) < params["max_variants_per_compound"]:
+            num_clusters = len(pts)
+        else:
+            num_clusters = params["max_variants_per_compound"]
+
+        # try:
+        groups = kmeans2(pts, num_clusters, minit='points')[1]
+
+        #conformers = new_mymol 
+        # except:
+        #     print pts
+        #     print params["max_variants_per_compound"]
+        #     print kmeans2(pts, num_clusters, minit='points')[1]
+
+        # Note that you have some geometrically diverse conformations
+        # here, but there could be other versions (enantiomers,
+        # tautomers, etc.) that also contribute similar conformations.
+        # In the end, you'll be selecting from all these together, so
+        # similar ones could end up together.
+
+        best_ones = {}
+        conformers = mol.rdkit_mol.GetConformers()
+        for k, grp in enumerate(groups):
+            if not grp in best_ones.keys():
+                best_ones[grp] = mol.conformers[k]
+        best_confs = best_ones.values()
+
+        # Convert rdkit mols to MyMol
+        results = []
+        for conf in best_confs:
+            new_mol = mol.copy()
+            c = MyConformer(new_mol, conf.conformer())
+            new_mol.conformers = [c]
+            energy = c.energy
+
+            new_mol.genealogy = mol.genealogy[:]
+            new_mol.genealogy.append(
+                new_mol.smiles(True) + 
+                " (nonaromatic ring conformer: " + str(energy) + 
+                " kcal/mol)"
+            )
+
+            results.append(new_mol)  # i is mol index
+
+        return results
+                
+    
 
 def generate_alternate_3d_nonaromatic_ring_confs(self):
     """
@@ -55,119 +168,12 @@ def generate_alternate_3d_nonaromatic_ring_confs(self):
     if len(ones_with_nonaro_rngs) == 0:
         return  # There are no such ligands to process.
 
-    class GetRingConfs(mp.GeneralTask):
-        def value_func(self, items, results_queue):
-            mol, params = items
-            contnr_idx = mol.contnr_idx
-
-            # All the ones in this contnr must have nonatomatic rings.
-            # So just make a new mols list.
-
-            # Get the ring atom indecies
-            rings = mol.m_num_nonaro_rngs()
-
-            # Convert that into the bond indecies.
-            rings_by_bonds = []
-            for ring_atom_indecies in rings:
-                bond_indecies = []
-                for ring_atm_idx in ring_atom_indecies:
-                    a = mol.GetAtomWithIdx(ring_atm_idx)
-                    bonds = a.GetBonds()
-                    for bond in bonds:
-                        atom_indecies = [
-                            bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-                        ]
-                        atom_indecies.remove(ring_atm_idx)
-                        other_atm_idx = atom_indecies[0]
-                        if other_atm_idx in ring_atom_indecies:
-                            bond_indecies.append(bond.GetIdx())
-                bond_indecies = list(set(bond_indecies))
-                bond_indecies.sort()
-
-                rings_by_bonds.append(bond_indecies)
-            
-            # Generate a bunch of conformations, ordered from best
-            # energy to worst. Note that this is cached.
-            # Minimizing too.
-            mol.add_conformers(
-                params["thoroughness"] * params["max_variants_per_compound"],
-                0.1, True
-            )
-
-            if mol.GetNumConformers() > 0:
-                # Sometimes there are no conformers if it's an impossible structure.
-                # Like [H]c1nc(N2C(=O)[C@@]3(C([H])([H])[H])[C@@]4([H])O[C@@]([H])(C([H])([H])C4([H])[H])[C@]3(C([H])([H])[H])C2=O)sc1[H]
-                # So don't save this one anyway.
-
-                # Get the scores (lowest energy) of these minimized conformers
-                mol.load_conformations_into_mol_3d()
-
-                # Extract just the rings.
-                ring_mols = [Chem.PathToSubmol(mol.rdkit_mol, bi) 
-                             for bi in rings_by_bonds]
-                
-                # Align get the rmsds relative to the first conformation,
-                # for each ring separately.
-                list_of_rmslists = [[]] * len(ring_mols)
-                for k in range(len(ring_mols)):
-                    list_of_rmslists[k] = []
-                    AllChem.AlignMolConformers(
-                        ring_mols[k], RMSlist=list_of_rmslists[k]
-                    )
-                
-                # Get points for each conformer (rmsd_ring1, rmsd_ring2,
-                # rmsd_ring3)
-                pts = numpy.array(list_of_rmslists).T
-                pts = numpy.vstack((numpy.array([[0.0] * pts.shape[1]]), pts))
-
-                # cluster those points, get lowest-energy member of each
-                if len(pts) < params["max_variants_per_compound"]:
-                    num_clusters = len(pts)
-                else:
-                    num_clusters = params["max_variants_per_compound"]
-
-                # try:
-                groups = kmeans2(pts, num_clusters, minit='points')[1]
-
-                #conformers = new_mymol 
-                # except:
-                #     print pts
-                #     print params["max_variants_per_compound"]
-                #     print kmeans2(pts, num_clusters, minit='points')[1]
-
-                # Note that you have some geometrically diverse conformations
-                # here, but there could be other versions (enantiomers,
-                # tautomers, etc.) that also contribute similar conformations.
-                # In the end, you'll be selecting from all these together, so
-                # similar ones could end up together.
-
-                best_ones = {}
-                conformers = mol.rdkit_mol.GetConformers()
-                for k, grp in enumerate(groups):
-                    if not grp in best_ones.keys():
-                        best_ones[grp] = mol.conformers[k]
-                best_confs = best_ones.values()
-
-                # Convert rdkit mols to MyMol
-                for conf in best_confs:
-                    new_mol = mol.copy()
-                    c = MyConformer(new_mol, conf.conformer())
-                    new_mol.conformers = [c]
-                    energy = c.energy
-
-                    new_mol.genealogy = mol.genealogy[:]
-                    new_mol.genealogy.append(
-                        new_mol.smiles(True) + 
-                        " (nonaromatic ring conformer: " + str(energy) + 
-                        " kcal/mol)"
-                    )
-
-                    self.results.append(new_mol)  # i is mol index
-                
-                #Utils.log("\tApplies to molecule derived from " + orig_smi)
+    #Utils.log("\tApplies to molecule derived from " + orig_smi)
     tmp = mp.MultiThreading(
         params, self.params["num_processors"], GetRingConfs
     )
+
+    results = [item for sublist in tmp for item in sublist]
 
     # # Remove mol list for the ones with nonaromatic rings
     # for contnr_idx in ones_with_nonaro_rngs:
@@ -176,7 +182,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(self):
     # Group by mol. You can't use existing functions because they would
     # require you to recalculate already calculated energies.
     grouped = {}
-    for mol in tmp.results:
+    for mol in results:
         # Save the energy as a prop while you're here.
         energy = mol.conformers[0].energy
         mol.mol_props["Energy"] = energy

@@ -1,4 +1,4 @@
-from ... import multiprocess_v2 as mp
+from ... import mp_queue as mp
 from ... import Utils
 from ... import ChemUtils
 import copy
@@ -10,6 +10,29 @@ try:
 except:
     Utils.log("You need to install rdkit and its dependencies.")
     sys.exit(0)
+
+def mk3d(mol):
+    show_error_msg = False
+
+    if mol.rdkit_mol is None:
+        show_error_msg = True
+    else:
+        if mol.crzy_substruc() == False:
+            mol.makeMol3D()
+            if mol.GetNumConformers() > 0:
+                mol.genealogy.append(
+                    mol.smiles(True) + " (3D coordinates assigned)"
+                )
+                return mol
+            else:
+                show_error_msg = True
+
+    if show_error_msg:
+        Utils.log(
+            "\tWarning: Could not generate 3D geometry for " +
+            str(mol.smiles()) + " (" + mol.name + "). Molecule " +
+            "discarded."
+        )
 
 def convert_2d_to_3d(self):
     """
@@ -23,30 +46,6 @@ def convert_2d_to_3d(self):
         for mol in contnr.mols:
             params.append(mol)
 
-    class mk3d(mp.GeneralTask):
-        def value_func(self, mol, results_queue):
-            show_error_msg = False
-
-            if mol.rdkit_mol is None:
-                show_error_msg = True
-            else:
-                if mol.crzy_substruc() == False:
-                    mol.makeMol3D()
-                    if mol.GetNumConformers() > 0:
-                        mol.genealogy.append(
-                            mol.smiles(True) + " (3D coordinates assigned)"
-                        )
-                        self.results.append(mol)
-                    else:
-                        show_error_msg = True
-
-            if show_error_msg:
-                Utils.log(
-                    "\tWarning: Could not generate 3D geometry for " +
-                    str(mol.smiles()) + " (" + mol.name + "). Molecule " +
-                    "discarded."
-                )
-
     tmp = mp.MultiThreading(params, self.params["num_processors"], mk3d)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp.results, False)
+    ChemUtils.bst_for_each_contnr_no_opt(self, tmp, False)
