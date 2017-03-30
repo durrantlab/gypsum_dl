@@ -17,7 +17,40 @@ except:
     Utils.log("You need to install molvs and its dependencies.")
     sys.exit(0)
 
-def makeTaut(contnr, mol_index, params):
+def make_tauts(self):
+    """
+    Generates tautomers of the molecules. Note that some of the generated
+    tautomers are not realistic. If you find a certain improbable
+    substructure keeps popping up, add it to the list in the
+    `remove_crazy_substrings` definition.
+    """
+
+    if self.params["max_variants_per_compound"] == 0:
+        return
+
+    Utils.log("Generating tautomers for all molecules...")
+
+    params = []
+    for contnr in self.contnrs:
+        for mol_index, mol in enumerate(contnr.mols):
+            params.append((contnr, mol_index, self.params))
+
+    tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_makeTaut)
+
+    # Flatten the resulting list of lists
+    taut_data = [item for sublist in tmp for item in sublist]
+
+    # Remove bad tauts
+    taut_data = tauts_no_break_arom_rngs(self, taut_data)
+    taut_data = tauts_no_elim_chiral(self, taut_data)
+    taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
+        self, taut_data
+    )
+
+    ChemUtils.bst_for_each_contnr_no_opt(self, taut_data)
+
+
+def parallel_makeTaut(contnr, mol_index, params):
     #id = random.random()
     #print "Start", id
 
@@ -74,58 +107,6 @@ def makeTaut(contnr, mol_index, params):
     #print "End", id
 
 
-def make_tauts(self):
-    """
-    Generates tautomers of the molecules. Note that some of the generated
-    tautomers are not realistic. If you find a certain improbable
-    substructure keeps popping up, add it to the list in the
-    `remove_crazy_substrings` definition.
-    """
-
-    if self.params["max_variants_per_compound"] == 0:
-        return
-
-    Utils.log("Generating tautomers for all molecules...")
-
-    params = []
-    for contnr in self.contnrs:
-        for mol_index, mol in enumerate(contnr.mols):
-            params.append((contnr, mol_index, self.params))
-
-    tmp = mp.MultiThreading(params, self.params["num_processors"], makeTaut)
-
-    # Flatten the resulting list of lists
-    taut_data = [item for sublist in tmp for item in sublist]
-
-    # Remove bad tauts
-    taut_data = tauts_no_break_arom_rngs(self, taut_data)
-    taut_data = tauts_no_elim_chiral(self, taut_data)
-    taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-        self, taut_data
-    )
-
-    ChemUtils.bst_for_each_contnr_no_opt(self, taut_data)
-
-
-def Badtaut(taut, contnr):
-    contnr_idx = taut.contnr_idx
-
-    # How many nonaromatic rings in the original smiles?
-    num_nonaro_rngs_orig = contnr.num_nonaro_rngs
-
-    # Check if it breaks aromaticity.
-    m_num_nonaro_rngs = len(taut.m_num_nonaro_rngs())
-    if m_num_nonaro_rngs == num_nonaro_rngs_orig:
-        # Same number of nonaromatic rings as original molecule
-        # Save the good ones.
-        return taut
-    else:
-        Utils.log(
-            "\t" + taut.smiles(True) + ", a tautomer generated " +
-            "from " + contnr.orig_smi + " (" + taut.name + 
-            "), broke an aromatic ring, so I'm discarding it."
-        )
-
 def tauts_no_break_arom_rngs(self, taut_data):
     """
     For a given molecule, the number of atomatic rings should never change
@@ -142,41 +123,15 @@ def tauts_no_break_arom_rngs(self, taut_data):
     params = []
     for taut_mol in taut_data:
         params.append((taut_mol, self.contnrs[taut_mol.contnr_idx]))
-    
 
-                    
-    tmp = mp.MultiThreading(
-        params, self.params["num_processors"], Badtaut
-    )
+    tmp = mp.MultiThreading(params, self.params["num_processors"],
+                            parallel_CheckNonaroRings)
 
     # Stripping out None values
     results = [x for x in tmp if x != None]
 
     return results
 
-def Badtaut2(taut, contnr):
-    contnr_idx = taut.contnr_idx
-
-    # How many chiral centers in the original smiles?
-    num_specif_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs
-
-    # Make a new list containing only the ones that don't break chiral
-    # centers.
-    m_num_specif_chiral_cntrs = len(taut.chiral_cntrs_only_asignd())
-    if m_num_specif_chiral_cntrs == num_specif_chiral_cntrs_orig:
-        # Same number of chiral centers as original molecule
-        # Save those good ones.
-        return taut
-    else:
-        Utils.log(
-            "\t" + contnr.orig_smi + " ==> " + taut.smiles(True) + 
-            " (tautomer transformation on " + taut.name + ") " +
-            "changed the molecules total number of specified " +
-            "chiral centers from " + 
-            str(num_specif_chiral_cntrs_orig) + " to " + 
-            str(m_num_specif_chiral_cntrs) + 
-            ", so I'm deleting it."
-        )
 
 def tauts_no_elim_chiral(self, taut_data):
     """
@@ -197,32 +152,13 @@ def tauts_no_elim_chiral(self, taut_data):
     for taut_mol in taut_data:
         params.append((taut_mol, self.contnrs[taut_mol.contnr_idx]))
 
-    tmp = mp.MultiThreading(params, self.params["num_processors"], Badtaut2)
+    tmp = mp.MultiThreading(params, self.params["num_processors"],
+                            parallel_CheckChiralCenters)
 
     # Stripping out None values
     results = [x for x in tmp if x != None]
 
     return results
-
-def Badtaut3(taut, contnr):
-    contnr_idx = taut.contnr_idx
-
-    # What's the carbon-hydrogen fingerprint of the original smiles?
-    orig_carbon_hydrogen_count = contnr.carbon_hydrogen_count
-
-    # How about this taut?
-    this_carbon_hydrogen_count = taut.carb_hyd_cnt()
-
-    # Only keep if they are the same.
-    if orig_carbon_hydrogen_count == this_carbon_hydrogen_count:
-        return taut
-    else:
-        Utils.log(
-            "\t" + contnr.orig_smi + " ==> " + taut.smiles(True) + 
-            " (taut transformation on " + taut.name + ") " + 
-            "changed the number of hydrogen atoms bound to a " + 
-            "carbon, so I'm deleting it."
-        )
 
 def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(self, taut_data):
     """
@@ -240,8 +176,100 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(self, taut_data):
     params = []
     for taut_mol in taut_data:
         params.append((taut_mol, self.contnrs[taut_mol.contnr_idx]))
-    
-    tmp = mp.MultiThreading(params, self.params["num_processors"], Badtaut3)
-    return tmp
+
+    tmp = mp.MultiThreading(params, self.params["num_processors"],
+                            parallel_CheckCarbonHydrogens)
+
+    # Stripping out None values
+    results = [x for x in tmp if x != None]
+
+    return results
 
 
+
+def parallel_CheckNonaroRings(taut, contnr):
+    """
+    A parallelizable helper function that checks that tautomers do not break any
+    nonaromatic rings present in the original object.
+
+    :param tautomer taut: A given tautomer to check.
+    :param ?contnr? contnr: The original molecule object.
+
+    :results: Returns either the tautomer or a None object.
+    """
+
+    # How many nonaromatic rings in the original smiles?
+    num_nonaro_rngs_orig = contnr.num_nonaro_rngs
+
+    # Check if it breaks aromaticity.
+    m_num_nonaro_rngs = len(taut.m_num_nonaro_rngs())
+    if m_num_nonaro_rngs == num_nonaro_rngs_orig:
+        # Same number of nonaromatic rings as original molecule
+        # Save the good ones.
+        return taut
+    else:
+        Utils.log(
+            "\t" + taut.smiles(True) + ", a tautomer generated " +
+            "from " + contnr.orig_smi + " (" + taut.name +
+            "), broke an aromatic ring, so I'm discarding it."
+        )
+
+
+def parallel_CheckChiralCenters(taut, contnr):
+    """
+    A parallelizable helper function that checks that tautomers do not break
+    any chiral centers in the original molecule.
+
+    :param tautomer taut: A given tautomer to check.
+    :param ?contnr? contnr: The original molecule object.
+
+    :results: Returns either the tautomer or a None object.
+    """
+    # How many chiral centers in the original smiles?
+    num_specif_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs
+
+    # Make a new list containing only the ones that don't break chiral
+    # centers.
+    m_num_specif_chiral_cntrs = len(taut.chiral_cntrs_only_asignd())
+    if m_num_specif_chiral_cntrs == num_specif_chiral_cntrs_orig:
+        # Same number of chiral centers as original molecule
+        # Save those good ones.
+        return taut
+    else:
+        Utils.log(
+            "\t" + contnr.orig_smi + " ==> " + taut.smiles(True) +
+            " (tautomer transformation on " + taut.name + ") " +
+            "changed the molecules total number of specified " +
+            "chiral centers from " +
+            str(num_specif_chiral_cntrs_orig) + " to " +
+            str(m_num_specif_chiral_cntrs) +
+            ", so I'm deleting it."
+        )
+
+
+def parallel_CheckCarbonHydrogens(taut, contnr):
+    """
+    A parallelizable helper function that checks that tautomers do not change
+    the hydrogens on inappropriate carbons.
+
+    :param tautomer taut: A given tautomer to check.
+    :param ?contnr? contnr: The original molecule object.
+
+    :results: Returns either the tautomer or a None object.
+    """
+    # What's the carbon-hydrogen fingerprint of the original smiles?
+    orig_carbon_hydrogen_count = contnr.carbon_hydrogen_count
+
+    # How about this taut?
+    this_carbon_hydrogen_count = taut.carb_hyd_cnt()
+
+    # Only keep if they are the same.
+    if orig_carbon_hydrogen_count == this_carbon_hydrogen_count:
+        return taut
+    else:
+        Utils.log(
+            "\t" + contnr.orig_smi + " ==> " + taut.smiles(True) +
+            " (taut transformation on " + taut.name + ") " +
+            "changed the number of hydrogen atoms bound to a " +
+            "carbon, so I'm deleting it."
+        )
