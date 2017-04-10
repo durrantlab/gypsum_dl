@@ -1,6 +1,6 @@
 from ... import Utils
 from ... import ChemUtils
-from ... import mp_queue as mp
+from ... import Multiprocess as mp
 from ... import MyMol
 import copy
 import sys

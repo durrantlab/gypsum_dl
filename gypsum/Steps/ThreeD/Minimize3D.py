@@ -1,4 +1,4 @@
-from ... import mp_queue as mp
+from ... import Multiprocess as mp
 from ... import Utils
 from ... import ChemUtils
 from ... MyMol import MyConformer

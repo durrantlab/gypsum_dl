@@ -2,7 +2,7 @@ import sys
 
 from ... import ChemUtils
 from ... import Utils
-from ... import mp_queue as mp
+from ... import Multiprocess as mp
 from ... import MyMol
 
 try:

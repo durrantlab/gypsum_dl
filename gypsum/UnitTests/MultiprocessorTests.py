@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import unittest
 import time
-from gypsum import mp_queue
+from gypsum import Multiprocess
 
 def function_testing(thing, state, secs):
     time.sleep(secs)
@@ -39,7 +39,7 @@ class MultiprocessorTests(unittest.TestCase):
         """
         tasks = [("bun", "done", 0)]
 
-        this = mp_queue.MultiThreading(tasks, 1, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 1, function_testing)
 
         self.assertEqual(this[0], "The bun is done.")
 
@@ -52,7 +52,7 @@ class MultiprocessorTests(unittest.TestCase):
                  ("scone", "burned", 0)
                 ]
 
-        this = mp_queue.MultiThreading(tasks, 1, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 1, function_testing)
 
         self.assertEqual(this[0], "The bun is done.")
         self.assertEqual(this[1], "The cake is baked.")
@@ -68,7 +68,7 @@ class MultiprocessorTests(unittest.TestCase):
                  ("scone", "burned", 3)
                 ]
 
-        this = mp_queue.MultiThreading(tasks, 1, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 1, function_testing)
 
         self.assertEqual(this[0], "The bun is done.")
         self.assertEqual(this[1], "The cake is baked.")
@@ -84,7 +84,7 @@ class MultiprocessorTests(unittest.TestCase):
                  ("scone", "burned", 0)
                 ]
 
-        this = mp_queue.MultiThreading(tasks, 3, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 3, function_testing)
 
         self.assertIn("The bun is done.", this)
         self.assertIn("The cake is baked.", this)
@@ -99,7 +99,7 @@ class MultiprocessorTests(unittest.TestCase):
                  ("scone", "burned", .1)
                 ]
 
-        this = mp_queue.MultiThreading(tasks, 3, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 3, function_testing)
 
         self.assertIn("The bun is done.", this)
         self.assertIn("The cake is baked.", this)
@@ -116,7 +116,7 @@ class MultiprocessorTests(unittest.TestCase):
                  ("bread", "risen", 0)
                 ]
 
-        this = mp_queue.MultiThreading(tasks, 1, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 1, function_testing)
 
         self.assertIn("The bun is done.", this)
         self.assertIn("The cake is baked.", this)
@@ -135,7 +135,7 @@ class MultiprocessorTests(unittest.TestCase):
                  ("bread", "risen", 0)
                 ]
 
-        this = mp_queue.MultiThreading(tasks, 3, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 3, function_testing)
 
         self.assertIn("The bun is done.", this)
         self.assertIn("The cake is baked.", this)
@@ -154,7 +154,7 @@ class MultiprocessorTests(unittest.TestCase):
                  ("bread", "risen", 0.2)
                 ]
 
-        this = mp_queue.MultiThreading(tasks, 1, function_testing)
+        this = Multiprocess.MultiThreading(tasks, 1, function_testing)
 
         self.assertIn("The bun is done.", this)
         self.assertIn("The cake is baked.", this)
@@ -169,7 +169,7 @@ class MultiprocessorTests(unittest.TestCase):
 
         tasks = ["cats", "tea", "giant robots"]
 
-        this = mp_queue.MultiThreading(tasks, 1, single_input)
+        this = Multiprocess.MultiThreading(tasks, 1, single_input)
 
         self.assertIn("Happiness is cats.", this)
         self.assertIn("Happiness is tea.", this)

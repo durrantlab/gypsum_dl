@@ -3,7 +3,7 @@ from ... import ChemUtils
 from ... import MyMol
 import itertools
 import copy
-from ... import mp_queue as mp
+from ... import Multiprocess as mp
 import sys
 import random
 
