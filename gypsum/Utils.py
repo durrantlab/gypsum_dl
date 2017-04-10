@@ -19,11 +19,11 @@ def group_mols_by_container_index(mol_lst):
     grouped_results = {}
     for mol in mol_lst:
         idx = mol.contnr_idx
-        
+
         if not idx in grouped_results:
             grouped_results[idx] = []
         grouped_results[idx].append(mol)
-    
+
     for key in grouped_results.keys():
         grouped_results[key] = list(set(grouped_results[key]))
 
@@ -73,11 +73,11 @@ def log(txt):
 def runit(cmd):
     """
     Runs a command and returns the output as a list.
-    
+
     :param str cmd: The command.
-    
+
     :returns: A list containing the output, each line as a separate item
-                in the list. 
+                in the list.
     :rtype: :class:`list` ???
     """
     

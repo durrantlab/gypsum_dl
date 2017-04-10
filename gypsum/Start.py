@@ -1,4 +1,4 @@
-import multiprocess_v2 as mp
+import Multiprocess as mp
 import Utils
 import ChemUtils
 from MolContainer import MolContainer
@@ -38,7 +38,81 @@ class ConfGenerator:
     requires the python modules rdkit and molvs, as well as openbabel
     installed as an executable on the system.
     """
-    
+
+    def __init__(self, param_file):
+        """
+        The class constructor. Starts the conversion process, ultimately
+        writing the converted files to disk.
+        
+        :param string param_file: A json file specifying the parameters. 
+        """
+
+        # Load the parameters from the json
+        params = json.load(open(param_file))
+        self.set_parameters(params)
+
+        if isinstance(self.params["source"], basestring): 
+            # smiles must be array of strs
+            src = self.params["source"]
+            if src.lower().endswith(".smi") or src.lower().endswith(".can"):
+                # It's an smi file.
+                smiles_data = load_smiles_file(self.params["source"])
+            elif self.params["source"].lower().endswith(".sdf"):
+                # It's an sdf file. Convert it to a smiles.
+                smiles_data = load_sdf_file(self.params["source"])
+            else:
+                smiles_data = [self.params["source"]]
+        else:
+            pass  # It's already in the required format.
+        
+        # Make the containers
+        self.contnrs = []
+        for idx, data in enumerate(smiles_data):
+            smiles, name = data
+            new_contnr = MolContainer(smiles, name, idx)
+            self.contnrs.append(new_contnr)
+
+        Steps.SMILES.desalt_orig_smi(self)
+
+        Steps.SMILES.add_hydrogens(self)
+        self.print_current_smiles()
+
+        # Do tautomers first, because obliterates chiral info I think
+        Steps.SMILES.make_tauts(self)
+        self.print_current_smiles()
+
+        Steps.SMILES.enumerate_chiral_molecules(self)
+        self.print_current_smiles()
+
+        # Suprized you have a hard time generating enantiomers here:
+        # CCC(C)NC(=O)CC(C)C
+
+        Steps.SMILES.enumerate_double_bonds(self)
+        self.print_current_smiles()
+
+        Steps.ThreeD.convert_2d_to_3d(self)
+        self.print_current_smiles()
+
+        if self.params["alternate_ring_conformations"] == True:
+            Steps.ThreeD.generate_alternate_3d_nonaromatic_ring_confs(self)
+        self.print_current_smiles()
+
+        if self.params["optimize_geometry"] == True:
+            Steps.ThreeD.minimize_3d(self)
+        self.print_current_smiles()
+        
+        self.add_mol_id_props()
+        self.print_current_smiles()
+
+        # Write any mols that fail entirely to a file.
+        self.deal_with_failed_molecules()
+
+        if self.params["output_file"].lower().endswith(".html"):
+            Steps.IO.web_2d_output(self)
+        else:
+            Steps.IO.save_to_sdf(self)
+
+
     def set_parameters(self, params):
         """
         Set the parameters that will control this ConfGenerator object.
@@ -135,7 +209,7 @@ class ConfGenerator:
         # string, it's assumed to be a smiles string itself and is assigned a
         # name of "". If it's a list, it's assumed to be a list of tuples,
         # [SMILES, Name].
-        
+
         if default["output_file"] == "" and default["source"] != "":
             default["output_file"] = default["source"] + ".output.sdf"
 
@@ -149,14 +223,15 @@ class ConfGenerator:
 
         if not os.path.exists(default["openbabel_executable"]):
             Utils.log(
-                "ERROR! There is no executable at " + 
+                "ERROR! There is no executable at " +
                 default["openbabel_executable"] + ". Please specify the " +
                 "correct path in your parameters file and/or install Open " +
                 "Babel if necessary."
             )
             sys.exit(0)
-        
+
         self.params = default
+
 
     def print_current_smiles(self):
         """
@@ -167,6 +242,7 @@ class ConfGenerator:
         print "    Contents of MolContainers"
         for i, mol_cont in enumerate(self.contnrs):
             Utils.log("\t\t" + str(i) + " " + str(mol_cont.all_smiles()))
+
 
     def add_mol_id_props(self):
         """
@@ -184,14 +260,18 @@ class ConfGenerator:
     def add_indexed_mols_to_mols(self, items):
         """
         Adds a molecule to the specified MolContainer.
-        
+
         :param list items: A list of tuples, [(index, mol), (index, mol), ...]
         """
 
         for index, mol in items:
             self.contnrs[index].add_mol(mol)
-    
+
+
     def deal_with_failed_molecules(self):
+        """
+        What does this function do?
+        """
         failed_ones = []
         for contnr in self.contnrs:
             if len(contnr.mols) == 0:
@@ -209,76 +289,3 @@ class ConfGenerator:
             f.write("\n".join(failed_ones))
             f.close()
 
-    def __init__(self, param_file):
-        """
-        The class constructor. Starts the conversion process, ultimately
-        writing the converted files to disk.
-        
-        :param string param_file: A json file specifying the parameters. 
-        """
-
-        # Load the parameters from the json
-        params = json.load(open(param_file))
-        self.set_parameters(params)
-
-        if isinstance(self.params["source"], basestring): 
-            # smiles must be array of strs
-            src = self.params["source"]
-            if src.lower().endswith(".smi") or src.lower().endswith(".can"):
-                # It's an smi file.
-                smiles_data = load_smiles_file(self.params["source"])
-            elif self.params["source"].lower().endswith(".sdf"):
-                # It's an sdf file. Convert it to a smiles.
-                smiles_data = load_sdf_file(self.params["source"])
-            else:
-                smiles_data = [self.params["source"]]
-        else:
-            pass  # It's already in the required format.
-        
-        # Make the containers
-        self.contnrs = []
-        for idx, data in enumerate(smiles_data):
-            smiles, name = data
-            new_contnr = MolContainer(smiles, name, idx)
-            self.contnrs.append(new_contnr)
-
-        Steps.SMILES.desalt_orig_smi(self)
-
-        Steps.SMILES.add_hydrogens(self)
-        self.print_current_smiles()
-
-        # Do tautomers first, because obliterates chiral info I think
-        Steps.SMILES.make_tauts(self)
-        self.print_current_smiles()
-
-        Steps.SMILES.enumerate_chiral_molecules(self)
-        self.print_current_smiles()
-
-        # Suprized you have a hard time generating enantiomers here:
-        # CCC(C)NC(=O)CC(C)C
-
-        Steps.SMILES.enumerate_double_bonds(self)
-        self.print_current_smiles()
-
-        Steps.ThreeD.convert_2d_to_3d(self)
-        self.print_current_smiles()
-
-        if self.params["alternate_ring_conformations"] == True:
-            Steps.ThreeD.generate_alternate_3d_nonaromatic_ring_confs(self)
-        self.print_current_smiles()
-
-        if self.params["optimize_geometry"] == True:
-            Steps.ThreeD.minimize_3d(self)
-        self.print_current_smiles()
-        
-        self.add_mol_id_props()
-        self.print_current_smiles()
-
-        # Write any mols that fail entirely to a file.
-        self.deal_with_failed_molecules()
-
-        if self.params["output_file"].lower().endswith(".html"):
-            Steps.IO.web_2d_output(self)
-        else:
-            Steps.IO.save_to_sdf(self)
-        

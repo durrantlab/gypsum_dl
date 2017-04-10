@@ -1,6 +1,34 @@
 import sys
+import argparse
 from gypsum.Start import ConfGenerator
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--json', '-j',
+                    help='name of a json file containing all parameters')
+parser.add_argument('--input', '-i',
+                    help='name of the input file')
+parser.add_argument('--output', '-o',
+                    help='name of the output file')
+parser.add_argument('--source', '-s',
+                    help='TO BE DETERMINED')
+parser.add_argument('--separate_output_files', action='store_true',
+                    help='indicates that the output should be split')
+parser.add_argument('--openbabel_exe',
+                    help='path to the openbabel executable')
+parser.add_argument('--processors', '-p', help='number of processors to use in parallel')
+parser.add_argument('--min_ph', help='minimum pH to consider')
+parser.add_argument('--max_ph', help='maximum pH to consider')
+parser.add_argument('--delta_ph', help='')
+parser.add_argument('--thoroughness', '-t',
+                    help='')
+parser.add_argument('--max_variants', '-m',
+                    help='')
+parser.add_argument('--optimize_geometry', action='store_true',
+                    help='')
+parser.add_argument('--alternate_ring_conformations', action='store_true',
+                    help='')
+
+args = parser.parse_args()
 # # Test chiral. One chiral center specified, one not.
 # ConfGenerator(['I[C@@](C)(F)C(I)(F)C'], 5, 9)
 
