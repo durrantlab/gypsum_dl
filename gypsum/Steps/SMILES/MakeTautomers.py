@@ -38,7 +38,7 @@ def make_tauts(self):
     tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_makeTaut)
 
     # Flatten the resulting list of lists
-    taut_data = [item for sublist in tmp for item in sublist]
+    taut_data = mp.flatten_list(tmp)
 
     # Remove bad tauts
     taut_data = tauts_no_break_arom_rngs(self, taut_data)
@@ -128,7 +128,7 @@ def tauts_no_break_arom_rngs(self, taut_data):
                             parallel_CheckNonaroRings)
 
     # Stripping out None values
-    results = [x for x in tmp if x != None]
+
 
     return results
 

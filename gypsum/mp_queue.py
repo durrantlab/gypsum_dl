@@ -9,8 +9,7 @@ Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
 import multiprocessing
 
 
-
-def MultiThreading(inputs, num_processors, task_class_name):
+def MultiThreading(inputs, num_processors, task_name):
     """Initialize this object.
 
     Args:
@@ -34,10 +33,33 @@ def MultiThreading(inputs, num_processors, task_class_name):
     for item in inputs:
         if not isinstance(item, tuple):
             item = (item,)
-        tasks.append((task_class_name, item))
+        tasks.append((task_name, item))
 
     results = start_processes(tasks, num_processors)
 
+    return results
+
+def flatten_list(tier_list):
+    """
+    Given a list of lists, this returns a flat list of all items.
+
+    :params list tier_list: A 2D list.
+
+    :returns: A flat list of all items.
+    """
+    flat_list = [item for sublist in tier_list for item in sublist]
+    return flat_list
+
+def strip_none(none_list):
+    """
+    Given a list that might contain None items, this returns a list with no
+    None items.
+
+    :params list none_list: A list that may contain None items.
+
+    :returns: A list stripped of None items.
+    """
+    results = [x for x in none_list if x != None]
     return results
 
 #
@@ -48,9 +70,7 @@ def worker(input, output):
         result = func(*args)
         output.put(result)
 
-#
-# 
-#
+
 def count_processors(num_inputs, num_processors):
     """
     Checks processors available and returns a safe number of them to

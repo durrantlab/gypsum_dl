@@ -12,58 +12,6 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     sys.exit(0)
 
-def addH(pH, flnm, obabel_loc):
-    Utils.log("\tat pH " + str(pH))
-    results = Utils.runit(
-        obabel_loc + ' -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
-    )
-
-    for s in results:
-        s = s.strip()
-        if s != "":
-            prts = s.split()
-            smi = prts[0]
-            mol_info = " ".join(prts[1:])
-            name, contnr_idx, orig_smi, orig_smi_deslt = mol_info.split("____")
-
-            amol = MyMol.MyMol(smi)
-
-            # I once saw it add a C+ here. So do a sanity check at
-            # this point.
-            if amol.rdkit_mol is not None:
-                
-                # Unfortuantely, obabel makes some systematic mistakes
-                # when it comes to pH assignments. Try to correct them
-                # here.
-                
-                amol.fix_common_errors()
-                
-                if amol.crzy_substruc() == False:
-                    amol.contnr_idx = int(
-                        contnr_idx
-                    )
-
-                    amol.genealogy.append(orig_smi + " (source)")
-
-                    if orig_smi != orig_smi_deslt:
-                        amol.genealogy.append(
-                            orig_smi_deslt + " (desalted)"
-                        )
-                    
-                    amol.genealogy.append(
-                        amol.smiles(True) + " (at pH " + 
-                        str(pH) + ")"
-                    )
-
-                    amol.name = name
-
-                    return amol
-                else:
-                    Utils.log(
-                        "\WARNING: " + smi + " (" + name  + 
-                        ") discarded."
-                    )
-
 
 def add_hydrogens(self):
     """
@@ -71,19 +19,19 @@ def add_hydrogens(self):
     the user-specified values. Note that though not a class function, it still
     accepts self as a parameter. This is the class that is calling it.
     """
-    
+
     Utils.log("Adding hydrogen atoms...")
 
     # Save all smiles to a temporary file
-    flnm = str(random.randrange(0,1000000)) + ".tmp"
+    flnm = str(random.randrange(0, 1000000)) + ".tmp"
     while os.path.exists(flnm):
-        flnm = str(random.randrange(0,1000000)) + ".tmp"
-    
+        flnm = str(random.randrange(0, 1000000)) + ".tmp"
+
     f = open(flnm, 'w')
     f.writelines(
         [m.orig_smi_deslt + " " + m.name + "____" + str(i) + "____" +
-        m.orig_smi + "____" + m.orig_smi_deslt + "\n" for i, m in
-        enumerate(self.contnrs)]
+         m.orig_smi + "____" + m.orig_smi_deslt + "\n" for i, m in
+         enumerate(self.contnrs)]
     )
     f.close()
 
@@ -94,9 +42,13 @@ def add_hydrogens(self):
         params.append((pH, f.name, self.params["openbabel_executable"]))
         pH = pH + self.params["delta_ph_increment"]
 
-    
-    tmp = mp.MultiThreading(params, self.params["num_processors"], addH)
-        
+
+    tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_addH)
+
+    # *?* Check that this makes sense in the structure of ourput
+    # Flattening return values
+    tmp = mp.flatten_list(tmp)
+
     # Add back in remaining, using original smiles (no protonation). This is
     # better than nothing.
 
@@ -125,3 +77,67 @@ def add_hydrogens(self):
     os.unlink(f.name)
 
     ChemUtils.bst_for_each_contnr_no_opt(self, tmp)
+
+def parallel_addH(pH, flnm, obabel_loc):
+    """
+    A parallelizable helper function that adds hydrogens to molecules.
+
+    :param ?float? pH: The pH to consider when adding hydrogens
+    :param str flnm: The file name that holds the file to consider.
+    :param str obabel_loc: The location of the obabel installation.
+
+    :results: Returns either the tautomer or a None object.
+    """
+    Utils.log("\tat pH " + str(pH))
+    results = Utils.runit(
+        obabel_loc + ' -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
+    )
+
+    return_value = []
+
+    for s in results:
+        s = s.strip()
+        if s != "":
+            prts = s.split()
+            smi = prts[0]
+            mol_info = " ".join(prts[1:])
+            name, contnr_idx, orig_smi, orig_smi_deslt = mol_info.split("____")
+
+            amol = MyMol.MyMol(smi)
+
+            # I once saw it add a C+ here. So do a sanity check at
+            # this point.
+            if amol.rdkit_mol is not None:
+
+                # Unfortuantely, obabel makes some systematic mistakes
+                # when it comes to pH assignments. Try to correct them
+                # here.
+
+                amol.fix_common_errors()
+
+                if amol.crzy_substruc() == False:
+                    amol.contnr_idx = int(
+                        contnr_idx
+                    )
+
+                    amol.genealogy.append(orig_smi + " (source)")
+
+                    if orig_smi != orig_smi_deslt:
+                        amol.genealogy.append(
+                            orig_smi_deslt + " (desalted)"
+                        )
+
+                    amol.genealogy.append(
+                        amol.smiles(True) + " (at pH " +
+                        str(pH) + ")"
+                    )
+
+                    amol.name = name
+
+                    return_value.append(amol)
+                else:
+                    Utils.log(
+                        "\WARNING: " + smi + " (" + name  +
+                        ") discarded."
+                    )
+    return return_value
