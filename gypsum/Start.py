@@ -39,19 +39,21 @@ class ConfGenerator:
     installed as an executable on the system.
     """
 
-    def __init__(self, param_file):
+    def __init__(self, args):
         """
         The class constructor. Starts the conversion process, ultimately
         writing the converted files to disk.
-        
-        :param string param_file: A json file specifying the parameters. 
+
+        :param string param_file: A json file specifying the parameters.
         """
-
         # Load the parameters from the json
-        params = json.load(open(param_file))
-        self.set_parameters(params)
+        if args.has_key(json):
+            params = json.load(open(args['json']))
+            self.set_parameters(params)
+        else:
+            self.set_parameters(args)
 
-        if isinstance(self.params["source"], basestring): 
+        if isinstance(self.params["source"], basestring):
             # smiles must be array of strs
             src = self.params["source"]
             if src.lower().endswith(".smi") or src.lower().endswith(".can"):
@@ -174,7 +176,7 @@ class ConfGenerator:
             param = param.lower()
 
             # Throw an error if there's an unrecognized parameter
-            if not param in default:
+            if not (param in default):
                 Utils.log(
                     "ERROR! Parameter \"" + param + "\" not recognized!"
                 )

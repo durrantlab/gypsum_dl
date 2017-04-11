@@ -128,7 +128,7 @@ def tauts_no_break_arom_rngs(self, taut_data):
                             parallel_CheckNonaroRings)
 
     # Stripping out None values
-
+    results = mp.strip_none(tmp)
 
     return results
 
