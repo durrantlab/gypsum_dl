@@ -25,10 +25,23 @@ parser.add_argument('--max_variants_per_compound', '-m', type=int, metavar='V',
                     help='The maximum number of models to create.')
 parser.add_argument('--separate_output_files', action='store_true',
                     help='Indicates that the outputs should be split between files.')
-parser.add_argument('--optimize_geometry', action='store_true',
-                    help='Attempts to optimize geometry.')
-parser.add_argument('--alternate_ring_conformations', action='store_true',
-                    help='Attempts to use non-aromatic ring conformations.')
+
+parser.add_argument('--skip_optimize_geometry', action='store_true',
+                    help='Skips the optimization step.')
+parser.add_argument('--skip_alternate_ring_conformations', action='store_true',
+                    help='Skips using non-aromatic ring conformations.')
+
+parser.add_argument('--skip_adding_hydrogen', action='store_true',
+                    help='Skips adding hydrogens based on pH.')
+parser.add_argument('--skip_making_tautomers', action='store_true',
+                    help='Skips tautomer creation.')
+parser.add_argument('--skip_ennumerate_chiral_mol', action='store_true',
+                    help='Skips .')
+parser.add_argument('--skip_ennumerate_double_bonds', action='store_true',
+                    help='Skips .')
+
+parser.add_argument('--2d_output_only', action='store_true',
+                    help='Skips using non-aromatic ring conformations.')
 
 args_dict = vars(parser.parse_args())
 

@@ -46,10 +46,17 @@ class ConfGenerator:
 
         :param string param_file: A json file specifying the parameters.
         """
+        warning_list = ['source', 'output_file', 'openbabel_executable',
+                        'num_processors', 'min_ph', 'max_ph',
+                        'delta_ph_increment', 'thoroughness', 
+                        'max_variants_per_compound']
+
         # Load the parameters from the json
-        if args.has_key(json):
+        if args.has_key('json'):
             params = json.load(open(args['json']))
             self.set_parameters(params)
+            if [i for i in warning_list if i in args.keys()]:
+                print "WARNING: Using the --json flag overrides all other flags."
         else:
             self.set_parameters(args)
 
@@ -66,7 +73,7 @@ class ConfGenerator:
                 smiles_data = [self.params["source"]]
         else:
             pass  # It's already in the required format.
-        
+
         # Make the containers
         self.contnrs = []
         for idx, data in enumerate(smiles_data):
@@ -74,32 +81,38 @@ class ConfGenerator:
             new_contnr = MolContainer(smiles, name, idx)
             self.contnrs.append(new_contnr)
 
+        # ESSENTIAL
         Steps.SMILES.desalt_orig_smi(self)
 
-        Steps.SMILES.add_hydrogens(self)
+        if self.params["skip_adding_hydrogen"] == False:
+            Steps.SMILES.add_hydrogens(self)
         self.print_current_smiles()
 
         # Do tautomers first, because obliterates chiral info I think
-        Steps.SMILES.make_tauts(self)
+        if self.params["skip_making_tautomers"] == False:
+            Steps.SMILES.make_tauts(self)
         self.print_current_smiles()
 
-        Steps.SMILES.enumerate_chiral_molecules(self)
+        if self.params["skip_ennumerate_chiral_mol"] == False:
+            Steps.SMILES.enumerate_chiral_molecules(self)
         self.print_current_smiles()
 
         # Suprized you have a hard time generating enantiomers here:
         # CCC(C)NC(=O)CC(C)C
 
-        Steps.SMILES.enumerate_double_bonds(self)
+        if self.params["skip_ennumerate_double_bonds"] == False:
+            Steps.SMILES.enumerate_double_bonds(self)
         self.print_current_smiles()
 
-        Steps.ThreeD.convert_2d_to_3d(self)
+        if self.params["2d_output_only"] == False:
+            Steps.ThreeD.convert_2d_to_3d(self)
         self.print_current_smiles()
 
-        if self.params["alternate_ring_conformations"] == True:
+        if self.params["skip_alternate_ring_conformations"] == False:
             Steps.ThreeD.generate_alternate_3d_nonaromatic_ring_confs(self)
         self.print_current_smiles()
 
-        if self.params["optimize_geometry"] == True:
+        if self.params["skip_optimize_geometry"] == False:
             Steps.ThreeD.minimize_3d(self)
         self.print_current_smiles()
         
@@ -122,7 +135,7 @@ class ConfGenerator:
         :param {} params: The parameters. A dictionary of {parameter name:
                   value}.
         """
-        
+
         # Set the default values.
         default = OrderedDict({})
         default["source"] = ""
@@ -137,8 +150,15 @@ class ConfGenerator:
 
         default["thoroughness"] = 3
         default["max_variants_per_compound"] = 5
-        default["optimize_geometry"] = True
-        default["alternate_ring_conformations"] = True
+
+        default["skip_optimize_geometry"] = False
+        default["skip_alternate_ring_conformations"] = False
+        default["skip_adding_hydrogen"] = False
+        default["skip_making_tautomers"] = False
+        default["skip_ennumerate_chiral_mol"] = False
+        default["skip_ennumerate_double_bonds"] = False
+
+        default["2d_output_only"] = False
 
         # Modify params so that they keys are always lower case.
         # Also, rdkit doesn't play nice with unicode, so convert to ascii
