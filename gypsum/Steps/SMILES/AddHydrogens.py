@@ -5,6 +5,7 @@ from ... import MyMol
 import random
 import sys
 import os
+import tempfile
 
 try:
     from rdkit import Chem
@@ -13,7 +14,7 @@ except:
     sys.exit(0)
 
 
-def add_hydrogens(self):
+def add_hydrogens(self, skip=False):
     """
     Adds hydrogen atoms to the molecules, as appropriate for pH's ranging over
     the user-specified values. Note that though not a class function, it still
@@ -22,36 +23,43 @@ def add_hydrogens(self):
 
     Utils.log("Adding hydrogen atoms...")
 
-    # Save all smiles to a temporary file
-    flnm = str(random.randrange(0, 1000000)) + ".tmp"
-    while os.path.exists(flnm):
-        flnm = str(random.randrange(0, 1000000)) + ".tmp"
+    tmp = None
 
-    f = open(flnm, 'w')
-    f.writelines(
-        [m.orig_smi_deslt + " " + m.name + "____" + str(i) + "____" +
-         m.orig_smi + "____" + m.orig_smi_deslt + "\n" for i, m in
-         enumerate(self.contnrs)]
-    )
-    f.close()
+    if skip:
+        tmp = []
+    else:
+        # Save all smiles to a temporary file
+        # PATRICK - We need to call the temp file function
+        #flnm = str(random.randrange(0, 1000000)) + ".tmp"
+        #while os.path.exists(flnm):
+        #    flnm = str(random.randrange(0, 1000000)) + ".tmp"
 
-    # Change pH in increments of 0.5 from min to max
-    params = []
-    pH = self.params["min_ph"]
-    while pH <= self.params["max_ph"]:
-        params.append((pH, f.name, self.params["openbabel_executable"]))
-        pH = pH + self.params["delta_ph_increment"]
+        flnm = tempfile.mkstemp()[1]
+        with open(flnm, 'w') as f:
+            f.writelines(
+                [m.orig_smi_deslt + " " + m.name + "____" + str(i) + "____" +
+                m.orig_smi + "____" + m.orig_smi_deslt + "\n" for i, m in
+                enumerate(self.contnrs)]
+            )
+
+        # Change pH in increments of 0.5 from min to max
+        params = []
+        pH = self.params["min_ph"]
+        while pH <= self.params["max_ph"]:
+            params.append((pH, flnm, self.params["openbabel_executable"]))
+            pH = pH + self.params["delta_ph_increment"]
 
 
-    tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_addH)
+        tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_addH)
 
-    # *?* Check that this makes sense in the structure of ourput
-    # Flattening return values
-    tmp = mp.flatten_list(tmp)
+        os.unlink(flnm)
+        # *?* Check that this makes sense in the structure of ourput
+        # Flattening return values
+        tmp = mp.flatten_list(tmp)
+
 
     # Add back in remaining, using original smiles (no protonation). This is
     # better than nothing.
-
     contnr_indx_no_touch = Utils.contnrs_no_touchd(
         self, tmp
     )
@@ -74,15 +82,14 @@ def add_hydrogens(self):
 
         tmp.append(amol)
 
-    os.unlink(f.name)
-
     ChemUtils.bst_for_each_contnr_no_opt(self, tmp)
+
 
 def parallel_addH(pH, flnm, obabel_loc):
     """
     A parallelizable helper function that adds hydrogens to molecules.
 
-    :param ?float? pH: The pH to consider when adding hydrogens
+    :param float pH: The pH to consider when adding hydrogens
     :param str flnm: The file name that holds the file to consider.
     :param str obabel_loc: The location of the obabel installation.
 
