@@ -79,7 +79,7 @@ class MolContainer:
         can_smi_in_this_container = set([m.smiles() for m in self.mols])
 
         # Get this new smiles in cannonical form
-        amol = MyMol.MyMol("smiles")
+        amol = MyMol.MyMol(smiles)
         if amol.smiles() in can_smi_in_this_container:
             return True
         else:

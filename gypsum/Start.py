@@ -86,6 +86,26 @@ class ConfGenerator:
 
         if self.params["skip_adding_hydrogen"] == False:
             Steps.SMILES.add_hydrogens(self)
+        else:
+            # PUTTING STUFF HERE THAT PATRICK WILL MOVE INTO DEF OR EXTERNAL
+            # MODULE PER HIS WISDOM
+
+            # Problem: Each molecule container holdes one smiles string
+            # (corresponding to the input structure). obabel produces multiple
+            # smiles strings at different pH values in the previous step. There is
+            # no way to store muliple smiles in a molecule container. But those
+            # containers are designed to store multiple RDKit molecule objects. To
+            # the previous step stores the differently protonated models as those
+            # objects, in the container's mol list.
+
+            # But, if the user skips the previous step, then the one smiles needs
+            # to be converted to a RDKit mol object for subsequent steps to work. Let's do that here.
+            
+            for i, mol_cont in enumerate(self.contnrs):
+                if len(mol_cont.mols) == 0:
+                    smi = mol_cont.orig_smi_canonical
+                    mol_cont.add_smiles(smi)
+
         self.print_current_smiles()
 
         # Do tautomers first, because obliterates chiral info I think

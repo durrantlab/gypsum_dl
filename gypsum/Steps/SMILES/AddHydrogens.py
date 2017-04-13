@@ -93,7 +93,7 @@ def parallel_addH(pH, flnm, obabel_loc):
     :param str flnm: The file name that holds the file to consider.
     :param str obabel_loc: The location of the obabel installation.
 
-    :results: Returns either the tautomer or a None object.
+    :results: Returns either the protonated RDKit molecule or a None object.
     """
     Utils.log("\tat pH " + str(pH))
     results = Utils.runit(
@@ -123,6 +123,8 @@ def parallel_addH(pH, flnm, obabel_loc):
                 amol.fix_common_errors()
 
                 if amol.crzy_substruc() == False:
+                    # So no crazy substructure.
+
                     amol.contnr_idx = int(
                         contnr_idx
                     )
@@ -143,6 +145,7 @@ def parallel_addH(pH, flnm, obabel_loc):
 
                     return_value.append(amol)
                 else:
+                    # It has a crazy substructure.
                     Utils.log(
                         "\WARNING: " + smi + " (" + name  +
                         ") discarded."
