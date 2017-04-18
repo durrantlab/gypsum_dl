@@ -148,7 +148,7 @@ class ConfGenerator:
             Steps.IO.save_to_sdf(self)
 
 
-    def set_parameters(self, params):
+    def set_parameters(self, params_unicode):
         """
         Set the parameters that will control this ConfGenerator object.
 
@@ -157,87 +157,94 @@ class ConfGenerator:
         """
 
         # Set the default values.
-        default = OrderedDict({})
-        default["source"] = ""
-        default["output_file"] = ""
-        default["separate_output_files"] = False
-        default["openbabel_executable"] = "/usr/local/bin/obabel"
-        default["num_processors"] = 1
-
-        default["min_ph"] = 5.0
-        default["max_ph"] = 9.0
-        default["delta_ph_increment"] = 0.5
-
-        default["thoroughness"] = 3
-        default["max_variants_per_compound"] = 5
-
-        default["skip_optimize_geometry"] = False
-        default["skip_alternate_ring_conformations"] = False
-        default["skip_adding_hydrogen"] = False
-        default["skip_making_tautomers"] = False
-        default["skip_ennumerate_chiral_mol"] = False
-        default["skip_ennumerate_double_bonds"] = False
-
-        default["2d_output_only"] = False
+        default = OrderedDict({
+            "source" : "",
+            "output_file" : "",
+            "separate_output_files" : False,
+            "openbabel_executable" : "/usr/local/bin/obabel",
+            "num_processors" : 1,
+            "min_ph" : 5.0,
+            "max_ph" : 9.0,
+            "delta_ph_increment" : 0.5,
+            "thoroughness" : 3,
+            "max_variants_per_compound" : 5,
+            "skip_optimize_geometry" : False,
+            "skip_alternate_ring_conformations" : False,
+            "skip_adding_hydrogen" : False,
+            "skip_making_tautomers" : False,
+            "skip_ennumerate_chiral_mol" : False,
+            "skip_ennumerate_double_bonds" : False,
+            "2d_output_only" : False
+        })
 
         # Modify params so that they keys are always lower case.
         # Also, rdkit doesn't play nice with unicode, so convert to ascii
-        params2 = {}
-        for param in params:
-            val = params[param]
-            
+        params = {}
+        for param in params_unicode:
+            val = params_unicode[param]
             if isinstance(val, basestring):
                 val = val.encode("utf8")
-            
-            params2[param.lower().encode("utf8")] = val
+            key = param.lower().encode("utf8")
+            params[key] = val
 
+        # Overlays the user parameters where they exits.
+        default = self.merge_parameters(default, params)
+
+        # Checks and prepares the final parameter list
+        default = self.finalize_params(default)
+
+        self.params = default
+
+    def merge_parameters(self, default, params):
         # Generate a dictionary of the types
-        type_dict = {}
-        for key in default:
-            val = default[key]
-            if type(val) is int:
-                type_dict[key] = int
-            elif type(val) is float:
-                type_dict[key] = float
-            elif type(val) is str:
-                type_dict[key] = str
-            elif type(val) is bool:
-                type_dict[key] = bool
-            else:
-                Utils.log(
-                    "ERROR: There appears to be an error in your parameter " +
-                    "JSON file. No value can have type " + str(type(val)) + 
-                    "."
-                )
-                sys.exit(0)
-        
-        # Move user-specified values into the parameter
-        for param in params2:
-            param = param.lower()
+        type_dict = self.make_type_dict(default)
 
+        # Move user-specified values into the parameter
+        for param in params:
             # Throw an error if there's an unrecognized parameter
-            if not (param in default):
+            if param not in default:
                 Utils.log(
                     "ERROR! Parameter \"" + param + "\" not recognized!"
                 )
                 Utils.log("Here are the options:")
                 Utils.log(str(default.keys()))
                 sys.exit(0)
-            
+
             # Throw an error if the input parameter has a different type that
             # the default one.
-            if type(params2[param]) is not type_dict[param]:
+            if not isinstance(params[param], type_dict[param]):
                 Utils.log(
                     "ERROR! The parameter \"" + param + "\" must be of " +
-                    "type" + str(type_dict[param]) + ", but it is of type " + 
-                    str(type(params2[param])) + "."
+                    "type" + str(type_dict[param]) + ", but it is of type " +
+                    str(type(params[param])) + "."
                 )
                 sys.exit(0)
-            
-            default[param] = params2[param]
 
+            default[param] = params[param]
+
+    @staticmethod
+    def make_type_dict(dictionary):
+        type_dict = {}
+        allowed_types = [int, float, str, bool]
+        for key in dictionary:
+            val = dictionary[key]
+            for allowed in allowed_types:
+                if isinstance(val, allowed):
+                    type_dict[key] = allowed
+            if key not in type_dict:
+                Utils.log(
+                    "ERROR: There appears to be an error in your parameter " +
+                    "JSON file. No value can have type " + str(type(val)) +
+                    "."
+                )
+                sys.exit(0)
+
+        return type_dict
+
+    @staticmethod
+    def finalize_params(dictionary):
         # Throw an error if there's a missing parameter.
-        if default["source"] == "":
+        if dictionary["source"] == "":
             Utils.log(
                 "ERROR! Missing parameter \"source\". You need to specify " +
                 "the source of the input molecules (probably a SMI or SDF " +
@@ -252,10 +259,10 @@ class ConfGenerator:
         # name of "". If it's a list, it's assumed to be a list of tuples,
         # [SMILES, Name].
 
-        if default["output_file"] == "" and default["source"] != "":
-            default["output_file"] = default["source"] + ".output.sdf"
+        if dictionary["output_file"] == "" and dictionary["source"] != "":
+            dictionary["output_file"] = dictionary["source"] + ".output.sdf"
 
-        if default["output_file"] == "":
+        if dictionary["output_file"] == "":
             Utils.log(
                 "ERROR! Missing parameter \"output_file\". You need to " +
                 "specify where to write the output. Can be an HTML or " +
@@ -263,17 +270,16 @@ class ConfGenerator:
             )
             sys.exit(0)
 
-        if not os.path.exists(default["openbabel_executable"]):
+        if not os.path.exists(dictionary["openbabel_executable"]):
             Utils.log(
                 "ERROR! There is no executable at " +
-                default["openbabel_executable"] + ". Please specify the " +
+                dictionary["openbabel_executable"] + ". Please specify the " +
                 "correct path in your parameters file and/or install Open " +
                 "Babel if necessary."
             )
             sys.exit(0)
 
-        self.params = default
-
+        return dictionary
 
     def print_current_smiles(self):
         """
