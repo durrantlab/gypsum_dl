@@ -40,5 +40,5 @@ class UnitTests(object):
         """
         Adds the information tests.
         """
-        information_tests = unittest.makeSuite(mt.MultiprocessorTests)
-        self._suite.addTests(information_tests)
+        multiprocessor_tests = unittest.makeSuite(mt.MultiprocessorTests)
+        self._suite.addTests(multiprocessor_tests)

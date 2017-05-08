@@ -288,7 +288,7 @@ class MyMol:
             return self.rdkit_mol
 
         #standardized_smiles = self.standardize_smiles()
-        
+
         # So make the mol
         # Stuff added here from https://github.com/rdkit/rdkit/pull/809 to fix
         # a bug.
@@ -381,7 +381,7 @@ class MyMol:
         Identifies which rings in a given molecule are nonaromatic, if any.
 
         :returns: A [[int, int, int]]. A list of lists, where each inner list
-                  is a list of the atom indecies of the members of a 
+                  is a list of the atom indecies of the members of a
                   non-aromatic ring.
         :rtype: :class:`str` ???
         """

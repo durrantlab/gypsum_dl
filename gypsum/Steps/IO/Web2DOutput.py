@@ -34,13 +34,13 @@ def web_2d_output(self):
             drawer.FinishDrawing()
             svg = drawer.GetDrawingText()
             f.write(
-                '<div style="float: left; width:200px; height: 220px;">' + 
-                    '<div style="width: 200px; height: 200px;">' + 
-                        svg.replace("svg:", "") + 
+                '<div style="float: left; width:200px; height: 220px;">' +
+                    '<div style="width: 200px; height: 200px;">' +
+                        svg.replace("svg:", "") +
                     '</div>' +
-                    '<div style="width: 200px; height: 20px;">' + 
+                    '<div style="width: 200px; height: 20px;">' +
                         '<small><center>' + mol.smiles(True) + '</center></small>' +
-                    '</div>' + 
+                    '</div>' +
                 '</div>')
     f.close()
 

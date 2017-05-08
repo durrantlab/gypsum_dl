@@ -64,6 +64,3 @@ def desalt_orig_smi(self):
             self.contnrs[desalt_mol.contnr_idx].update_orig_smi(
                 desalt_mol.orig_smi
             )
-
-
-

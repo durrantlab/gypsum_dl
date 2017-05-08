@@ -128,4 +128,3 @@ def strip_none(none_list):
     """
     results = [x for x in none_list if x != None]
     return results
-
