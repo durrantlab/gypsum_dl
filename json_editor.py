@@ -63,10 +63,17 @@ def output_to_json(dict_list, filename):
     filebase = os.path.basename(filename)
     basename = filebase.strip(".json")
     for i, out_dict in enumerate(dict_list):
+        out_key = out_dict["output_file"]
+        out_dict["output_file"] = modify_output(out_key, i)
         outname = "".join([basename,"_", str(i), ".json"])
         print outname
         with open(outname, "w") as outfile:
             json.dump(out_dict, outfile)
+
+def modify_output(output, i):
+    basestrip = output.strip('.sdf')
+    outname = basestrip + i + '.sdf'
+    return outname
 
 filename = sys.argv[1] 
 my_dict = new_dict(filename)
