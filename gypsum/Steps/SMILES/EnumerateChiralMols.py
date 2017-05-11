@@ -92,7 +92,8 @@ def enumerate_chiral_molecules(self):
 
     tmp = mp.MultiThreading(params, self.params["num_processors"], GetChiral)
 
-    contnr_indx_no_touch = Utils.contnrs_no_touchd(self, tmp)
+    clean = mp.strip_none(tmp)
+    contnr_indx_no_touch = Utils.contnrs_no_touchd(self, clean)
 
     for miss_indx in contnr_indx_no_touch:
         Utils.log(
