@@ -114,6 +114,8 @@ def flatten_list(tier_list):
 
     :returns: A flat list of all items.
     """
+    if tier_list is None:
+        return []
     flat_list = [item for sublist in tier_list for item in sublist]
     return flat_list
 
@@ -126,5 +128,6 @@ def strip_none(none_list):
 
     :returns: A list stripped of None items.
     """
+    if none_list is None:
     results = [x for x in none_list if x != None]
     return results
