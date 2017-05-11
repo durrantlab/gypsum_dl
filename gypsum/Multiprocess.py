@@ -129,5 +129,6 @@ def strip_none(none_list):
     :returns: A list stripped of None items.
     """
     if none_list is None:
+        return []
     results = [x for x in none_list if x != None]
     return results
