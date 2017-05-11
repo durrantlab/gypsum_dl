@@ -103,6 +103,6 @@ def enumerate_chiral_molecules(self):
             "(unprocessed) structures.")
         for mol in self.contnrs[miss_indx].mols:
             mol.genealogy.append("(WARNING: Unable to generate enantiomers)")
-            tmp.append(mol)
+            clean.append(mol)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp)
+    ChemUtils.bst_for_each_contnr_no_opt(self, clean)
