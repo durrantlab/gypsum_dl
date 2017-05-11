@@ -137,7 +137,7 @@ class ConfGenerator(object):
             params[key] = val
 
         # Overlays the user parameters where they exits.
-        default = self.merge_parameters(default, params)
+        self.merge_parameters(default, params)
 
         # Checks and prepares the final parameter list
         default = self.finalize_params(default)
