@@ -48,4 +48,6 @@ def convert_2d_to_3d(self):
 
     tmp = mp.MultiThreading(params, self.params["num_processors"], mk3d)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp, False)
+    clear = mp.strip_none(tmp)
+
+    ChemUtils.bst_for_each_contnr_no_opt(self, clear, False)
