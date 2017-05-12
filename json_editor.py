@@ -71,7 +71,7 @@ def output_to_json(dict_list, filename):
             json.dump(out_dict, outfile)
 
 def modify_output(output, i):
-    basestrip = output.strip('.sdf')
+    basestrip = output.rstrip('.sdf')
     outname = basestrip + str(i) + '.sdf'
     return outname
 
