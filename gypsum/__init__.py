@@ -1,1 +1,1 @@
-from UnitTests import UnitTests
+from .UnitTests import UnitTests

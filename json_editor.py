@@ -66,7 +66,7 @@ def output_to_json(dict_list, filename):
         out_key = out_dict["output_file"]
         out_dict["output_file"] = modify_output(out_key, i)
         outname = "".join([basename,"_", str(i), ".json"])
-        print outname
+        print(outname)
         with open(outname, "w") as outfile:
             json.dump(out_dict, outfile)
 

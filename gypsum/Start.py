@@ -7,7 +7,7 @@ import json
 import os
 from collections import OrderedDict
 
-from gypsum import Utils
+import gypsum.Utils as Utils
 
 try:
     from rdkit.Chem import AllChem
@@ -52,15 +52,15 @@ class ConfGenerator(object):
                         'max_variants_per_compound']
 
         # Load the parameters from the json
-        if args.has_key('json'):
+        if 'json' in args:
             params = json.load(open(args['json']))
             self.set_parameters(params)
             if [i for i in warning_list if i in args.keys()]:
-                print "WARNING: Using the --json flag overrides all other flags."
+                print("WARNING: Using the --json flag overrides all other flags.")
         else:
             self.set_parameters(args)
 
-        if isinstance(self.params["source"], basestring):
+        if isinstance(self.params["source"], str):
             # smiles must be array of strs
             src = self.params["source"]
             if src.lower().endswith(".smi") or src.lower().endswith(".can"):
@@ -107,8 +107,8 @@ class ConfGenerator(object):
         """
         # Set the default values.
         default = OrderedDict({
-            "source" : "",
-            "output_file" : "",
+            "source" : '',
+            "output_file" : '',
             "separate_output_files" : False,
             "openbabel_executable" : "/usr/local/bin/obabel",
             "num_processors" : 1,
@@ -131,9 +131,9 @@ class ConfGenerator(object):
         params = {}
         for param in params_unicode:
             val = params_unicode[param]
-            if isinstance(val, basestring):
-                val = val.encode("utf8")
-            key = param.lower().encode("utf8")
+            """if isinstance(val, str):
+                val = val.encode("utf8")"""
+            key = param.lower()#.encode("utf8")
             params[key] = val
 
         # Overlays the user parameters where they exits.
@@ -154,7 +154,7 @@ class ConfGenerator(object):
             # Throw an error if there's an unrecognized parameter
             if param not in default:
                 Utils.log(
-                    "ERROR! Parameter \"" + param + "\" not recognized!"
+                    "ERROR! Parameter \"" + str(param) + "\" not recognized!"
                 )
                 Utils.log("Here are the options:")
                 Utils.log(str(default.keys()))
@@ -176,7 +176,7 @@ class ConfGenerator(object):
     def make_type_dict(dictionary):
         """Creates a dictionary of types from an existant dictionary."""
         type_dict = {}
-        allowed_types = [int, float, str, bool]
+        allowed_types = [int, float, bool, str]
         for key in dictionary:
             val = dictionary[key]
             for allowed in allowed_types:
@@ -239,7 +239,7 @@ class ConfGenerator(object):
         """
 
         # For debugging.
-        print "    Contents of MolContainers"
+        print("    Contents of MolContainers")
         for i, mol_cont in enumerate(self.contnrs):
             Utils.log("\t\t" + str(i) + " " + str(mol_cont.all_smiles()))
 

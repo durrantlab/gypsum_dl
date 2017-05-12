@@ -1,11 +1,12 @@
-from ... import Utils
-from ... import ChemUtils
-from ... import Multiprocess as mp
-from ... import MyMol
 import copy
 import sys
 import itertools
 import random
+
+import gypsum.Multiprocess as mp
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
+import gypsum.MyMol as MyMol
 
 try:
     from rdkit import Chem

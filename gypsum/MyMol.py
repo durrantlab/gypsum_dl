@@ -1,4 +1,4 @@
-import Utils
+import gypsum.Utils as Utils
 import sys
 import copy
 import operator
@@ -138,7 +138,7 @@ class MyConformer:
         mol_copy = copy.deepcopy(self.mol_copy)  # Use it as a template.
         mol_copy.RemoveAllConformers()
         mol_copy.AddConformer(self.conformer)
-        print Chem.MolToMolBlock(mol_copy)[:500]
+        print(Chem.MolToMolBlock(mol_copy)[:500])
     
     def rmsd_to_me(self, other_conf):
         """
@@ -186,7 +186,7 @@ class MyMol:
         :param str name: An optional string, the name of this molecule.
         """
 
-        if isinstance(smiles, basestring):
+        if isinstance(smiles, str):
             self.rdkit_mol = ""
             self.can_smi = ""
         else:

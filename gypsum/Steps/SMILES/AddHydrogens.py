@@ -1,7 +1,7 @@
-from ... import Multiprocess as mp
-from ... import Utils
-from ... import ChemUtils
-from ... import MyMol
+import gypsum.Multiprocess as mp
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
+import gypsum.MyMol as MyMol
 import random
 import sys
 import os

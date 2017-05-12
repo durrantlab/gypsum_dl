@@ -4,6 +4,7 @@ Gypsum is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
 import argparse
+import copy
 from gypsum.Start import ConfGenerator
 
 
@@ -50,9 +51,11 @@ PARSER.add_argument('--2d_output_only', action='store_true',
 
 ARGS_DICT = vars(PARSER.parse_args())
 
+INPUTS = copy.deepcopy(ARGS_DICT)
+
 for k, v in ARGS_DICT.items():
     if v is None:
-        del ARGS_DICT[k]
+        del INPUTS[k]
 
-GENERATOR = ConfGenerator(ARGS_DICT)
+GENERATOR = ConfGenerator(INPUTS)
 GENERATOR.run()

@@ -1,8 +1,8 @@
 import webbrowser
 import os
 import sys
-from ... import Utils
-from ... import ChemUtils
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
 
 try:
     from rdkit.Chem import rdDepictor

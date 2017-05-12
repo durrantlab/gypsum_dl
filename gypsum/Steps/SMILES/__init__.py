@@ -1,1 +1,1 @@
-from .PrepareSmiles import prepare_smiles
+from gypsum.Steps.SMILES.PrepareSmiles import prepare_smiles

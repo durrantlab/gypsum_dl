@@ -1,7 +1,7 @@
 import sys
-import Utils
-import ChemUtils
-import MyMol
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
+import gypsum.MyMol as MyMol
 
 try:
     from molvs import standardize_smiles as ssmiles

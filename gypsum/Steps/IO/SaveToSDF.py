@@ -1,4 +1,4 @@
-from ... import Utils
+import gypsum.Utils as Utils
 import sys
 
 try:
