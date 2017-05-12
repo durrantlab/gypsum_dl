@@ -44,8 +44,8 @@ def combiner(key_list):
     recurses through all combinations of present/absent parameters within key_list
     """
     if len(key_list) == 0:
-        return [[]] 
-    
+        return [[]]
+
     working_list = copy.deepcopy(key_list)
     cur_key = working_list.pop(-1)
     start_list = combiner(working_list)
@@ -56,7 +56,7 @@ def combiner(key_list):
         return_list.append(sub_list)
         return_list.append(copy_list)
 
-    return return_list    
+    return return_list
 
 # Save output files 
 def output_to_json(dict_list, filename):
@@ -75,7 +75,7 @@ def modify_output(output, i):
     outname = basestrip + i + '.sdf'
     return outname
 
-filename = sys.argv[1] 
+filename = sys.argv[1]
 my_dict = new_dict(filename)
 key_list = get_bool_keys(my_dict)
 list_o_lists = combiner(key_list)
