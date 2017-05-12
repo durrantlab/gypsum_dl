@@ -72,7 +72,7 @@ def output_to_json(dict_list, filename):
 
 def modify_output(output, i):
     basestrip = output.strip('.sdf')
-    outname = basestrip + i + '.sdf'
+    outname = basestrip + str(i) + '.sdf'
     return outname
 
 filename = sys.argv[1]
