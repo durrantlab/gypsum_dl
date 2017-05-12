@@ -94,7 +94,7 @@ class MolContainer:
                          it is converted into a list.
         """
 
-        if isinstance(smiles, basestring):  # smiles must be array of strs
+        if isinstance(smiles, str):  # smiles must be array of strs
             smiles = [smiles]
 
         # Keep only the mols with smiles that are not already present.
