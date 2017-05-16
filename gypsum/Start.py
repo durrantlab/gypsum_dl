@@ -2,6 +2,7 @@
 Contains the ConfGenerator object which reads, converts, and writes
 small molecules.
 """
+from __future__ import print_function
 import sys
 import json
 import os
@@ -46,16 +47,16 @@ class ConfGenerator(object):
 
         :param string param_file: A json file specifying the parameters.
         """
-        warning_list = ['source', 'output_file', 'openbabel_executable',
-                        'num_processors', 'min_ph', 'max_ph',
-                        'delta_ph_increment', 'thoroughness',
-                        'max_variants_per_compound']
+        json_warning_list = ['source', 'output_file', 'openbabel_executable',
+                             'num_processors', 'min_ph', 'max_ph',
+                             'delta_ph_increment', 'thoroughness',
+                             'max_variants_per_compound']
 
         # Load the parameters from the json
         if 'json' in args:
             params = json.load(open(args['json']))
             self.set_parameters(params)
-            if [i for i in warning_list if i in args.keys()]:
+            if [i for i in json_warning_list if i in args.keys()]:
                 print("WARNING: Using the --json flag overrides all other flags.")
         else:
             self.set_parameters(args)
@@ -128,13 +129,22 @@ class ConfGenerator(object):
 
         # Modify params so that they keys are always lower case.
         # Also, rdkit doesn't play nice with unicode, so convert to ascii
+
+        # Because Python2 & Python3 use different string objects, we separate their
+        # usecases here.
         params = {}
-        for param in params_unicode:
-            val = params_unicode[param]
-            """if isinstance(val, str):
-                val = val.encode("utf8")"""
-            key = param.lower()#.encode("utf8")
-            params[key] = val
+        if sys.version_info < (3,):
+            for param in params_unicode:
+                val = params_unicode[param]
+                if isinstance(val, unicode):
+                    val = str(val).encode("utf8")
+                key = param.lower().encode("utf8")
+                params[key] = val
+        else:
+            for param in params_unicode:
+                val = params_unicode[param]
+                key = param.lower()
+                params[key] = val
 
         # Overlays the user parameters where they exits.
         self.merge_parameters(default, params)
