@@ -103,6 +103,11 @@ def parallel_addH(pH, flnm, obabel_loc):
     return_value = []
 
     for s in results:
+        # In python2 sometime the values are returned as unicode
+        # This just recodes them as ascii so rdkit doesn't complain
+        if not isinstance(s, str):
+            s = str(s)
+
         s = s.strip()
         if s != "":
             prts = s.split()
