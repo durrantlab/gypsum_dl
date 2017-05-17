@@ -11,23 +11,48 @@ def prepare_smiles(self):
     """
     desalt_orig_smi(self)
 
+    if self.params["break"] == "desalt":
+        save_partial_output(self)
+        raise Exception
+        ##############################
+
     if not self.params["skip_adding_hydrogen"]:
         add_hydrogens(self)
     else:
         wrap_molecules(self)
     self.print_current_smiles()
 
+    if self.params["break"] == "add_hydrogens":
+        save_partial_output(self)
+        raise Exception
+        ##############################
+
     if not self.params["skip_making_tautomers"]:
         make_tauts(self)
     self.print_current_smiles()
+
+    if self.params["break"] == "make_tauts":
+        save_partial_output(self)
+        raise Exception
+        ##############################
 
     if not self.params["skip_ennumerate_chiral_mol"]:
         enumerate_chiral_molecules(self)
     self.print_current_smiles()
 
+    if self.params["break"] == "make_chiral":
+        save_partial_output(self)
+        raise Exception
+        ##############################
+
     if not self.params["skip_ennumerate_double_bonds"]:
         enumerate_double_bonds(self)
     self.print_current_smiles()
+
+    if self.params["break"] == "make_bonds":
+        save_partial_output(self)
+        raise Exception
+        ##############################
 
 def wrap_molecules(self):
     """
@@ -47,3 +72,11 @@ def wrap_molecules(self):
         if len(mol_cont.mols) == 0:
             smi = mol_cont.orig_smi_canonical
             mol_cont.add_smiles(smi)
+
+def save_partial_output(self):
+    output_file = self.params["output_file"]
+    with open(output_file, 'w') as output:
+        for i, mol_cont in enumerate(self.contnrs):
+            output.write(str(i) + "\tOrig\t" + str(mol_cont.orig_smi_canonical)+ "\n")
+            output.write(str(i) + "\tDesalt\t" + str(mol_cont.orig_smi_deslt)+ "\n")
+            output.write(str(i) + "\tNonCan\t" + str(mol_cont.all_smiles())+ "\n")

@@ -124,7 +124,8 @@ class ConfGenerator(object):
             "skip_making_tautomers" : False,
             "skip_ennumerate_chiral_mol" : False,
             "skip_ennumerate_double_bonds" : False,
-            "2d_output_only" : False
+            "2d_output_only" : False,
+            "break" : ""
         })
 
         # Modify params so that they keys are always lower case.
