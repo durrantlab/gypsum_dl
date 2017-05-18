@@ -79,4 +79,5 @@ def save_partial_output(self):
         for i, mol_cont in enumerate(self.contnrs):
             output.write(str(i) + "\tOrig\t" + str(mol_cont.orig_smi_canonical)+ "\n")
             output.write(str(i) + "\tDesalt\t" + str(mol_cont.orig_smi_deslt)+ "\n")
-            output.write(str(i) + "\tNonCan\t" + str(mol_cont.all_smiles())+ "\n")
+            for smile in mol_cont.all_smiles():
+                output.write(str(i) + "\tNonCan\t" + str(smile)+ "\n")
