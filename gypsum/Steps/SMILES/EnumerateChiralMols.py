@@ -101,8 +101,8 @@ def enumerate_chiral_molecules(self):
     tmp = mp.MultiThreading(params, self.params["num_processors"], GetChiral)
 
     clean = mp.strip_none(tmp)
-    #clean = tmp
-    contnr_indx_no_touch = Utils.contnrs_no_touchd(self, clean)
+    flat = mp.flatten_list(clean)
+    contnr_indx_no_touch = Utils.contnrs_no_touchd(self, flat)
 
     for miss_indx in contnr_indx_no_touch:
         Utils.log(
@@ -114,4 +114,4 @@ def enumerate_chiral_molecules(self):
             mol.genealogy.append("(WARNING: Unable to generate enantiomers)")
             clean.append(mol)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, clean)
+    ChemUtils.bst_for_each_contnr_no_opt(self, flat)
