@@ -21,13 +21,15 @@ def GetChiral(mol, params):
     unasignd = [p[0] for p in mol.chiral_cntrs_w_unasignd()
                 if p[1] == "?"]
     num = len(unasignd)
+    results = []
 
     # Get all possible chiral assignments. If chiral is specified,
     # retain it.
     if num == 0:
         # There are no unspecified chiral centers, so just keep
         # existing.
-        return mol
+        results.append(mol)
+        return results
     elif num == 1:
         options = ["R", "S"]
     else:
@@ -71,7 +73,8 @@ def GetChiral(mol, params):
             new_mol.genealogy.append(
                 new_mol.smiles(True) + " (chirality)"
             )
-            return new_mol #, smi
+            results.append(new_mol) #, smi
+    return results
 
 
 def enumerate_chiral_molecules(self):
