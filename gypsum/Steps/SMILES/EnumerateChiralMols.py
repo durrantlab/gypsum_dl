@@ -65,6 +65,10 @@ def GetChiral(mol, params):
                 )
 
         new_mol = MyMol.MyMol(a_rd_mol)
+        print("##################\n")
+        print(new_mol)
+        print(type(new_mol))
+        print("##################\n")
 
         if not new_mol.crzy_substruc():
             new_mol.contnr_idx = mol.contnr_idx
