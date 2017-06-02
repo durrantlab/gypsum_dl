@@ -35,9 +35,10 @@ def MultiThreading(inputs, num_processors, task_name):
             item = (item,)
         task = (index, (task_name, item))
         tasks.append(task)
+
     if num_processors == 1:
         for item in tasks:
-            job, args = tasks[1]
+            job, args = item[1]
             output = job(*args)
             results.append(output)
     else:
