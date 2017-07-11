@@ -24,7 +24,7 @@ def load_smiles_file(filename):
             chunks = line.split()
             smiles = chunks[0]
             name = " ".join(chunks[1:])
-            data.append((smiles, name))
+            data.append((smiles, name, {}))
     return data
 
 
@@ -52,8 +52,13 @@ def load_sdf_file(filename):
         except:
             name = ""
 
+        try:
+            properties = mol.GetPropsAsDict()
+        except:
+            properties = {}
+
         if smiles != "":
-            data.append((smiles, name))
+            data.append((smiles, name, properties))
         
     return data
         

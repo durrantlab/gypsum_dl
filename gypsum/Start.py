@@ -78,8 +78,8 @@ class ConfGenerator(object):
         # Make the containers
         self.contnrs = []
         for idx, data in enumerate(smiles_data):
-            smiles, name = data
-            new_contnr = MolContainer(smiles, name, idx)
+            smiles, name, props = data
+            new_contnr = MolContainer(smiles, name, idx, props)
             self.contnrs.append(new_contnr)
 
     def run(self):

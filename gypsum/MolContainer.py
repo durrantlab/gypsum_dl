@@ -22,15 +22,16 @@ class MolContainer:
     etc.) associated with a single input SMILES entry.
     """
 
-    def __init__(self, smiles, name, index):
+    def __init__(self, smiles, name, index, properties):
         """The constructor for this class.
-        
+
         :param [str] smiles: A list of SMILES strings.
 
         :param [str] name: The name of the molecule.
 
         :param int index: The index of this MolContainer in the main
                           MolContainer list.
+        :param {dict} properties: A dictionary of properties from the sdf.
         """
 
         # Set some variables on the contnr level (not the MyMolecule level)
@@ -40,9 +41,10 @@ class MolContainer:
         self.mols = []
         #self.smiles_to_pH = {}
         self.name = name
+        self.properties = properties
         self.mol_orig_smi = MyMol.MyMol(smiles, name)
         self.frgs = ""  # For caching.
-        
+
         # Save the original canonical smiles
         self.orig_smi_canonical = self.mol_orig_smi.smiles()
 
@@ -56,7 +58,7 @@ class MolContainer:
 
         # Get the non-acidic carbon-hydrogen footprint.
         self.carbon_hydrogen_count = self.mol_orig_smi.carb_hyd_cnt()
-    
+
     def mol_with_smiles_is_in_container(self, smiles):
         """
         Checks whether or not a given smiles string is already in this
@@ -113,12 +115,12 @@ class MolContainer:
 
     def add_mol(self, mol):
         """Adds a molecule to this container. Does NOT check for uniqueness.
-        
+
         :param MyMol.MyMol mol: The MyMol.MyMol object to add.
         """
 
         self.mols.append(mol)
-    
+
     def all_smiles(self):
         """
         Gets a list of all the noh canonical smiles in this container.
@@ -148,7 +150,7 @@ class MolContainer:
         frags = self.mol_orig_smi.get_frags_of_orig_smi()
         self.frgs = frags
         return frags
-    
+
     def update_orig_smi(self, orig_smi):
         """
         Updates the orig_smi string. 
@@ -170,3 +172,10 @@ class MolContainer:
         # None of the mols derived to date, if present, are accurate.
         self.mols = []
 
+    def add_container_properties(self):
+        """
+        
+        """
+        for mol in self.mols:
+            mol.mol_props.update(self.properties)
+            mol.setAllRDKitMolProps()
