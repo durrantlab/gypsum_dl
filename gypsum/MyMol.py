@@ -519,59 +519,6 @@ class MyMol:
         self.crzy_substruct = False
         return False
 
-    def fix_common_errors(self):
-        """
-        Try to fix common structural erors.
-        """
-        
-        mol = self.rdkit_mol
-
-        orig_can_smi = True
-        new_can_smi = False
-
-        tt = self.smiles()
-
-        while orig_can_smi != new_can_smi:
-            orig_can_smi = self.smiles()
-
-            if mol is not None:
-
-                # inappropriate carbocations
-                if "[C+]" in orig_can_smi:
-                    mol = AllChem.ReplaceSubstructs(
-                        mol,
-                        Chem.MolFromSmarts('[$([C+](=*)(-*)-*)]'),
-                        Chem.MolFromSmiles('C')
-                    )[0]
-                
-                # Inappropriate modifications to carboxylic acids
-                smrts = Chem.MolFromSmarts("C([O-])O")
-                if self.rdkit_mol.HasSubstructMatch(smrts):
-                    rxn = AllChem.ReactionFromSmarts(
-                        '[CH1:1](-[OH1:2])-[OX1-:3]>>[C:1](=[O:2])[O-:3]'
-                    )
-                    r = rxn.RunReactants([mol])
-                    if len(r) > 0:
-                        mol = r[0][0]
-
-                # N+ bonded to only three atoms does not have a positive
-                # charge.
-                smrts = Chem.MolFromSmarts("[NX3+]")
-                if self.rdkit_mol.HasSubstructMatch(smrts):
-                    rxn = AllChem.ReactionFromSmarts('[NX3+:1]>>[N:1]')   
-                    r = rxn.RunReactants([mol])
-                    if len(r) > 0:
-                        mol = r[0][0]
-
-                # In practie, you never get to the below anyway, because you
-                # can't convert to mol. if
-                self.rdkit_mol = mol
-                self.can_smi = ""  # Force it to recalculate canonical smiles
-            else:
-                return None  # It's invalid somehow
-
-            new_can_smi = self.smiles()
-
     def get_frags_of_orig_smi(self):
         """
         Divide the current molecule into fragments.

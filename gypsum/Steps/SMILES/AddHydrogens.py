@@ -8,6 +8,7 @@ import os
 import tempfile
 
 try:
+    from rdkit.Chem import AllChem
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
@@ -49,14 +50,12 @@ def add_hydrogens(self, skip=False):
             params.append((pH, flnm, self.params["openbabel_executable"]))
             pH = pH + self.params["delta_ph_increment"]
 
-
         tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_addH)
 
         os.unlink(flnm)
         # *?* Check that this makes sense in the structure of ourput
         # Flattening return values
         tmp = mp.flatten_list(tmp)
-
 
     # Add back in remaining, using original smiles (no protonation). This is
     # better than nothing.
@@ -96,6 +95,7 @@ def parallel_addH(pH, flnm, obabel_loc):
     :results: Returns either the protonated RDKit molecule or a None object.
     """
     Utils.log("\tat pH " + str(pH))
+
     results = Utils.runit(
         obabel_loc + ' -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
     )
@@ -110,6 +110,8 @@ def parallel_addH(pH, flnm, obabel_loc):
             mol_info = " ".join(prts[1:])
             name, contnr_idx, orig_smi, orig_smi_deslt = mol_info.split("____")
 
+            smi = fix_common_babel_ph_smiles_errors(smi)
+
             amol = MyMol.MyMol(smi)
 
             # I once saw it add a C+ here. So do a sanity check at
@@ -119,8 +121,7 @@ def parallel_addH(pH, flnm, obabel_loc):
                 # Unfortuantely, obabel makes some systematic mistakes
                 # when it comes to pH assignments. Try to correct them
                 # here.
-
-                amol.fix_common_errors()
+                # amol.fix_common_errors()
 
                 if amol.crzy_substruc() == False:
                     # So no crazy substructure.
@@ -151,3 +152,53 @@ def parallel_addH(pH, flnm, obabel_loc):
                         ") discarded."
                     )
     return return_value
+
+def fix_common_babel_ph_smiles_errors(smiles):
+    """
+    Try to fix common structural erors.
+    """
+        
+    mol = Chem.MolFromSmiles(smiles)
+
+    while True:
+        if mol is None:
+            return None  # It's invalid somehow
+
+        can_smi = Chem.MolToSmiles(
+            mol, isomericSmiles=True, canonical=True
+        )
+
+        # inappropriate carbocations
+        if "[C+]" in can_smi:
+            mol = AllChem.ReplaceSubstructs(
+                mol,
+                Chem.MolFromSmarts('[$([C+](=*)(-*)-*)]'),
+                Chem.MolFromSmiles('C')
+            )[0]
+            continue
+        
+        # Inappropriate modifications to carboxylic acids
+        smrts = Chem.MolFromSmarts("C([O-])O")
+        if mol.HasSubstructMatch(smrts):
+            rxn = AllChem.ReactionFromSmarts(
+                '[CH1:1](-[OH1:2])-[OX1-:3]>>[C:1](=[O:2])[O-:3]'
+            )
+            r = rxn.RunReactants([mol])
+            if len(r) > 0:
+                mol = r[0][0]
+            continue
+
+        # N+ bonded to only three atoms does not have a positive
+        # charge.
+        smrts = Chem.MolFromSmarts("[NX3+]")
+        if mol.HasSubstructMatch(smrts):
+            rxn = AllChem.ReactionFromSmarts('[NX3+:1]>>[N:1]')   
+            r = rxn.RunReactants([mol])
+            if len(r) > 0:
+                mol = r[0][0]
+            continue
+
+        # If you get here, no changes were made, so return what you've got
+        return can_smi
+
+
