@@ -1,11 +1,12 @@
-from ... import Utils
-from ... import ChemUtils
-from ... import Multiprocess as mp
-from ... import MyMol
 import copy
 import sys
 import itertools
 import random
+
+import gypsum.Multiprocess as mp
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
+import gypsum.MyMol as MyMol
 
 try:
     from rdkit import Chem
@@ -20,13 +21,15 @@ def GetChiral(mol, params):
     unasignd = [p[0] for p in mol.chiral_cntrs_w_unasignd()
                 if p[1] == "?"]
     num = len(unasignd)
+    results = []
 
     # Get all possible chiral assignments. If chiral is specified,
     # retain it.
     if num == 0:
         # There are no unspecified chiral centers, so just keep
         # existing.
-        return mol
+        results.append(mol)
+        return results
     elif num == 1:
         options = ["R", "S"]
     else:
@@ -70,7 +73,8 @@ def GetChiral(mol, params):
             new_mol.genealogy.append(
                 new_mol.smiles(True) + " (chirality)"
             )
-            return new_mol #, smi
+            results.append(new_mol) #, smi
+    return results
 
 
 def enumerate_chiral_molecules(self):
@@ -92,7 +96,9 @@ def enumerate_chiral_molecules(self):
 
     tmp = mp.MultiThreading(params, self.params["num_processors"], GetChiral)
 
-    contnr_indx_no_touch = Utils.contnrs_no_touchd(self, tmp)
+    clean = mp.strip_none(tmp)
+    flat = mp.flatten_list(clean)
+    contnr_indx_no_touch = Utils.contnrs_no_touchd(self, flat)
 
     for miss_indx in contnr_indx_no_touch:
         Utils.log(
@@ -102,6 +108,6 @@ def enumerate_chiral_molecules(self):
             "(unprocessed) structures.")
         for mol in self.contnrs[miss_indx].mols:
             mol.genealogy.append("(WARNING: Unable to generate enantiomers)")
-            tmp.append(mol)
+            clean.append(mol)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp)
+    ChemUtils.bst_for_each_contnr_no_opt(self, flat)

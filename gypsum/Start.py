@@ -1,15 +1,14 @@
-import Multiprocess as mp
-import Utils
-import ChemUtils
-from MolContainer import MolContainer
-import Steps
-from Steps.IO import load_smiles_file
-from Steps.IO import load_sdf_file
+"""
+Contains the ConfGenerator object which reads, converts, and writes
+small molecules.
+"""
+from __future__ import print_function
 import sys
 import json
-from collections import OrderedDict
-import MyMol
 import os
+from collections import OrderedDict
+
+import gypsum.Utils as Utils
 
 try:
     from rdkit.Chem import AllChem
@@ -30,45 +29,47 @@ except:
     Utils.log("You need to install scipy and its dependencies.")
     sys.exit(0)
 
+from gypsum.MolContainer import MolContainer
+from gypsum.Steps.SMILES import prepare_smiles
+from gypsum.Steps.ThreeD import prepare_three_d
+from gypsum.Steps.IO import load_smiles_file, load_sdf_file, proccess_output
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
-class ConfGenerator:
+class ConfGenerator(object):
     """
     A class for preparing small-molecule models for docking. To work, it
     requires the python modules rdkit and molvs, as well as openbabel
     installed as an executable on the system.
     """
-
     def __init__(self, args):
         """
-        The class constructor. Starts the conversion process, ultimately
-        writing the converted files to disk.
+        The class constructor.
 
         :param string param_file: A json file specifying the parameters.
         """
-        warning_list = ['source', 'output_file', 'openbabel_executable',
-                        'num_processors', 'min_ph', 'max_ph',
-                        'delta_ph_increment', 'thoroughness', 
-                        'max_variants_per_compound']
+        json_warning_list = ['source', 'output_file', 'openbabel_executable',
+                             'num_processors', 'min_ph', 'max_ph',
+                             'delta_ph_increment', 'thoroughness',
+                             'max_variants_per_compound']
 
         # Load the parameters from the json
-        if args.has_key('json'):
+        if 'json' in args:
             params = json.load(open(args['json']))
             self.set_parameters(params)
-            if [i for i in warning_list if i in args.keys()]:
-                print "WARNING: Using the --json flag overrides all other flags."
+            if [i for i in json_warning_list if i in args.keys()]:
+                print("WARNING: Using the --json flag overrides all other flags.")
         else:
             self.set_parameters(args)
 
-        if isinstance(self.params["source"], basestring):
+        if isinstance(self.params["source"], str):
             # smiles must be array of strs
             src = self.params["source"]
             if src.lower().endswith(".smi") or src.lower().endswith(".can"):
                 # It's an smi file.
-                smiles_data = load_smiles_file(self.params["source"])
+                smiles_data = load_smiles_file(src)
             elif self.params["source"].lower().endswith(".sdf"):
                 # It's an sdf file. Convert it to a smiles.
-                smiles_data = load_sdf_file(self.params["source"])
+                smiles_data = load_sdf_file(src)
             else:
                 smiles_data = [self.params["source"]]
         else:
@@ -77,168 +78,136 @@ class ConfGenerator:
         # Make the containers
         self.contnrs = []
         for idx, data in enumerate(smiles_data):
-            smiles, name = data
-            new_contnr = MolContainer(smiles, name, idx)
+            smiles, name, props = data
+            new_contnr = MolContainer(smiles, name, idx, props)
             self.contnrs.append(new_contnr)
 
-        # ESSENTIAL
-        Steps.SMILES.desalt_orig_smi(self)
+    def run(self):
+        """
+        Starts the conversion process, ultimately writing the converted files to disk.
+        """
+        prepare_smiles(self)
 
-        if self.params["skip_adding_hydrogen"] == False:
-            Steps.SMILES.add_hydrogens(self)
-        else:
-            # PUTTING STUFF HERE THAT PATRICK WILL MOVE INTO DEF OR EXTERNAL
-            # MODULE PER HIS WISDOM
+        prepare_three_d(self)
 
-            # Problem: Each molecule container holds one smiles string
-            # (corresponding to the input structure). obabel produces multiple
-            # smiles strings at different pH values in the previous step.
-            # There is no way to store muliple smiles in a molecule container.
-            # But those containers are designed to store multiple RDKit
-            # molecule objects. To the previous step stores the differently
-            # protonated models as those objects, in the container's mol list.
-
-            # But, if the user skips the previous step, then the one smiles
-            # needs to be converted to a RDKit mol object for subsequent steps
-            # to work. Let's do that here.
-            
-            for i, mol_cont in enumerate(self.contnrs):
-                if len(mol_cont.mols) == 0:
-                    smi = mol_cont.orig_smi_canonical
-                    mol_cont.add_smiles(smi)
-
-        self.print_current_smiles()
-
-        # Do tautomers first, because obliterates chiral info I think
-        if self.params["skip_making_tautomers"] == False:
-            Steps.SMILES.make_tauts(self)
-        self.print_current_smiles()
-
-        if self.params["skip_ennumerate_chiral_mol"] == False:
-            Steps.SMILES.enumerate_chiral_molecules(self)
-        self.print_current_smiles()
-
-        # Suprized you have a hard time generating enantiomers here:
-        # CCC(C)NC(=O)CC(C)C
-
-        if self.params["skip_ennumerate_double_bonds"] == False:
-            Steps.SMILES.enumerate_double_bonds(self)
-        self.print_current_smiles()
-
-        if self.params["2d_output_only"] == False:
-            Steps.ThreeD.convert_2d_to_3d(self)
-        self.print_current_smiles()
-
-        if self.params["skip_alternate_ring_conformations"] == False:
-            Steps.ThreeD.generate_alternate_3d_nonaromatic_ring_confs(self)
-        self.print_current_smiles()
-
-        if self.params["skip_optimize_geometry"] == False:
-            Steps.ThreeD.minimize_3d(self)
-        self.print_current_smiles()
-        
         self.add_mol_id_props()
         self.print_current_smiles()
 
         # Write any mols that fail entirely to a file.
         self.deal_with_failed_molecules()
 
-        if self.params["output_file"].lower().endswith(".html"):
-            Steps.IO.web_2d_output(self)
-        else:
-            Steps.IO.save_to_sdf(self)
+        proccess_output(self)
 
 
-    def set_parameters(self, params):
+    def set_parameters(self, params_unicode):
         """
         Set the parameters that will control this ConfGenerator object.
 
         :param {} params: The parameters. A dictionary of {parameter name:
                   value}.
         """
-
         # Set the default values.
-        default = OrderedDict({})
-        default["source"] = ""
-        default["output_file"] = ""
-        default["separate_output_files"] = False
-        default["openbabel_executable"] = "/usr/local/bin/obabel"
-        default["num_processors"] = 1
-
-        default["min_ph"] = 5.0
-        default["max_ph"] = 9.0
-        default["delta_ph_increment"] = 0.5
-
-        default["thoroughness"] = 3
-        default["max_variants_per_compound"] = 5
-
-        default["skip_optimize_geometry"] = False
-        default["skip_alternate_ring_conformations"] = False
-        default["skip_adding_hydrogen"] = False
-        default["skip_making_tautomers"] = False
-        default["skip_ennumerate_chiral_mol"] = False
-        default["skip_ennumerate_double_bonds"] = False
-
-        default["2d_output_only"] = False
+        default = OrderedDict({
+            "source" : '',
+            "output_file" : '',
+            "separate_output_files" : False,
+            "openbabel_executable" : "/usr/local/bin/obabel",
+            "num_processors" : 1,
+            "min_ph" : 5.0,
+            "max_ph" : 9.0,
+            "delta_ph_increment" : 0.5,
+            "thoroughness" : 3,
+            "max_variants_per_compound" : 5,
+            "skip_optimize_geometry" : False,
+            "skip_alternate_ring_conformations" : False,
+            "skip_adding_hydrogen" : False,
+            "skip_making_tautomers" : False,
+            "skip_ennumerate_chiral_mol" : False,
+            "skip_ennumerate_double_bonds" : False,
+            "2d_output_only" : False,
+            "break" : ""
+        })
 
         # Modify params so that they keys are always lower case.
         # Also, rdkit doesn't play nice with unicode, so convert to ascii
-        params2 = {}
-        for param in params:
-            val = params[param]
-            
-            if isinstance(val, basestring):
-                val = val.encode("utf8")
-            
-            params2[param.lower().encode("utf8")] = val
 
+        # Because Python2 & Python3 use different string objects, we separate their
+        # usecases here.
+        params = {}
+        if sys.version_info < (3,):
+            for param in params_unicode:
+                val = params_unicode[param]
+                if isinstance(val, unicode):
+                    val = str(val).encode("utf8")
+                key = param.lower().encode("utf8")
+                params[key] = val
+        else:
+            for param in params_unicode:
+                val = params_unicode[param]
+                key = param.lower()
+                params[key] = val
+
+        # Overlays the user parameters where they exits.
+        self.merge_parameters(default, params)
+
+        # Checks and prepares the final parameter list
+        default = self.finalize_params(default)
+
+        self.params = default
+
+    def merge_parameters(self, default, params):
+        """Combines the defaults with the user parameters."""
         # Generate a dictionary of the types
-        type_dict = {}
-        for key in default:
-            val = default[key]
-            if type(val) is int:
-                type_dict[key] = int
-            elif type(val) is float:
-                type_dict[key] = float
-            elif type(val) is str:
-                type_dict[key] = str
-            elif type(val) is bool:
-                type_dict[key] = bool
-            else:
-                Utils.log(
-                    "ERROR: There appears to be an error in your parameter " +
-                    "JSON file. No value can have type " + str(type(val)) + 
-                    "."
-                )
-                sys.exit(0)
-        
-        # Move user-specified values into the parameter
-        for param in params2:
-            param = param.lower()
+        type_dict = self.make_type_dict(default)
 
+        # Move user-specified values into the parameter
+        for param in params:
             # Throw an error if there's an unrecognized parameter
-            if not (param in default):
+            if param not in default:
                 Utils.log(
-                    "ERROR! Parameter \"" + param + "\" not recognized!"
+                    "ERROR! Parameter \"" + str(param) + "\" not recognized!"
                 )
                 Utils.log("Here are the options:")
                 Utils.log(str(default.keys()))
                 sys.exit(0)
-            
+
             # Throw an error if the input parameter has a different type that
             # the default one.
-            if type(params2[param]) is not type_dict[param]:
+            if not isinstance(params[param], type_dict[param]):
                 Utils.log(
                     "ERROR! The parameter \"" + param + "\" must be of " +
-                    "type" + str(type_dict[param]) + ", but it is of type " + 
-                    str(type(params2[param])) + "."
+                    "type" + str(type_dict[param]) + ", but it is of type " +
+                    str(type(params[param])) + "."
                 )
                 sys.exit(0)
-            
-            default[param] = params2[param]
 
+            default[param] = params[param]
+
+    @staticmethod
+    def make_type_dict(dictionary):
+        """Creates a dictionary of types from an existant dictionary."""
+        type_dict = {}
+        allowed_types = [int, float, bool, str]
+        for key in dictionary:
+            val = dictionary[key]
+            for allowed in allowed_types:
+                if isinstance(val, allowed):
+                    type_dict[key] = allowed
+            if key not in type_dict:
+                Utils.log(
+                    "ERROR: There appears to be an error in your parameter " +
+                    "JSON file. No value can have type " + str(type(val)) +
+                    "."
+                )
+                sys.exit(0)
+
+        return type_dict
+
+    @staticmethod
+    def finalize_params(dictionary):
+        """Checks and updates parameters to their final values."""
         # Throw an error if there's a missing parameter.
-        if default["source"] == "":
+        if dictionary["source"] == "":
             Utils.log(
                 "ERROR! Missing parameter \"source\". You need to specify " +
                 "the source of the input molecules (probably a SMI or SDF " +
@@ -253,10 +222,10 @@ class ConfGenerator:
         # name of "". If it's a list, it's assumed to be a list of tuples,
         # [SMILES, Name].
 
-        if default["output_file"] == "" and default["source"] != "":
-            default["output_file"] = default["source"] + ".output.sdf"
+        if dictionary["output_file"] == "" and dictionary["source"] != "":
+            dictionary["output_file"] = dictionary["source"] + ".output.sdf"
 
-        if default["output_file"] == "":
+        if dictionary["output_file"] == "":
             Utils.log(
                 "ERROR! Missing parameter \"output_file\". You need to " +
                 "specify where to write the output. Can be an HTML or " +
@@ -264,17 +233,16 @@ class ConfGenerator:
             )
             sys.exit(0)
 
-        if not os.path.exists(default["openbabel_executable"]):
+        if not os.path.exists(dictionary["openbabel_executable"]):
             Utils.log(
                 "ERROR! There is no executable at " +
-                default["openbabel_executable"] + ". Please specify the " +
+                dictionary["openbabel_executable"] + ". Please specify the " +
                 "correct path in your parameters file and/or install Open " +
                 "Babel if necessary."
             )
             sys.exit(0)
 
-        self.params = default
-
+        return dictionary
 
     def print_current_smiles(self):
         """
@@ -282,7 +250,7 @@ class ConfGenerator:
         """
 
         # For debugging.
-        print "    Contents of MolContainers"
+        print("    Contents of MolContainers")
         for i, mol_cont in enumerate(self.contnrs):
             Utils.log("\t\t" + str(i) + " " + str(mol_cont.all_smiles()))
 
@@ -292,12 +260,11 @@ class ConfGenerator:
         Once all molecules have been generated, go through each and add the
         name and a unique id (for writing to the SDF file, for example).
         """
-
-        id = 0
-        for contnr_idx, contnr in enumerate(self.contnrs):
-            for mol_index, mol in enumerate(contnr.mols):
-                id = id + 1
-                mol.setRDKitMolProp("UniqueID", str(id))
+        cont_id = 0
+        for contnr in self.contnrs:
+            for mol in contnr.mols:
+                cont_id = cont_id + 1
+                mol.setRDKitMolProp("UniqueID", str(cont_id))
                 mol.setAllRDKitMolProps()
 
     def add_indexed_mols_to_mols(self, items):
@@ -306,14 +273,13 @@ class ConfGenerator:
 
         :param list items: A list of tuples, [(index, mol), (index, mol), ...]
         """
-
         for index, mol in items:
             self.contnrs[index].add_mol(mol)
 
 
     def deal_with_failed_molecules(self):
         """
-        What does this function do?
+        Removes and logs failed molecules.
         """
         failed_ones = []
         for contnr in self.contnrs:
@@ -328,7 +294,6 @@ class ConfGenerator:
             Utils.log("\n".join(failed_ones))
             Utils.log("\n")
 
-            f = open(self.params["output_file"] + ".failed.smi", 'w')
-            f.write("\n".join(failed_ones))
-            f.close()
-
+            outfile = open(self.params["output_file"] + ".failed.smi", 'w')
+            outfile.write("\n".join(failed_ones))
+            outfile.close()

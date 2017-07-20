@@ -1,9 +1,9 @@
 import sys
 
-from ... import ChemUtils
-from ... import Utils
-from ... import Multiprocess as mp
-from ... import MyMol
+import gypsum.Multiprocess as mp
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
+import gypsum.MyMol as MyMol
 
 try:
     from rdkit import Chem
@@ -64,6 +64,3 @@ def desalt_orig_smi(self):
             self.contnrs[desalt_mol.contnr_idx].update_orig_smi(
                 desalt_mol.orig_smi
             )
-
-
-

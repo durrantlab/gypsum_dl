@@ -1,4 +1,4 @@
-import Utils
+import gypsum.Utils as Utils
 import sys
 import copy
 import operator
@@ -138,7 +138,7 @@ class MyConformer:
         mol_copy = copy.deepcopy(self.mol_copy)  # Use it as a template.
         mol_copy.RemoveAllConformers()
         mol_copy.AddConformer(self.conformer)
-        print Chem.MolToMolBlock(mol_copy)[:500]
+        print(Chem.MolToMolBlock(mol_copy)[:500])
     
     def rmsd_to_me(self, other_conf):
         """
@@ -186,7 +186,7 @@ class MyMol:
         :param str name: An optional string, the name of this molecule.
         """
 
-        if isinstance(smiles, basestring):
+        if isinstance(smiles, str):
             self.rdkit_mol = ""
             self.can_smi = ""
         else:
@@ -288,7 +288,7 @@ class MyMol:
             return self.rdkit_mol
 
         #standardized_smiles = self.standardize_smiles()
-        
+
         # So make the mol
         # Stuff added here from https://github.com/rdkit/rdkit/pull/809 to fix
         # a bug.
@@ -381,7 +381,7 @@ class MyMol:
         Identifies which rings in a given molecule are nonaromatic, if any.
 
         :returns: A [[int, int, int]]. A list of lists, where each inner list
-                  is a list of the atom indecies of the members of a 
+                  is a list of the atom indecies of the members of a
                   non-aromatic ring.
         :rtype: :class:`str` ???
         """

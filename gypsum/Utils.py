@@ -65,10 +65,10 @@ def log(txt):
     """
 
     whitespace_before = txt[:len(txt) - len(txt.lstrip())].replace("\t", "    ")
-    print textwrap.fill(
+    print(textwrap.fill(
         txt.strip(), width = 80, initial_indent = whitespace_before,
         subsequent_indent = whitespace_before + "    "
-    )
+    ))
 
 def runit(cmd):
     """
@@ -87,7 +87,7 @@ def runit(cmd):
     
     out, err = p.communicate()
 
-    return out.split("\n")  # So returns a list of lines.
+    return out.decode().split("\n")  # So returns a list of lines.
 
 
 # See http://stackoverflow.com/questions/952914/making-a-flat-list-out-of-list-of-lists-in-python

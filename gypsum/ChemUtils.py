@@ -1,5 +1,5 @@
-import Utils
 import sys
+import gypsum.Utils as Utils
 
 try:
     from rdkit import Chem
@@ -7,6 +7,8 @@ try:
 except:
     Utils.log("You need to install rdkit and its dependencies.")
     sys.exit(0)
+
+
 
 def pick_best_mols(mol_lst, num, thoroughness):
     """

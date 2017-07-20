@@ -30,45 +30,31 @@ def MultiThreading(inputs, num_processors, task_name):
 
     tasks = []
 
-    for item in inputs:
+    for index, item in enumerate(inputs):
         if not isinstance(item, tuple):
             item = (item,)
-        tasks.append((task_name, item))
+        task = (index, (task_name, item))
+        tasks.append(task)
 
-    results = start_processes(tasks, num_processors)
+    if num_processors == 1:
+        for item in tasks:
+            job, args = item[1]
+            output = job(*args)
+            results.append(output)
+    else:
+        results = start_processes(tasks, num_processors)
 
-    return results
-
-def flatten_list(tier_list):
-    """
-    Given a list of lists, this returns a flat list of all items.
-
-    :params list tier_list: A 2D list.
-
-    :returns: A flat list of all items.
-    """
-    flat_list = [item for sublist in tier_list for item in sublist]
-    return flat_list
-
-def strip_none(none_list):
-    """
-    Given a list that might contain None items, this returns a list with no
-    None items.
-
-    :params list none_list: A list that may contain None items.
-
-    :returns: A list stripped of None items.
-    """
-    results = [x for x in none_list if x != None]
     return results
 
 #
 # Worker function
 #
 def worker(input, output):
-    for func, args in iter(input.get, 'STOP'):
+    for seq, job in iter(input.get, 'STOP'):
+        func, args = job
         result = func(*args)
-        output.put(result)
+        ret_val = (seq, result)
+        output.put(ret_val)
 
 
 def count_processors(num_inputs, num_processors):
@@ -118,4 +104,37 @@ def start_processes(inputs, num_processors):
     for i in range(num_processors):
         task_queue.put('STOP')
 
+    results.sort(key=lambda tup: tup[0])
+
+    return  [item[1] for item in map(list, results)]
+
+###
+# Helper functions
+###
+
+def flatten_list(tier_list):
+    """
+    Given a list of lists, this returns a flat list of all items.
+
+    :params list tier_list: A 2D list.
+
+    :returns: A flat list of all items.
+    """
+    if tier_list is None:
+        return []
+    flat_list = [item for sublist in tier_list for item in sublist]
+    return flat_list
+
+def strip_none(none_list):
+    """
+    Given a list that might contain None items, this returns a list with no
+    None items.
+
+    :params list none_list: A list that may contain None items.
+
+    :returns: A list stripped of None items.
+    """
+    if none_list is None:
+        return []
+    results = [x for x in none_list if x != None]
     return results

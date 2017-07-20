@@ -1,8 +1,9 @@
-from ... import Multiprocess as mp
-from ... import Utils
-from ... import ChemUtils
 import copy
 import sys
+
+import gypsum.Multiprocess as mp
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
 
 try:
     from rdkit import Chem
@@ -48,4 +49,6 @@ def convert_2d_to_3d(self):
 
     tmp = mp.MultiThreading(params, self.params["num_processors"], mk3d)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp, False)
+    clear = mp.strip_none(tmp)
+    #clear = tmp
+    ChemUtils.bst_for_each_contnr_no_opt(self, clear, False)

@@ -1,4 +1,4 @@
-from ... import Utils
+import gypsum.Utils as Utils
 import sys
 
 try:
@@ -30,6 +30,7 @@ def save_to_sdf(self):
 
     Utils.log("Saving molecules associated with...")
     for i, contnr in enumerate(self.contnrs):
+        contnr.add_container_properties()
         Utils.log("\t" + contnr.orig_smi)
 
         if self.params["separate_output_files"] == True:

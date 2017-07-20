@@ -1,9 +1,11 @@
-from ... import Multiprocess as mp
-from ... import Utils
-from ... import ChemUtils
 import copy
 import sys
-from ... MyMol import MyConformer
+
+import gypsum.Multiprocess as mp
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
+
+from gypsum.MyMol import MyConformer
 
 try:
     from rdkit import Chem
