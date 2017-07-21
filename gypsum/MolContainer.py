@@ -179,3 +179,27 @@ class MolContainer:
         for mol in self.mols:
             mol.mol_props.update(self.properties)
             mol.setAllRDKitMolProps()
+
+    def remove_identical_mols_from_container(self):
+        # For reasons I don't understand, the following doesn't give unique
+        # canonical smiles:
+        
+        # Chem.MolToSmiles(self.mols[0].rdkit_mol, isomericSmiles=True,
+        # canonical=True)
+
+        # You need to make new molecules to get it to work.
+        new_smiles = [m.smiles() for m in self.mols]
+        new_mols = [Chem.MolFromSmiles(smi) for smi in new_smiles]
+        new_can_smiles = [Chem.MolToSmiles(new_mol, isomericSmiles=True, canonical=True) for new_mol in new_mols]
+        
+        can_smiles_already_set = set([])
+        for i, new_can_smile in enumerate(new_can_smiles):
+            if not new_can_smile in can_smiles_already_set:
+                # Never seen before
+                can_smiles_already_set.add(new_can_smile)
+            else:
+                # See before. Delete!
+                self.mols[i] = None
+        
+        while None in self.mols:
+            self.mols.remove(None)

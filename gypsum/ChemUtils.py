@@ -59,6 +59,10 @@ def bst_for_each_contnr_no_opt(self, mol_lst,
                                crry_ovr_frm_lst_step_if_no_fnd=True):
     # smiles_tuple_data is (contnr_idx, MyMols)
 
+    # Remove duplicate ligands from cluster.
+    for mol_cont in self.contnrs:
+        mol_cont.remove_identical_mols_from_container()
+
     # Group the smiles by contnr_idx
     data = Utils.group_mols_by_container_index(mol_lst)
     # Go through each contnr
