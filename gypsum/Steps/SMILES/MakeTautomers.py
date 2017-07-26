@@ -41,10 +41,7 @@ def make_tauts(self):
     # Flatten the resulting list of lists
     #none_data = mp.strip_none(tmp)
     none_data = tmp
-    print(tmp)
     taut_data = mp.flatten_list(none_data)
-    print(len(taut_data))
-    print(taut_data)
 
     # Remove bad tauts
     taut_data = tauts_no_break_arom_rngs(self, taut_data)
@@ -52,8 +49,6 @@ def make_tauts(self):
     taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
         self, taut_data
     )
-    print(len(taut_data))
-    print(taut_data)
 
     ChemUtils.bst_for_each_contnr_no_opt(self, taut_data)
 

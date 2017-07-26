@@ -187,6 +187,49 @@ class MolContainer:
         # Chem.MolToSmiles(self.mols[0].rdkit_mol, isomericSmiles=True,
         # canonical=True)
 
+        # This block for debugging
+        all_smiles = [m.smiles() for m in self.mols]  # Get all the smiles as stored.
+
+        wrong_cannonical_smiles = [
+            Chem.MolToSmiles(
+                m.rdkit_mol,  # Using the RdKit mol stored in MyMol
+                isomericSmiles=True, 
+                canonical=True
+            ) for m in self.mols
+        ]
+
+        right_cannonical_smiles = [
+            Chem.MolToSmiles(
+                Chem.MolFromSmiles(  # Regenerating the RdKit mol from the smiles string stored in MyMol
+                    m.smiles()
+                ), 
+                isomericSmiles=True, 
+                canonical=True
+            ) for m in self.mols]
+        
+        if len(set(wrong_cannonical_smiles)) != len(set(right_cannonical_smiles)):
+            print("ERROR!")
+            print("Stored smiles string in this container:")
+            print("\n".join(all_smiles))
+            print("")
+            print("Supposedly cannonical smiles strings generated from stored RDKit Mols in this container:")
+            print("\n".join(wrong_cannonical_smiles))
+            print("But if you plop these into chemdraw, you'll see some of them represent identical structures.")
+            print("")
+            print("Cannonical smiles strings generated from RDKit mols that were generated from the stored smiles string in this container:")
+            print("\n".join(right_cannonical_smiles))
+            print("Now you see the identical molecules. But why didn't the previous method catch them?")
+            print("")
+
+            print("Note that the third method identifies duplicates that the second method doesn't. AHHHHH!!!!!!")
+            print("")
+            print("=" * 20)
+
+            # Just to keep life dangerous...
+            import random
+            if random.randint(0, 10000) == 1234:
+                sdfdsfkhdsf
+
         # You need to make new molecules to get it to work.
         new_smiles = [m.smiles() for m in self.mols]
         new_mols = [Chem.MolFromSmiles(smi) for smi in new_smiles]
