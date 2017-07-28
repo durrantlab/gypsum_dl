@@ -174,7 +174,8 @@ class MolContainer:
 
     def add_container_properties(self):
         """
-        
+        Adds all properties from the container, which is currently populated
+        from the SDF when using 2D-SDFs as input, to the molecules.
         """
         for mol in self.mols:
             mol.mol_props.update(self.properties)
@@ -183,7 +184,7 @@ class MolContainer:
     def remove_identical_mols_from_container(self):
         # For reasons I don't understand, the following doesn't give unique
         # canonical smiles:
-        
+
         # Chem.MolToSmiles(self.mols[0].rdkit_mol, isomericSmiles=True,
         # canonical=True)
 
@@ -193,7 +194,7 @@ class MolContainer:
         wrong_cannonical_smiles = [
             Chem.MolToSmiles(
                 m.rdkit_mol,  # Using the RdKit mol stored in MyMol
-                isomericSmiles=True, 
+                isomericSmiles=True,
                 canonical=True
             ) for m in self.mols
         ]
@@ -202,28 +203,33 @@ class MolContainer:
             Chem.MolToSmiles(
                 Chem.MolFromSmiles(  # Regenerating the RdKit mol from the smiles string stored in MyMol
                     m.smiles()
-                ), 
-                isomericSmiles=True, 
+                ),
+                isomericSmiles=True,
                 canonical=True
             ) for m in self.mols]
-        
-        if len(set(wrong_cannonical_smiles)) != len(set(right_cannonical_smiles)):
-            print("ERROR!")
-            print("Stored smiles string in this container:")
-            print("\n".join(all_smiles))
-            print("")
-            print("Supposedly cannonical smiles strings generated from stored RDKit Mols in this container:")
-            print("\n".join(wrong_cannonical_smiles))
-            print("But if you plop these into chemdraw, you'll see some of them represent identical structures.")
-            print("")
-            print("Cannonical smiles strings generated from RDKit mols that were generated from the stored smiles string in this container:")
-            print("\n".join(right_cannonical_smiles))
-            print("Now you see the identical molecules. But why didn't the previous method catch them?")
-            print("")
 
-            print("Note that the third method identifies duplicates that the second method doesn't. AHHHHH!!!!!!")
-            print("")
-            print("=" * 20)
+        if len(set(wrong_cannonical_smiles)) != len(set(right_cannonical_smiles)):
+            Utils.log("ERROR!")
+            Utils.log("Stored smiles string in this container:")
+            Utils.log("\n".join(all_smiles))
+            Utils.log("")
+            Utils.log("""Supposedly cannonical smiles strings generated from stored
+                RDKit Mols in this container:""")
+            Utils.log("\n".join(wrong_cannonical_smiles))
+            Utils.log("""But if you plop these into chemdraw, you'll see some of them
+                represent identical structures.""")
+            Utils.log("")
+            Utils.log("""Cannonical smiles strings generated from RDKit mols that
+                were generated from the stored smiles string in this container:""")
+            Utils.log("\n".join(right_cannonical_smiles))
+            Utils.log("""Now you see the identical molecules. But why didn't the previous
+                method catch them?""")
+            Utils.log("")
+
+            Utils.log("""Note that the third method identifies duplicates that the second
+                method doesn't. AHHHHH!!!!!!""")
+            Utils.log("")
+            Utils.log("=" * 20)
 
             # Just to keep life dangerous...
             import random
