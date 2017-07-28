@@ -112,7 +112,7 @@ class ConfGenerator(object):
             "output_file" : '',
             "separate_output_files" : False,
             "openbabel_executable" : "/usr/local/bin/obabel",
-            "num_processors" : 1,
+            "num_processors" : -1,
             "min_ph" : 5.0,
             "max_ph" : 9.0,
             "delta_ph_increment" : 0.5,
