@@ -165,7 +165,20 @@ def fix_common_babel_ph_smiles_errors(smiles):
         
     mol = Chem.MolFromSmiles(smiles)
 
+    # i = 0
+
     while True:
+        # i = i + 1
+        # if i > 20:
+            # Why is this necessary? Because in rare cases, the below
+            # conditions might be repeatedly satisfied, leading to an infinite
+            # loop.
+
+            # For example, it is true that a N+ bonded to only three atoms
+            # almost always does not have a positive charge.
+            # break
+            # pass
+
         if mol is None:
             return None  # It's invalid somehow
 
@@ -193,15 +206,21 @@ def fix_common_babel_ph_smiles_errors(smiles):
                 mol = r[0][0]
             continue
 
-        # N+ bonded to only three atoms does not have a positive
-        # charge.
-        smrts = Chem.MolFromSmarts("[NX3+]")
-        if mol.HasSubstructMatch(smrts):
-            rxn = AllChem.ReactionFromSmarts('[NX3+:1]>>[N:1]')   
-            r = rxn.RunReactants([mol])
-            if len(r) > 0:
-                mol = r[0][0]
-            continue
+        # (OLD, WRONG THINKING: N+ bonded to only three atoms does not have a
+        # positive charge.) 
+        
+        # Commented out below because I think it's not true. Trimethylamine
+        # can be readily protonated to give the trimethylammonium cation.
+        # https://en.wikipedia.org/wiki/Trimethylamine . Also, consider
+        # 1-methyl-2,3,4,5-tetrahydropyridin-1-ium.
+
+        # smrts = Chem.MolFromSmarts("[NX3+]")
+        # if mol.HasSubstructMatch(smrts):
+        #     rxn = AllChem.ReactionFromSmarts('[NX3+:1]>>[N:1]')   
+        #     r = rxn.RunReactants([mol])
+        #     if len(r) > 0:
+        #         mol = r[0][0]
+        #     continue
 
         # If you get here, no changes were made, so return what you've got
         return can_smi
