@@ -97,7 +97,7 @@ def parallel_addH(pH, flnm, obabel_loc):
     Utils.log("\tat pH " + str(pH))
 
     results = Utils.runit(
-        obabel_loc + ' -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
+        obabel_loc + ' -d -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
     )
 
     return_value = []
