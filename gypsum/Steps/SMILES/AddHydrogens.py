@@ -100,6 +100,9 @@ def parallel_addH(pH, flnm, obabel_loc):
         obabel_loc + ' -d -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
     )
 
+    print "\n".join(results)
+    sdf
+
     return_value = []
 
     for s in results:
@@ -117,7 +120,7 @@ def parallel_addH(pH, flnm, obabel_loc):
 
             smi = fix_common_babel_ph_smiles_errors(smi)
 
-            amol = MyMol.MyMol(smi)
+            amol = MyMol.MyMol(smi, name)
 
             # I once saw it add a C+ here. So do a sanity check at
             # this point.
@@ -156,13 +159,27 @@ def parallel_addH(pH, flnm, obabel_loc):
                         "\WARNING: " + smi + " (" + name  +
                         ") discarded."
                     )
+    sdf
     return return_value
+
+def fix_common_smiles_problems(smiles):
+    # Inappropriate carbocations
+    smiles = smiles.replace("[C+]", "C").replace("[c+]", "c")
+
+    # Inappropriate n-
+    smiles = smiles.replace("[N-]", "N").replace("[n-]", "n")
+
+    return smiles
 
 def fix_common_babel_ph_smiles_errors(smiles):
     """
     Try to fix common structural erors.
     """
-        
+    # print smiles, "MOO"
+    # return smiles
+
+    smiles = fix_common_smiles_problems(smiles)
+
     mol = Chem.MolFromSmiles(smiles)
 
     # i = 0
@@ -180,21 +197,13 @@ def fix_common_babel_ph_smiles_errors(smiles):
             # pass
 
         if mol is None:
+            print "PROB: " + smiles
             return None  # It's invalid somehow
 
         can_smi = Chem.MolToSmiles(
             mol, isomericSmiles=True, canonical=True
         )
 
-        # inappropriate carbocations
-        if "[C+]" in can_smi:
-            mol = AllChem.ReplaceSubstructs(
-                mol,
-                Chem.MolFromSmarts('[$([C+](=*)(-*)-*)]'),
-                Chem.MolFromSmiles('C')
-            )[0]
-            continue
-        
         # Inappropriate modifications to carboxylic acids
         smrts = Chem.MolFromSmarts("C([O-])O")
         if mol.HasSubstructMatch(smrts):
