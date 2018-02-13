@@ -42,7 +42,10 @@ class MolContainer:
         #self.smiles_to_pH = {}
         self.name = name
         self.properties = properties
+
         self.mol_orig_smi = MyMol.MyMol(smiles, name)
+        self.mol_orig_smi.contnr_idx = self.contnr_idx
+
         self.frgs = ""  # For caching.
 
         # Save the original canonical smiles
@@ -230,11 +233,6 @@ class MolContainer:
                 method doesn't. AHHHHH!!!!!!""")
             Utils.log("")
             Utils.log("=" * 20)
-
-            # Just to keep life dangerous...
-            import random
-            if random.randint(0, 10000) == 1234:
-                sdfdsfkhdsf
 
         # You need to make new molecules to get it to work.
         new_smiles = [m.smiles() for m in self.mols]

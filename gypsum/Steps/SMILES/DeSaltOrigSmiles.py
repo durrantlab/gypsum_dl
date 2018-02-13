@@ -18,7 +18,7 @@ def DeSalter(contnr):
     if len(frags) == 1:
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
-        return contnr
+        return contnr.mol_orig_smi
     else:
         Utils.log(
             "\tMultiple fragments found in " + contnr.orig_smi +
@@ -41,6 +41,7 @@ def DeSalter(contnr):
         new_mol = MyMol.MyMol(biggest_frag)
         new_mol.contnr_idx = contnr.contnr_idx
         new_mol.name = contnr.name
+        new_mol.genealogy = contnr.mol_orig_smi.genealogy
         new_mol.makeMolFromSmiles() # Need to update the mol.
         return new_mol
 
@@ -58,9 +59,13 @@ def desalt_orig_smi(self):
 
     tmp = mp.MultiThreading(params, self.params["num_processors"], DeSalter)
 
-    # Go through each contnr and update the orig_smi
+    # Go through each contnr and update the orig_smi_deslt
+    # If we update it, also add a note in the genealogy
     for desalt_mol in tmp:
+        idx = desalt_mol.contnr_idx
+        cont = self.contnrs[idx]
         if self.contnrs[desalt_mol.contnr_idx].orig_smi != desalt_mol.orig_smi:
-            self.contnrs[desalt_mol.contnr_idx].update_orig_smi(
-                desalt_mol.orig_smi
-            )
+            desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
+            cont.update_orig_smi(desalt_mol.orig_smi_deslt)
+        cont.add_mol(desalt_mol)
+            

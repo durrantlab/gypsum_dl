@@ -1,64 +1,179 @@
+"""
+This module is made to identify and enumerate the possible protonation sites of molecules.
+"""
+
+# TODO: Need to have categories, potentially for each site in an R-group?
+
+import copy
+
+from rdkit import Chem
 import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
-import random
-import sys
+
 import os
-import tempfile
 
-try:
-    from rdkit.Chem import AllChem
-    from rdkit import Chem
-except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+def load_protonation_substructs():
+    """
+    A pre-calculated list of R-groups with protonation sites, with their likely pKa bins.
+    """
+    subs = []
+    file = os.path.join(os.path.dirname(__file__),"site_structures.smarts")
+    with open(file, 'r') as substruct:
+        for line in substruct:
+            line = line.strip()
+            sub = {}
+            if line is not "":
+                splits = line.split()
+                name = splits[0]
+                smart = splits[1]
 
+                sub["name"] = name
+                sub["smart"] = smart
+
+                mol = Chem.MolFromSmarts(smart)
+                sub["mol"] = mol
+
+                # This is going to split the remaining
+                prot = [[int(splits[i]), splits[i+1]] for i in range(2, len(splits)-1, 2)]
+
+                #!!! This takes any explicit hydrogen as a site for protonation.
+                # We may find that we need to revisit this, as Nitrogen causes issues
+                # with RDKit's kekulization when it has 4 bonds in aromatic rings.
+                sub["prot"] = prot
+                subs.append(sub)
+    return subs
+
+
+###
+# We need to identify and mark groups that have been matched with a substructure.
+###
+
+def remove_explicit_Hs(mol):
+    for atom in mol.GetAtoms():
+        atom.SetNumExplicitHs(0)
+
+def unprotect_molecule(mol):
+    """
+    Sets the protected property on all atoms to 0. This also creates the property
+    for new molecules.
+    """
+    for atom in mol.GetAtoms():
+        atom.SetProp('_protected', '0')
+
+def protect_molecule(mol, match):
+    """
+    Given a 'match', a list of molecules idx's, we set the protected status of each
+    atom to 1. This will prevent any matches using that atom in the future.
+    """
+    for idx in match:
+        atom = mol.GetAtomWithIdx(idx)
+        atom.SetProp('_protected', '1')
+
+def get_unprotected_matches(mol, substruct):
+    """
+    Finds substructure matches with atoms that have not been protected.
+    Returns list of matches, each match a list of atom idxs.
+    """
+    matches = mol.GetSubstructMatches(substruct)
+    unprotected_matches = []
+    for match in matches:
+        keep_flag = True
+        for idx in match:
+            atom = mol.GetAtomWithIdx(idx)
+            protected = atom.GetProp("_protected")
+            if protected == "1":
+                keep_flag = False
+        if keep_flag:
+            unprotected_matches.append(match)
+            protect_molecule(mol, match)
+    return unprotected_matches
+
+def get_protonation_sites(mol, subs):
+    """
+    For a single molecule, find all possible matches in the protonation R-group list,
+    subs. Items that are higher on the list will be matched first, to the exclusion of
+    later items.
+    Returns a list of protonation sites and their pKa bin. ('Acid', 'Neutral', or 'Base')
+    """
+    unprotect_molecule(mol)
+    remove_explicit_Hs(mol)
+    protonation_sites = []
+
+    for item in subs:
+        smart = item['mol']
+        if mol.HasSubstructMatch(smart):
+            matches = get_unprotected_matches(mol, smart)
+            prot = item['prot']
+            for match in matches:
+                # We want to move the site from being relative to the
+                # substructure, to the index on the main molecule.
+                for site in prot:
+                    proton = site[0]
+                    category = site[1]
+                    new_site = (match[proton], category)
+                    protonation_sites.append(new_site)
+                protect_molecule(mol, match)
+
+    return protonation_sites
+
+def protonate_site(mols, site):
+    """
+    Protonates (or deprotonates) a list of smis at a given site.
+    """
+    # We get the index to modify and the charges to apply
+    idx, charge = site
+
+    # Create lists of things to positively or negatively charge.
+    # Neutral gets added to both lists
+    protonate = []
+    deprotonate = []
+
+    if charge == "acid" or charge == "neutral":
+        deprotonate = copy.deepcopy(mols)
+    if charge == "base" or charge == "neutral":
+        protonate = copy.deepcopy(mols)
+
+    output_mols = []
+
+    for mol in deprotonate:
+        mol = Chem.RemoveHs(mol)
+        atom = mol.GetAtomWithIdx(idx)
+        atom.SetNumExplicitHs(0)
+        element = atom.GetAtomicNum()
+        if element == 7:
+            atom.SetFormalCharge(0)
+        else:
+            #print("Minus")
+            atom.SetFormalCharge(-1)
+        output_mols.append(mol)
+
+    for mol in protonate:
+        mol = Chem.RemoveHs(mol)
+        atom = mol.GetAtomWithIdx(idx)
+        element = atom.GetAtomicNum()
+        if element == 7:
+            atom.SetFormalCharge(+1)
+        else:
+            #print("Neutral")
+            atom.SetFormalCharge(0)
+        output_mols.append(mol)
+
+    return output_mols
 
 def add_hydrogens(self, skip=False):
     """
-    Adds hydrogen atoms to the molecules, as appropriate for pH's ranging over
-    the user-specified values. Note that though not a class function, it still
-    accepts self as a parameter. This is the class that is calling it.
+    This is a stub that is used to keep track of what I need to still do.
+
     """
+    substructures = load_protonation_substructs()
+    out_containers = []
+    inputs = [(cont, substructures) for cont in self.contnrs]
 
-    Utils.log("Adding hydrogen atoms...")
+    tmp = mp.MultiThreading(inputs, self.params["num_processors"], parallel_addH)
 
-    tmp = None
-
-    if skip:
-        tmp = []
-    else:
-        # Save all smiles to a temporary file
-        # PATRICK - We need to call the temp file function
-        #flnm = str(random.randrange(0, 1000000)) + ".tmp"
-        #while os.path.exists(flnm):
-        #    flnm = str(random.randrange(0, 1000000)) + ".tmp"
-
-        flnm = tempfile.mkstemp()[1]
-        with open(flnm, 'w') as f:
-            f.writelines(
-                [m.orig_smi_deslt + " " + m.name + "____" + str(i) + "____" +
-                m.orig_smi + "____" + m.orig_smi_deslt + "\n" for i, m in
-                enumerate(self.contnrs)]
-            )
-
-        # Change pH in increments of 0.5 from min to max
-        params = []
-        pH = self.params["min_ph"]
-        while pH <= self.params["max_ph"]:
-            params.append((pH, flnm, self.params["openbabel_executable"]))
-            pH = pH + self.params["delta_ph_increment"]
-
-        tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_addH)
-
-        os.unlink(flnm)
-        # *?* Check that this makes sense in the structure of ourput
-        # Flattening return values
-        tmp = mp.flatten_list(tmp)
-
-    # Add back in remaining, using original smiles (no protonation). This is
-    # better than nothing.
+    tmp = mp.flatten_list(tmp)
     contnr_indx_no_touch = Utils.contnrs_no_touchd(
         self, tmp
     )
@@ -84,154 +199,42 @@ def add_hydrogens(self, skip=False):
     ChemUtils.bst_for_each_contnr_no_opt(self, tmp)
 
 
-def parallel_addH(pH, flnm, obabel_loc):
+
+def parallel_addH(container, substructures):
     """
-    A parallelizable helper function that adds hydrogens to molecules.
+    We take a container and a list of substructures and return all the appropriate protonation
+    variants.
 
-    :param float pH: The pH to consider when adding hydrogens
-    :param str flnm: The file name that holds the file to consider.
-    :param str obabel_loc: The location of the obabel installation.
-
-    :results: Returns either the protonated RDKit molecule or a None object.
+    :params container container: A container for a
     """
-    Utils.log("\tat pH " + str(pH))
-
-    results = Utils.runit(
-        obabel_loc + ' -d -p ' + str(pH) + ' -ismi ' +  flnm + ' -ocan'
-    )
-
-    print "\n".join(results)
-    sdf
-
     return_value = []
 
-    for s in results:
-        # In python2 sometime the values are returned as unicode
-        # This just recodes them as ascii so rdkit doesn't complain
-        if not isinstance(s, str):
-            s = str(s)
+    my_mol = container.mols[0]
 
-        s = s.strip()
-        if s != "":
-            prts = s.split()
-            smi = prts[0]
-            mol_info = " ".join(prts[1:])
-            name, contnr_idx, orig_smi, orig_smi_deslt = mol_info.split("____")
+    orig_mol = Chem.AddHs(Chem.RemoveHs(my_mol.rdkit_mol))
+    mols = [orig_mol]
+    protonation_sites = get_protonation_sites(orig_mol, substructures)
 
-            smi = fix_common_babel_ph_smiles_errors(smi)
+    for site in protonation_sites:
+        mols = protonate_site(mols, site)
 
-            amol = MyMol.MyMol(smi, name)
+    smis = [Chem.MolToSmiles(mol) for mol in mols]
+    rdkit_mols = [Chem.MolFromSmiles(smi) for smi in smis]
 
-            # I once saw it add a C+ here. So do a sanity check at
-            # this point.
-            if amol.rdkit_mol is not None:
+    # Convert from rdkit mols to MyMols and remove those with odd substructures
+    addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]
+    addH_mols = [mol for mol in addH_mols if mol.crzy_substruc() == False]
 
-                # Unfortuantely, obabel makes some systematic mistakes
-                # when it comes to pH assignments. Try to correct them
-                # here.
-                # amol.fix_common_errors()
+    # I once saw it add a C+ here. So do a sanity check at
+    # this point.
+    for Hm in addH_mols:
+        Hm.inherit_contnr_props(container)
+        Hm.genealogy = my_mol.genealogy[:]
+        Hm.name = my_mol.name
 
-                if amol.crzy_substruc() == False:
-                    # So no crazy substructure.
+        if Hm.smiles() != my_mol.smiles():
+            Hm.genealogy.append(Hm.smiles(True) + " (protonated)")
 
-                    amol.contnr_idx = int(
-                        contnr_idx
-                    )
+        return_value.append(Hm)
 
-                    amol.genealogy.append(orig_smi + " (source)")
-
-                    if orig_smi != orig_smi_deslt:
-                        amol.genealogy.append(
-                            orig_smi_deslt + " (desalted)"
-                        )
-
-                    amol.genealogy.append(
-                        amol.smiles(True) + " (at pH " +
-                        str(pH) + ")"
-                    )
-
-                    amol.name = name
-
-                    return_value.append(amol)
-                else:
-                    # It has a crazy substructure.
-                    Utils.log(
-                        "\WARNING: " + smi + " (" + name  +
-                        ") discarded."
-                    )
-    sdf
     return return_value
-
-def fix_common_smiles_problems(smiles):
-    # Inappropriate carbocations
-    smiles = smiles.replace("[C+]", "C").replace("[c+]", "c")
-
-    # Inappropriate n-
-    smiles = smiles.replace("[N-]", "N").replace("[n-]", "n")
-
-    return smiles
-
-def fix_common_babel_ph_smiles_errors(smiles):
-    """
-    Try to fix common structural erors.
-    """
-    # print smiles, "MOO"
-    # return smiles
-
-    smiles = fix_common_smiles_problems(smiles)
-
-    mol = Chem.MolFromSmiles(smiles)
-
-    # i = 0
-
-    while True:
-        # i = i + 1
-        # if i > 20:
-            # Why is this necessary? Because in rare cases, the below
-            # conditions might be repeatedly satisfied, leading to an infinite
-            # loop.
-
-            # For example, it is true that a N+ bonded to only three atoms
-            # almost always does not have a positive charge.
-            # break
-            # pass
-
-        if mol is None:
-            print "PROB: " + smiles
-            return None  # It's invalid somehow
-
-        can_smi = Chem.MolToSmiles(
-            mol, isomericSmiles=True, canonical=True
-        )
-
-        # Inappropriate modifications to carboxylic acids
-        smrts = Chem.MolFromSmarts("C([O-])O")
-        if mol.HasSubstructMatch(smrts):
-            rxn = AllChem.ReactionFromSmarts(
-                '[CH1:1](-[OH1:2])-[OX1-:3]>>[C:1](=[O:2])[O-:3]'
-            )
-            r = rxn.RunReactants([mol])
-            if len(r) > 0:
-                mol = r[0][0]
-            continue
-
-        # (OLD, WRONG THINKING: N+ bonded to only three atoms does not have a
-        # positive charge.) 
-        
-        # Commented out below because I think it's not true. Trimethylamine
-        # can be readily protonated to give the trimethylammonium cation.
-        # https://en.wikipedia.org/wiki/Trimethylamine . Also, consider
-        # 1-methyl-2,3,4,5-tetrahydropyridin-1-ium.
-
-        # smrts = Chem.MolFromSmarts("[NX3+]")
-        # if mol.HasSubstructMatch(smrts):
-        #     rxn = AllChem.ReactionFromSmarts('[NX3+:1]>>[N:1]')   
-        #     r = rxn.RunReactants([mol])
-        #     if len(r) > 0:
-        #         mol = r[0][0]
-        #     continue
-
-        # If you get here, no changes were made, so return what you've got
-        return can_smi
-
-
