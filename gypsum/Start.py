@@ -233,15 +233,6 @@ class ConfGenerator(object):
             )
             sys.exit(0)
 
-        if not os.path.exists(dictionary["openbabel_executable"]):
-            Utils.log(
-                "ERROR! There is no executable at " +
-                dictionary["openbabel_executable"] + ". Please specify the " +
-                "correct path in your parameters file and/or install Open " +
-                "Babel if necessary."
-            )
-            sys.exit(0)
-
         return dictionary
 
     def print_current_smiles(self):
