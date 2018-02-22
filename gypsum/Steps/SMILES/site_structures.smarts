@@ -8,6 +8,10 @@ Thioic_acid	[C,c,N,n:1](=[O:2])-[SX2:3]-[H]	2	acid
 Phenyl_Thiol	[c,n:1]-[SX2:2]-[H]	1	neutral
 Thiol	[C,N:1]-[SX2:2]-[H]	1	neutral
 Sulfonate	[SX4:1](=[O:2])(=[O:3])(-[C,c,N,n:4])-[OX2:5]-[H]	4	neutral
+Phosphate1	[PX4:1](=[O:2])(-[OX2:3]-[H])(-[O+0:4])-[OX2:5]-[H]	2	neutral	5	neutral
+Phosphate2	[PX4:1](=[O:2])(-[O-1:3])(-[O+0:4])-[OX2:5]-[H]	4	neutral
+Phosphonate1	[PX4:1](=[O:2])(-[OX2:3]-[H])(-[C,c,N,n:4])-[OX2:5]-[H]	2	acid	5	neutral
+Phosphonate2	[PX4:1](=[O:2])(-[OX1-:3])(-[C,c,N,n+0:4])-[OX2:5]-[H]	4	neutral
 Phenol	[c,n,o:1]-[O:2]-[H]	1	neutral
 Phenyl_carboxyl	[c,n,o:1]-[C:2](=[O:3])-[O:4]-[H]	3	acid
 Carboxyl	[C:1](=[O:2])-[O:3]-[H]	2	acid
