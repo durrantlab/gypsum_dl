@@ -34,8 +34,9 @@ def pick_best_mols(mol_lst, num, thoroughness):
 
     # First, generate 3D structures.
     # How many? num * thoroughness
+    # mols_3d is a list of gypsum My.Mol instances #JAKE@
     mols_3d = Utils.random_sample(mol_lst, num * thoroughness, "")
-
+    
     # Now get the energies
     data = []
     for i, mol in enumerate(mols_3d):
@@ -89,7 +90,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
                 none_generated = True
         else:
             none_generated = True
-
+        
         if none_generated:
             if crry_ovr_frm_lst_step_if_no_fnd:
                 Utils.log(
@@ -105,3 +106,4 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
                     contnr.name + "). Discarding conformer."
                 )
                 contnr.mols = []
+    

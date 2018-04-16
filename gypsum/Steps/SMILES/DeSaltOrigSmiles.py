@@ -66,4 +66,3 @@ def desalt_orig_smi(contnrs, num_processors):
             desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)
         cont.add_mol(desalt_mol)
-            

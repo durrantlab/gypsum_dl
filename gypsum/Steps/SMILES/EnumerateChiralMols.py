@@ -37,7 +37,7 @@ def GetChiral(mol, max_variants_per_compound, thoroughness):
         options = [["R"], ["S"]]
         for i in range(num - 1):
             options = list(itertools.product(options, starting))
-            options = [list(itertools.chain(c[0], c[1]))
+            options = [list(itertools.chain(c[0], c[1])) 
                        for c in options]
 
     Utils.log(

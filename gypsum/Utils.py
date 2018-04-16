@@ -70,39 +70,6 @@ def log(txt):
         subsequent_indent = whitespace_before + "    "
     ))
 
-def runit(cmd):
-    """
-    Runs a command and returns the output as a list.
-
-    :param str cmd: The command.
-
-    :returns: A list containing the output, each line as a separate item
-                in the list.
-    :rtype: :class:`list` ???
-    """
-    
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, stdin=subprocess.PIPE,
-                            shell = True)
-    
-    out, err = p.communicate()
-
-    return out.decode().split("\n")  # So returns a list of lines.
-
-
-# See http://stackoverflow.com/questions/952914/making-a-flat-list-out-of-list-of-lists-in-python
-def flatten(list_of_lists):
-    """
-    Flattens a list of lists to just a list.
-    
-    :param list list_of_lists: The list of lists.
-    
-    :returns: A list, flattened.
-    :rtype: :class:`list` ???
-    """
-
-    return [item for sublist in list_of_lists for item in sublist]
-
 def contnrs_no_touchd(contnrs, results):
     """
     Identify contnrs that have no representative elements in results.
@@ -115,21 +82,20 @@ def contnrs_no_touchd(contnrs, results):
               no associated elements in results.
     :rtype: :class:`str` ???
     """
-
+    
     # Find ones that don't have any generated. This is because sometimes
     # obabel failes to producce valid smiles. In this case, just use the
     # original smiles. Couldn't find a good solution to work around.
-
+    
     # Get a dictionary of all the input smiles.
     idx_to_smi = {}
     for contnr in contnrs:
         if not contnr.contnr_idx in idx_to_smi:
             idx_to_smi[contnr.contnr_idx] = contnrs[contnr.contnr_idx].orig_smi_deslt
-
-    # Now remove from those any that have associated protonated smiles strings
-    # from obabel.
+    
+    # Now remove from those any that have associated protonated smiles strings.
     for m in results:
         if m.contnr_idx in idx_to_smi:
             del idx_to_smi[m.contnr_idx]
-
+    
     return idx_to_smi.keys()

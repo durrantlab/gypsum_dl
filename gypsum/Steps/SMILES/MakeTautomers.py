@@ -76,6 +76,9 @@ def parallel_makeTaut(contnr, mol_index, max_variants_per_compound):
     # let's do that again. Because taut requires kekulized
     # input.
     Chem.Kekulize(m)
+    m = MyMol.check_sanitization(m)   #JAKE@
+    if m is None:   #JAKE@
+        return None   #JAKE@
 
     # Limit to max_variants_per_compound tauts. Note that another
     # batch could add more, so you'll need to once again trim to this

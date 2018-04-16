@@ -8,8 +8,9 @@ from gypsum.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 def prepare_smiles(contnrs, params):
     """
     Runs the appropriate steps for processing the smile strings.
-    """
+    """    
     
+    print("Begin Desaltings")   #JAKE@
     max_variants_per_compound = params["max_variants_per_compound"]
     thoroughness = params["thoroughness"]
     num_processors = params["num_processors"]
@@ -17,26 +18,23 @@ def prepare_smiles(contnrs, params):
     # Run the functions
     desalt_orig_smi(contnrs, num_processors)
 
+    print("Done with Desalting") #JAKE@
 
-    ##Pausing for a moment to get that properly installed
+    # Pausing for a moment to get that properly installed
     if not params["skip_adding_hydrogen"]:
         add_hydrogens(self)
     else:
         wrap_molecules(contnrs)
-    #self.print_current_smiles()
 
     if not params["skip_making_tautomers"]:
         make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors)
-    #self.print_current_smiles()
-
+    
     if not params["skip_ennumerate_chiral_mol"]:
         enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_processors)
-    #self.print_current_smiles()
-
+    
     if not params["skip_ennumerate_double_bonds"]:
         enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors)
-    #self.print_current_smiles()
-
+    
 def wrap_molecules(contnrs):
     """
     Problem: Each molecule container holds one smiles string

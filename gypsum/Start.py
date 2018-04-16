@@ -238,7 +238,7 @@ def print_current_smiles(contnrs):
     print("    Contents of MolContainers")
     for i, mol_cont in enumerate(contnrs):
         Utils.log("\t\t" + str(i) + " " + str(mol_cont.all_smiles()))
-
+    
 
 def add_mol_id_props(contnrs):
     """
@@ -251,17 +251,7 @@ def add_mol_id_props(contnrs):
             cont_id = cont_id + 1
             mol.setRDKitMolProp("UniqueID", str(cont_id))
             mol.setAllRDKitMolProps()
-
-def add_indexed_mols_to_mols(contnrs, items):
-    """
-    Adds a molecule to the specified MolContainer.
-
-    :param list items: A list of tuples, [(index, mol), (index, mol), ...]
-    """
-    for index, mol in items:
-        contnrs[index].add_mol(mol)
-
-
+   
 def deal_with_failed_molecules(contnrs, params):
     """
     Removes and logs failed molecules.

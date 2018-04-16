@@ -1,6 +1,8 @@
+import copy
 
 import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
 
 from gypsum.MyMol import MyConformer
 
@@ -20,7 +22,7 @@ def minit(mol, thoroughness, max_variants_per_compound):
         # acceptable conformers (i.e., is not possible geometrically).
         # Consider this:
         # O=C([C@@]1([C@@H]2O[C@@H]([C@@]1(C3=O)C)CC2)C)N3c4sccn4
-
+    
         # Further minimize the unoptimized conformers that were among
         # the best scoring.
         max_vars_per_cmpd = max_variants_per_compound
@@ -42,12 +44,14 @@ def minit(mol, thoroughness, max_variants_per_compound):
             new_mol.smiles(True) + " (optimized conformer: " +
             str(best_energy) + " kcal/mol)"
         )
-
+        
         # Save best conformation. For some reason molecular properties
         # attached to mol are lost when returning from multiple
         # processors. So save the separately so they can be readded to
         # the molecule in a bit. props =
         return new_mol
+
+    #######WHAT should we return if there is no conformer?????????@@@@@@@
 
 def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors):
     """

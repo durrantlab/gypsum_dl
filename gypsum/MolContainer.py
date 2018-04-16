@@ -61,7 +61,7 @@ class MolContainer:
 
         # Get the non-acidic carbon-hydrogen footprint.
         self.carbon_hydrogen_count = self.mol_orig_smi.carb_hyd_cnt()
-
+        
     def mol_with_smiles_is_in_container(self, smiles):
         """
         Checks whether or not a given smiles string is already in this
@@ -73,7 +73,7 @@ class MolContainer:
                   corresponding to that smiles.
         :rtype: :class:`str` ???
         """
-
+        
         # Checks all the mols in this container to see if a given smiles is
         # already present. Returns a new MyMol object if it isn't, True
         # otherwise.
@@ -98,7 +98,7 @@ class MolContainer:
         :param str|[str] smiles: A list of SMILES strings. If it's a string,
                          it is converted into a list.
         """
-
+        
         if isinstance(smiles, str):  # smiles must be array of strs
             smiles = [smiles]
 
@@ -115,8 +115,8 @@ class MolContainer:
                 result.contnr_idx = self.contnr_idx
 
                 self.mols.append(result)
-
-    def add_mol(self, mol):
+        
+    def add_mol(self, mol):     #JAKE@ #Expose@ just add the append to where its called.
         """Adds a molecule to this container. Does NOT check for uniqueness.
 
         :param MyMol.MyMol mol: The MyMol.MyMol object to add.
@@ -174,7 +174,7 @@ class MolContainer:
 
         # None of the mols derived to date, if present, are accurate.
         self.mols = []
-
+        
     def add_container_properties(self):
         """
         Adds all properties from the container, which is currently populated

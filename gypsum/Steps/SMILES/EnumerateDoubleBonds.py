@@ -16,7 +16,7 @@ except:
     sys.exit(0)
 
 def GetDoubleBonded(mol, max_variants_per_compound):
-
+    
     # Get all double bonds that don't have defined stereochemistry
     unasignd = mol.get_double_bonds_without_stereochemistry()
 
@@ -107,7 +107,7 @@ def GetDoubleBonded(mol, max_variants_per_compound):
 
         new_mol = MyMol.MyMol(a_rd_mol)
 
-        if new_mol.can_smi != False:
+        if new_mol.can_smi != False and new_mol.can_smi != None:    
             # Sometimes you get an error if there's a bad structure
             # otherwise.
 
@@ -120,7 +120,7 @@ def GetDoubleBonded(mol, max_variants_per_compound):
             new_mol.genealogy.append(
                 new_mol.smiles(True) + " (cis-trans isomerization)"
             )
-
+            
             return new_mol #, smi))
 
 
