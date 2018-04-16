@@ -4,8 +4,6 @@ Run commands on multiple processors in python.
 Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
 """
 
-
-
 import multiprocessing
 
 
@@ -44,17 +42,18 @@ def MultiThreading(inputs, num_processors, task_name):
     else:
         results = start_processes(tasks, num_processors)
 
-    return results
 
-#
+###
 # Worker function
-#
+###
+
 def worker(input, output):
     for seq, job in iter(input.get, 'STOP'):
         func, args = job
         result = func(*args)
         ret_val = (seq, result)
         output.put(ret_val)
+
 
 
 def count_processors(num_inputs, num_processors):
@@ -138,3 +137,4 @@ def strip_none(none_list):
         return []
     results = [x for x in none_list if x != None]
     return results
+
