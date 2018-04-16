@@ -45,7 +45,7 @@ def DeSalter(contnr):
         new_mol.makeMolFromSmiles() # Need to update the mol.
         return new_mol
 
-def desalt_orig_smi(self):
+def desalt_orig_smi(contnrs, num_processors):
     """
     If an input molecule has multiple unconnected fragments, this removes all
     but the largest fragment.
@@ -55,16 +55,14 @@ def desalt_orig_smi(self):
         "Desalting all molecules (i.e., keeping only largest fragment)."
     )
 
-    params = self.contnrs
-
-    tmp = mp.MultiThreading(params, self.params["num_processors"], DeSalter)
+    tmp = mp.MultiThreading(contnrs, num_processors, DeSalter)
 
     # Go through each contnr and update the orig_smi_deslt
     # If we update it, also add a note in the genealogy
     for desalt_mol in tmp:
         idx = desalt_mol.contnr_idx
-        cont = self.contnrs[idx]
-        if self.contnrs[desalt_mol.contnr_idx].orig_smi != desalt_mol.orig_smi:
+        cont = contnrs[idx]
+        if contnrs[desalt_mol.contnr_idx].orig_smi != desalt_mol.orig_smi:
             desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)
         cont.add_mol(desalt_mol)

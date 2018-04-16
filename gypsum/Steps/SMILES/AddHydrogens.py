@@ -2,8 +2,6 @@
 This module is made to identify and enumerate the possible protonation sites of molecules.
 """
 
-# TODO: Need to have categories, potentially for each site in an R-group?
-
 import copy
 
 from rdkit import Chem
@@ -12,15 +10,12 @@ import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
 
-import os
-
-def load_protonation_substructs():
+def load_protonation_substructs(min_pH=6.4, max_pH=8.4, pKa_std_range=1):
     """
     A pre-calculated list of R-groups with protonation sites, with their likely pKa bins.
     """
     subs = []
-    file = os.path.join(os.path.dirname(__file__),"site_structures.smarts")
-    with open(file, 'r') as substruct:
+    with open("site_structures.smarts", 'r') as substruct:
         for line in substruct:
             line = line.strip()
             sub = {}
@@ -36,7 +31,21 @@ def load_protonation_substructs():
                 sub["mol"] = mol
 
                 # This is going to split the remaining
-                prot = [[int(splits[i]), splits[i+1]] for i in range(2, len(splits)-1, 2)]
+
+                #NEED TO DIVIDE THIS BY 3s
+                pKa_ranges = [splits[i:i+3] for i in range(3, len(splits)-1, 3)]
+                #print(splits, '\n', pKa_ranges)
+
+                prot = []
+                for pKa_range in pKa_ranges:
+                    site = pKa_range[0]
+                    mean = pKa_range[1]
+                    std = pKa_range[2]
+
+                    protonation_state = define_protonation_state(mean, std, min_pH, \
+                        max_pH, pKa_std_range)
+
+                    prot.append([site, protonation_state])
 
                 #!!! This takes any explicit hydrogen as a site for protonation.
                 # We may find that we need to revisit this, as Nitrogen causes issues
@@ -45,14 +54,34 @@ def load_protonation_substructs():
                 subs.append(sub)
     return subs
 
+def define_protonation_state(mean, std, min_pH, max_pH, pKa_std_range):
+    """
+    Updates the substructure definitions to include the protonation state based on the user-given
+    pH range. The size of the pKa range is also based on the number of standard deviations to be
+    considered by the user param.
+    """
+    min_pKa = mean - (std * pKa_std_range)
+    max_pKa = mean + (std * pKa_std_range)
+
+    # This needs to be reassigned, and 'ERROR' should never make it past the next set of checks.
+    protonation_state = 'ERROR'
+
+    if min_pKa <= max_pH and min_pH <= max_pKa:
+        protonation_state = 'BOTH'
+    elif mean > max_pH:
+        protonation_state = 'PROTONATED'
+    elif mean < min_pH:
+        protonation_state = 'DEPROTONATED'
+
+    # We are error handling here
+    if protonation_state == 'ERROR':
+        print("HORRIBLE NONSENSE HAS OCCURED. MEAN: ",mean,", MIN_PH: ",min_pH,", MAX_PH: ",max_pH)
+    
+    return protonation_state
 
 ###
 # We need to identify and mark groups that have been matched with a substructure.
 ###
-
-def remove_explicit_Hs(mol):
-    for atom in mol.GetAtoms():
-        atom.SetNumExplicitHs(0)
 
 def unprotect_molecule(mol):
     """
@@ -87,7 +116,6 @@ def get_unprotected_matches(mol, substruct):
                 keep_flag = False
         if keep_flag:
             unprotected_matches.append(match)
-            protect_molecule(mol, match)
     return unprotected_matches
 
 def get_protonation_sites(mol, subs):
@@ -98,7 +126,6 @@ def get_protonation_sites(mol, subs):
     Returns a list of protonation sites and their pKa bin. ('Acid', 'Neutral', or 'Base')
     """
     unprotect_molecule(mol)
-    remove_explicit_Hs(mol)
     protonation_sites = []
 
     for item in subs:
@@ -118,62 +145,60 @@ def get_protonation_sites(mol, subs):
 
     return protonation_sites
 
-def protonate_site(mols, site):
-    """
-    Protonates (or deprotonates) a list of smis at a given site.
-    """
-    # We get the index to modify and the charges to apply
+def protonate_site(smis, site):
     idx, charge = site
 
-    # Create lists of things to positively or negatively charge.
-    # Neutral gets added to both lists
     protonate = []
     deprotonate = []
 
-    if charge == "acid" or charge == "neutral":
-        deprotonate = copy.deepcopy(mols)
-    if charge == "base" or charge == "neutral":
-        protonate = copy.deepcopy(mols)
+    if charge == "DEPROTONATED" or charge == "BOTH":
+        deprotonate = copy.deepcopy(smis)
+    if charge == "PROTONATED" or charge == "BOTH":
+        protonate = copy.deepcopy(smis)
 
-    output_mols = []
+    output_smis = []
 
-    for mol in deprotonate:
-        mol = Chem.RemoveHs(mol)
+    for smi in deprotonate:
+        mol = Chem.MolFromSmiles(smi)
         atom = mol.GetAtomWithIdx(idx)
-        atom.SetNumExplicitHs(0)
         element = atom.GetAtomicNum()
         if element == 7:
             atom.SetFormalCharge(0)
         else:
-            #print("Minus")
             atom.SetFormalCharge(-1)
-        output_mols.append(mol)
+        out_smile = Chem.MolToSmiles(mol)
+        output_smis.append(out_smile)
 
-    for mol in protonate:
-        mol = Chem.RemoveHs(mol)
+    for smi in protonate:
+        mol = Chem.MolFromSmiles(smi)
         atom = mol.GetAtomWithIdx(idx)
         element = atom.GetAtomicNum()
         if element == 7:
             atom.SetFormalCharge(+1)
         else:
-            #print("Neutral")
             atom.SetFormalCharge(0)
-        output_mols.append(mol)
+        out_smile = Chem.MolToSmiles(mol)
+        output_smis.append(out_smile)
 
-    return output_mols
+    return output_smis
 
 def add_hydrogens(self, skip=False):
     """
     This is a stub that is used to keep track of what I need to still do.
 
     """
-    substructures = load_protonation_substructs()
+    min_pH = self.params["min_pH"]
+    max_pH = self.params["max_pH"]
+    pKa_std_range = self.params["pKa_std_range"]
+
+    substructures = load_protonation_substructs(min_pH, max_pH, pKa_std_range)
     out_containers = []
     inputs = [(cont, substructures) for cont in self.contnrs]
 
     tmp = mp.MultiThreading(inputs, self.params["num_processors"], parallel_addH)
 
     tmp = mp.flatten_list(tmp)
+
     contnr_indx_no_touch = Utils.contnrs_no_touchd(
         self, tmp
     )
@@ -202,23 +227,20 @@ def add_hydrogens(self, skip=False):
 
 def parallel_addH(container, substructures):
     """
-    We take a container and a list of substructures and return all the appropriate protonation
-    variants.
+    We take a container and a list of substructures and return all the
+    appropriate protonation variants.
 
     :params container container: A container for a
     """
     return_value = []
 
-    my_mol = container.mols[0]
-
-    orig_mol = Chem.AddHs(Chem.RemoveHs(my_mol.rdkit_mol))
-    mols = [orig_mol]
+    orig_mol = container.Get_Mol()
+    smis = [container.Get_Cannonical_Smile()]
     protonation_sites = get_protonation_sites(orig_mol, substructures)
 
     for site in protonation_sites:
-        mols = protonate_site(mols, site)
+        smis = protonate_site(smis, site)
 
-    smis = [Chem.MolToSmiles(mol) for mol in mols]
     rdkit_mols = [Chem.MolFromSmiles(smi) for smi in smis]
 
     # Convert from rdkit mols to MyMols and remove those with odd substructures
@@ -229,12 +251,13 @@ def parallel_addH(container, substructures):
     # this point.
     for Hm in addH_mols:
         Hm.inherit_contnr_props(container)
-        Hm.genealogy = my_mol.genealogy[:]
-        Hm.name = my_mol.name
+        Hm.genealogy = orig_mol.genealogy[:]
+        Hm.name = orig_mol.name
 
-        if Hm.smiles() != my_mol.smiles():
+        if Hm.smiles() != orig_mol.smiles():
             Hm.genealogy.append(Hm.smiles(True) + " (protonated)")
 
         return_value.append(Hm)
 
     return return_value
+

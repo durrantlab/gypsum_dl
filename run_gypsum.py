@@ -5,7 +5,7 @@ into 3D models.
 """
 import argparse
 import copy
-from gypsum.Start import ConfGenerator
+from gypsum.Start import conf_generator
 
 
 PARSER = argparse.ArgumentParser()
@@ -57,5 +57,4 @@ for k, v in ARGS_DICT.items():
     if v is None:
         del INPUTS[k]
 
-GENERATOR = ConfGenerator(INPUTS)
-GENERATOR.run()
+conf_generator(INPUTS)

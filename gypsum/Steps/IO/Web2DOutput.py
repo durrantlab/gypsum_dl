@@ -12,8 +12,8 @@ try:
 except:
     Utils.log("You need to install rdkit and its dependencies.")
     sys.exit(0)
-    
-def web_2d_output(self):
+
+def web_2d_output(contnrs, output_file):
     """
     Saves pictures of the models to an HTML file on disk. It can be viewed in
     a browser. Then opens a browser automatically to view them.
@@ -22,8 +22,8 @@ def web_2d_output(self):
     Utils.log("Saving html image of molecules associated with...")
 
     # Let's not parallelize it for now.
-    f = open(self.params["output_file"], 'w')
-    for contnr in self.contnrs:
+    f = open(output_file, 'w')
+    for contnr in contnrs:
         Utils.log("\t" + contnr.orig_smi)
         for mol in contnr.mols:
             mol2 = Chem.RemoveHs(mol.rdkit_mol)
@@ -44,4 +44,4 @@ def web_2d_output(self):
                 '</div>')
     f.close()
 
-    webbrowser.open("file://" + os.path.abspath(self.params["output_file"]))
+    webbrowser.open("file://" + os.path.abspath(output_file))

@@ -5,31 +5,39 @@ from gypsum.Steps.SMILES.MakeTautomers import make_tauts
 from gypsum.Steps.SMILES.EnumerateChiralMols import enumerate_chiral_molecules
 from gypsum.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 
-def prepare_smiles(self):
+def prepare_smiles(contnrs, params):
     """
     Runs the appropriate steps for processing the smile strings.
     """
-    desalt_orig_smi(self)
+    
+    max_variants_per_compound = params["max_variants_per_compound"]
+    thoroughness = params["thoroughness"]
+    num_processors = params["num_processors"]
 
-    if not self.params["skip_adding_hydrogen"]:
+    # Run the functions
+    desalt_orig_smi(contnrs, num_processors)
+
+
+    ##Pausing for a moment to get that properly installed
+    if not params["skip_adding_hydrogen"]:
         add_hydrogens(self)
     else:
-        wrap_molecules(self)
-    self.print_current_smiles()
+        wrap_molecules(contnrs)
+    #self.print_current_smiles()
 
-    if not self.params["skip_making_tautomers"]:
-        make_tauts(self)
-    self.print_current_smiles()
+    if not params["skip_making_tautomers"]:
+        make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors)
+    #self.print_current_smiles()
 
-    if not self.params["skip_ennumerate_chiral_mol"]:
-        enumerate_chiral_molecules(self)
-    self.print_current_smiles()
+    if not params["skip_ennumerate_chiral_mol"]:
+        enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_processors)
+    #self.print_current_smiles()
 
-    if not self.params["skip_ennumerate_double_bonds"]:
-        enumerate_double_bonds(self)
-    self.print_current_smiles()
+    if not params["skip_ennumerate_double_bonds"]:
+        enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors)
+    #self.print_current_smiles()
 
-def wrap_molecules(self):
+def wrap_molecules(contnrs):
     """
     Problem: Each molecule container holds one smiles string
     (corresponding to the input structure). obabel produces multiple
@@ -43,7 +51,7 @@ def wrap_molecules(self):
     to be converted to a RDKit mol object for subsequent steps to work.
     Let's do that here.
     """
-    for i, mol_cont in enumerate(self.contnrs):
+    for mol_cont in contnrs:
         if len(mol_cont.mols) == 0:
             smi = mol_cont.orig_smi_canonical
             mol_cont.add_smiles(smi)

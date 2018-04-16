@@ -4,18 +4,23 @@ from gypsum.Steps.ThreeD.GenerateAlternate3DNonaromaticRingConfs \
     import generate_alternate_3d_nonaromatic_ring_confs
 from gypsum.Steps.ThreeD.Minimize3D import minimize_3d
 
-def prepare_three_d(self):
+def prepare_three_d(contnrs, params):
     """
     Runs the pipeline for generating the 3D models.
     """
-    if not self.params["2d_output_only"]:
-        convert_2d_to_3d(self)
-    self.print_current_smiles()
+    max_variants_per_compound = params["max_variants_per_compound"]
+    thoroughness = params["thoroughness"]
+    num_processors = params["num_processors"]
 
-    if not self.params["skip_alternate_ring_conformations"]:
-        generate_alternate_3d_nonaromatic_ring_confs(self)
-    self.print_current_smiles()
+    if not params["2d_output_only"]:
+        convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_processors)
+    #self.print_current_smiles()
 
-    if not self.params["skip_optimize_geometry"]:
-        minimize_3d(self)
-    self.print_current_smiles()
+    if not params["skip_alternate_ring_conformations"]:
+        generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness,
+                                                     max_variants_per_compound, num_processors)
+    #self.print_current_smiles()
+
+    if not params["skip_optimize_geometry"]:
+        minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors)
+    #self.print_current_smiles()

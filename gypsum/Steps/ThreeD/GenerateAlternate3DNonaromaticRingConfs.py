@@ -1,4 +1,4 @@
-import copy
+
 import sys
 
 import gypsum.Multiprocess as mp
@@ -27,7 +27,7 @@ except:
     sys.exit(0)
 
 
-def GetRingConfs(mol, params):
+def GetRingConfs(mol, thoroughness, max_variants_per_compound):
     contnr_idx = mol.contnr_idx
 
     # All the ones in this contnr must have nonatomatic rings.
@@ -55,12 +55,12 @@ def GetRingConfs(mol, params):
         bond_indecies.sort()
 
         rings_by_bonds.append(bond_indecies)
-    
+
     # Generate a bunch of conformations, ordered from best
     # energy to worst. Note that this is cached.
     # Minimizing too.
     mol.add_conformers(
-        params["thoroughness"] * params["max_variants_per_compound"],
+        thoroughness * max_variants_per_compound,
         0.1, True
     )
 
@@ -73,9 +73,9 @@ def GetRingConfs(mol, params):
         mol.load_conformations_into_mol_3d()
 
         # Extract just the rings.
-        ring_mols = [Chem.PathToSubmol(mol.rdkit_mol, bi) 
+        ring_mols = [Chem.PathToSubmol(mol.rdkit_mol, bi)
                         for bi in rings_by_bonds]
-        
+
         # Align get the rmsds relative to the first conformation,
         # for each ring separately.
         list_of_rmslists = [[]] * len(ring_mols)
@@ -84,22 +84,22 @@ def GetRingConfs(mol, params):
             AllChem.AlignMolConformers(
                 ring_mols[k], RMSlist=list_of_rmslists[k]
             )
-        
+
         # Get points for each conformer (rmsd_ring1, rmsd_ring2,
         # rmsd_ring3)
         pts = numpy.array(list_of_rmslists).T
         pts = numpy.vstack((numpy.array([[0.0] * pts.shape[1]]), pts))
 
         # cluster those points, get lowest-energy member of each
-        if len(pts) < params["max_variants_per_compound"]:
+        if len(pts) < max_variants_per_compound:
             num_clusters = len(pts)
         else:
-            num_clusters = params["max_variants_per_compound"]
+            num_clusters = max_variants_per_compound
 
         # try:
         groups = kmeans2(pts, num_clusters, minit='points')[1]
 
-        #conformers = new_mymol 
+        #conformers = new_mymol
         # except:
         #     print pts
         #     print params["max_variants_per_compound"]
@@ -128,18 +128,18 @@ def GetRingConfs(mol, params):
 
             new_mol.genealogy = mol.genealogy[:]
             new_mol.genealogy.append(
-                new_mol.smiles(True) + 
-                " (nonaromatic ring conformer: " + str(energy) + 
+                new_mol.smiles(True) +
+                " (nonaromatic ring conformer: " + str(energy) +
                 " kcal/mol)"
             )
 
             results.append(new_mol)  # i is mol index
 
         return results
-                
-    
 
-def generate_alternate_3d_nonaromatic_ring_confs(self):
+
+
+def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_variants_per_compound, num_processors):
     """
     Docking programs like Vina rotate chemical moieties around their rotatable
     bonds, so it's not necessary to generate a larger rotomer library for each
@@ -161,18 +161,18 @@ def generate_alternate_3d_nonaromatic_ring_confs(self):
 
     params = []
     ones_with_nonaro_rngs = set([])
-    for contnr_idx, contnr in enumerate(self.contnrs):
+    for contnr_idx, contnr in enumerate(contnrs):
         if contnr.num_nonaro_rngs > 0:
             ones_with_nonaro_rngs.add(contnr_idx)
-            for mol_index, mol in enumerate(contnr.mols):
-                params.append((mol, self.params))
-    
+            for mol in contnr.mols:
+                params.append((mol, thoroughness, max_variants_per_compound))
+
     if len(ones_with_nonaro_rngs) == 0:
         return  # There are no such ligands to process.
 
     #Utils.log("\tApplies to molecule derived from " + orig_smi)
     tmp = mp.MultiThreading(
-        params, self.params["num_processors"], GetRingConfs
+        params, num_processors, GetRingConfs
     )
 
     results = [item for sublist in tmp for item in sublist]
@@ -180,7 +180,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(self):
     # # Remove mol list for the ones with nonaromatic rings
     # for contnr_idx in ones_with_nonaro_rngs:
     #     self.contnrs[contnr_idx].mols = []
-    
+
     # Group by mol. You can't use existing functions because they would
     # require you to recalculate already calculated energies.
     grouped = {}
@@ -193,20 +193,20 @@ def generate_alternate_3d_nonaromatic_ring_confs(self):
         if not contnr_idx in grouped:
             grouped[contnr_idx] = []
         grouped[contnr_idx].append((energy, mol))
-    
+
     # Now, for each contnr, keep only the best ones.
-    for contnr_idx in grouped.keys():
+    for contnr_idx in grouped:
         lst = grouped[contnr_idx]
 
         if len(lst) != 0:
-            self.contnrs[contnr_idx].mols = []            
+            contnrs[contnr_idx].mols = []
             lst.sort()
-            lst = lst[:self.params["max_variants_per_compound"]]
+            lst = lst[:max_variants_per_compound]
             for energy, mol in lst:
-                self.contnrs[contnr_idx].add_mol(mol)
+                contnrs[contnr_idx].add_mol(mol)
         else:
-            for i in range(len(self.contnrs[contnr_idx].mols)):
-                self.contnrs[contnr_idx].mols[i].genealogy.append(
+            for i in range(len(contnrs[contnr_idx].mols)):
+                contnrs[contnr_idx].mols[i].genealogy.append(
                     "(WARNING: Could not generate alternate conformations " +
                     "of nonaromatic ring)"
                 )

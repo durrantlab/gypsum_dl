@@ -35,7 +35,7 @@ def mk3d(mol):
             "discarded."
         )
 
-def convert_2d_to_3d(self):
+def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_processors):
     """
     Converts the 1D smiles strings into 3D small-molecule models.
     """
@@ -43,12 +43,12 @@ def convert_2d_to_3d(self):
     Utils.log("Converting all molecules to 3D structures.")
 
     params = []
-    for contnr in self.contnrs:
+    for contnr in contnrs:
         for mol in contnr.mols:
             params.append(mol)
 
-    tmp = mp.MultiThreading(params, self.params["num_processors"], mk3d)
+    tmp = mp.MultiThreading(params, num_processors, mk3d)
 
     clear = mp.strip_none(tmp)
     #clear = tmp
-    ChemUtils.bst_for_each_contnr_no_opt(self, clear, False)
+    ChemUtils.bst_for_each_contnr_no_opt(contnrs, clear, max_variants_per_compound, thoroughness, False)

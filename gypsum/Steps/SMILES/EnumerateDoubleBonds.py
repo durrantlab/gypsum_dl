@@ -15,7 +15,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     sys.exit(0)
 
-def GetDoubleBonded(mol, params):
+def GetDoubleBonded(mol, max_variants_per_compound):
 
     # Get all double bonds that don't have defined stereochemistry
     unasignd = mol.get_double_bonds_without_stereochemistry()
@@ -84,7 +84,7 @@ def GetDoubleBonded(mol, params):
     )
 
     options = Utils.random_sample(
-        options, params["max_variants_per_compound"], ""
+        options, max_variants_per_compound, ""
     )
 
     for option in options:
@@ -124,14 +124,14 @@ def GetDoubleBonded(mol, params):
             return new_mol #, smi))
 
 
-def enumerate_double_bonds(self):
+def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors):
     """
     Enumerates all possible cis-trans isomers. If the stereochemistry of a
     double bond is specified, it is not varied. All unspecified double bonds
     are varied.
     """
 
-    if self.params["max_variants_per_compound"] == 0:
+    if max_variants_per_compound == 0:
         return
 
     Utils.log(
@@ -139,12 +139,12 @@ def enumerate_double_bonds(self):
     )
 
     params = []
-    for contnr in self.contnrs:
+    for contnr in contnrs:
         for mol in contnr.mols:
-            params.append((mol, self.params))
+            params.append((mol, max_variants_per_compound))
 
     tmp = mp.MultiThreading(
-        params, self.params["num_processors"], GetDoubleBonded
+        params, num_processors, GetDoubleBonded
     )
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp)
+    ChemUtils.bst_for_each_contnr_no_opt(contnrs, tmp, max_variants_per_compound, thoroughness)

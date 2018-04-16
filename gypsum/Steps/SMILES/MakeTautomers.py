@@ -18,7 +18,7 @@ except:
     Utils.log("You need to install molvs and its dependencies.")
     sys.exit(0)
 
-def make_tauts(self):
+def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors):
     """
     Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
@@ -26,17 +26,17 @@ def make_tauts(self):
     `remove_crazy_substrings` definition.
     """
 
-    if self.params["max_variants_per_compound"] == 0:
+    if max_variants_per_compound == 0:
         return
 
     Utils.log("Generating tautomers for all molecules...")
 
     params = []
-    for contnr in self.contnrs:
+    for contnr in contnrs:
         for mol_index, mol in enumerate(contnr.mols):
-            params.append((contnr, mol_index, self.params))
+            params.append((contnr, mol_index, max_variants_per_compound))
 
-    tmp = mp.MultiThreading(params, self.params["num_processors"], parallel_makeTaut)
+    tmp = mp.MultiThreading(params, num_processors, parallel_makeTaut)
 
     # Flatten the resulting list of lists
     #none_data = mp.strip_none(tmp)
@@ -44,16 +44,17 @@ def make_tauts(self):
     taut_data = mp.flatten_list(none_data)
 
     # Remove bad tauts
-    taut_data = tauts_no_break_arom_rngs(self, taut_data)
-    taut_data = tauts_no_elim_chiral(self, taut_data)
+    taut_data = tauts_no_break_arom_rngs(contnrs, taut_data, num_processors)
+    taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_processors)
     taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-        self, taut_data
+        contnrs, taut_data, num_processors
     )
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, taut_data)
+    ChemUtils.bst_for_each_contnr_no_opt(contnrs, taut_data,
+                                max_variants_per_compound, thoroughness)
 
 
-def parallel_makeTaut(contnr, mol_index, params):
+def parallel_makeTaut(contnr, mol_index, max_variants_per_compound):
     #id = random.random()
     #print "Start", id
 
@@ -81,7 +82,7 @@ def parallel_makeTaut(contnr, mol_index, params):
     # number later. But this could at least help prevent the
     # combinatorial explosion at this stage.
     enum = tautomer.TautomerEnumerator(
-        max_tautomers=params["max_variants_per_compound"]
+        max_tautomers=max_variants_per_compound
     )
     tauts_rdkit_mols = enum.enumerate(m)
 
@@ -110,7 +111,7 @@ def parallel_makeTaut(contnr, mol_index, params):
     #print "End", id
 
 
-def tauts_no_break_arom_rngs(self, taut_data):
+def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors):
     """
     For a given molecule, the number of atomatic rings should never change
     regardless of tautization, ionization, etc. Any taut that breaks
@@ -125,9 +126,9 @@ def tauts_no_break_arom_rngs(self, taut_data):
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append((taut_mol, self.contnrs[taut_mol.contnr_idx]))
+        params.append((taut_mol, contnrs[taut_mol.contnr_idx]))
 
-    tmp = mp.MultiThreading(params, self.params["num_processors"],
+    tmp = mp.MultiThreading(params, num_processors,
                             parallel_CheckNonaroRings)
 
     # Stripping out None values
@@ -136,7 +137,7 @@ def tauts_no_break_arom_rngs(self, taut_data):
     return results
 
 
-def tauts_no_elim_chiral(self, taut_data):
+def tauts_no_elim_chiral(contnrs, taut_data, num_processors):
     """
     Unfortunately, molvs sees removing chiral specifications as being a
     distinct taut. I imagine there are cases where tautization could
@@ -153,9 +154,9 @@ def tauts_no_elim_chiral(self, taut_data):
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append((taut_mol, self.contnrs[taut_mol.contnr_idx]))
+        params.append((taut_mol, contnrs[taut_mol.contnr_idx]))
 
-    tmp = mp.MultiThreading(params, self.params["num_processors"],
+    tmp = mp.MultiThreading(params, num_processors,
                             parallel_CheckChiralCenters)
 
     # Stripping out None values
@@ -163,7 +164,7 @@ def tauts_no_elim_chiral(self, taut_data):
 
     return results
 
-def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(self, taut_data):
+def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_processors):
     """
     Generally speaking, only carbons that are alpha to a carbonyl are
     sufficiently acidic to participate in taut formation. The
@@ -178,9 +179,9 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(self, taut_data):
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append((taut_mol, self.contnrs[taut_mol.contnr_idx]))
+        params.append((taut_mol, contnrs[taut_mol.contnr_idx]))
 
-    tmp = mp.MultiThreading(params, self.params["num_processors"],
+    tmp = mp.MultiThreading(params, num_processors,
                             parallel_CheckCarbonHydrogens)
 
     # Stripping out None values

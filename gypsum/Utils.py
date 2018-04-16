@@ -103,7 +103,7 @@ def flatten(list_of_lists):
 
     return [item for sublist in list_of_lists for item in sublist]
 
-def contnrs_no_touchd(self, results):
+def contnrs_no_touchd(contnrs, results):
     """
     Identify contnrs that have no representative elements in results.
 
@@ -115,21 +115,21 @@ def contnrs_no_touchd(self, results):
               no associated elements in results.
     :rtype: :class:`str` ???
     """
-    
+
     # Find ones that don't have any generated. This is because sometimes
     # obabel failes to producce valid smiles. In this case, just use the
     # original smiles. Couldn't find a good solution to work around.
-    
+
     # Get a dictionary of all the input smiles.
     idx_to_smi = {}
-    for contnr in self.contnrs:
+    for contnr in contnrs:
         if not contnr.contnr_idx in idx_to_smi:
-            idx_to_smi[contnr.contnr_idx] = self.contnrs[contnr.contnr_idx].orig_smi_deslt
-    
+            idx_to_smi[contnr.contnr_idx] = contnrs[contnr.contnr_idx].orig_smi_deslt
+
     # Now remove from those any that have associated protonated smiles strings
     # from obabel.
     for m in results:
         if m.contnr_idx in idx_to_smi:
             del idx_to_smi[m.contnr_idx]
-    
+
     return idx_to_smi.keys()
