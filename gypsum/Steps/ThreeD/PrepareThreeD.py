@@ -1,4 +1,6 @@
 """Runs the 3D preparation process."""
+import __future__
+
 from gypsum.Steps.ThreeD.Convert2DTo3D import convert_2d_to_3d
 from gypsum.Steps.ThreeD.GenerateAlternate3DNonaromaticRingConfs \
     import generate_alternate_3d_nonaromatic_ring_confs

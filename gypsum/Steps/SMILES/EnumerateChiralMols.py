@@ -1,3 +1,5 @@
+import __future__
+
 import copy
 import sys
 import itertools

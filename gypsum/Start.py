@@ -2,7 +2,9 @@
 Contains the ConfGenerator object which reads, converts, and writes
 small molecules.
 """
-from __future__ import print_function
+
+import __future__
+
 import sys
 import json
 import os

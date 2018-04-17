@@ -1,3 +1,5 @@
+import __future__
+
 import subprocess
 import textwrap
 import random

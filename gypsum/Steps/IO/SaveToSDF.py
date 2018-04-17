@@ -1,5 +1,8 @@
-import gypsum.Utils as Utils
+import __future__
+
 import sys
+
+import gypsum.Utils as Utils
 
 try:
     from rdkit import Chem

@@ -1,3 +1,5 @@
+import __future__
+
 import sys
 import random
 

@@ -1,3 +1,5 @@
+import __future__
+
 try:
     from rdkit import Chem
 except:

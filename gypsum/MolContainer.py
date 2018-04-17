@@ -1,4 +1,7 @@
+import __future__
+
 import sys
+
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol

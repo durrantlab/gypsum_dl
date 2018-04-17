@@ -1,4 +1,6 @@
 """Runs the smile preparation process."""
+import __future__
+
 from gypsum.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum.Steps.SMILES.AddHydrogens import add_hydrogens
 from gypsum.Steps.SMILES.MakeTautomers import make_tauts

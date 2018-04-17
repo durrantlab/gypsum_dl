@@ -1,7 +1,11 @@
-import gypsum.Utils as Utils
+import __future__
+
 import sys
 import copy
 import operator
+
+
+import gypsum.Utils as Utils
 
 try:
     import rdkit        #Jake@ Remove this when you seperate out the mol handling file for the Sanitization functions
@@ -17,6 +21,7 @@ try:
 except:
     Utils.log("You need to install molvs and its dependencies.")
     sys.exit(0)
+
 
 class MyConformer:
     """

@@ -3,6 +3,8 @@ Run commands on multiple processors in python.
 
 Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
 """
+import __future__
+
 
 import multiprocessing
 

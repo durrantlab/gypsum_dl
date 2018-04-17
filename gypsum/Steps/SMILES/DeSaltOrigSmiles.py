@@ -1,3 +1,5 @@
+import __future__
+
 import sys
 
 import gypsum.Multiprocess as mp
@@ -11,7 +13,9 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     sys.exit(0)
 
+
 def DeSalter(contnr):
+        
     # Split it into fragments
     frags = contnr.get_frags_of_orig_smi()
 
