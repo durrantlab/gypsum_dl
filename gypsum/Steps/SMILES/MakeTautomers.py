@@ -1,6 +1,5 @@
 import __future__
 
-import sys
 import random
 
 import gypsum.Multiprocess as mp
@@ -12,13 +11,13 @@ try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 try:
     from molvs import tautomer
 except:
     Utils.log("You need to install molvs and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install molv and its dependencies.")
 
 def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors):
     """

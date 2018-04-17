@@ -1,6 +1,5 @@
 import __future__
 
-import sys
 
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
@@ -10,14 +9,13 @@ try:
     from molvs import standardize_smiles as ssmiles
 except:
     Utils.log("You need to install molvs and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install molvs and its dependencies.")
 
 try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
-
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 class MolContainer:
     """

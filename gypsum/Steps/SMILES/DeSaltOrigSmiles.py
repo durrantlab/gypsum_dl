@@ -1,7 +1,5 @@
 import __future__
 
-import sys
-
 import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
@@ -11,7 +9,7 @@ try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 
 def DeSalter(contnr):

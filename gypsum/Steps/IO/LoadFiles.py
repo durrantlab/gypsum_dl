@@ -4,7 +4,7 @@ try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 
 def load_smiles_file(filename):

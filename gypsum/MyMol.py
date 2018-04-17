@@ -14,13 +14,13 @@ try:
     from rdkit.Chem.rdchem import BondStereo
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 try:
     from molvs import standardize_smiles as ssmiles
 except:
     Utils.log("You need to install molvs and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install molvs and its dependencies.")
 
 
 class MyConformer:

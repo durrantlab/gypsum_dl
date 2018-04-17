@@ -1,6 +1,5 @@
 import webbrowser
 import os
-import sys
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 
@@ -11,7 +10,7 @@ try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 def web_2d_output(contnrs, output_file):
     """

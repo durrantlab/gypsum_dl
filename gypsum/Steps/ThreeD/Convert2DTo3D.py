@@ -1,7 +1,6 @@
 import __future__
 
 import copy
-import sys
 
 import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
@@ -12,7 +11,7 @@ try:
     from rdkit.Chem import AllChem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 def mk3d(mol):
     show_error_msg = False

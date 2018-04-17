@@ -1,7 +1,5 @@
 import __future__
 
-import sys
-
 import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
@@ -13,19 +11,19 @@ try:
     from rdkit.Chem import AllChem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 try:
     import numpy
 except:
     Utils.log("You need to install numpy and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install numpy and its dependencies.")
 
 try:
     from scipy.cluster.vq import kmeans2
 except:
     Utils.log("You need to install scipy and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install scipy and its dependencies.")
 
 
 def GetRingConfs(mol, thoroughness, max_variants_per_compound):

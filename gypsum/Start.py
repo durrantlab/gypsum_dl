@@ -17,19 +17,19 @@ try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 try:
     import numpy
 except:
     Utils.log("You need to install numpy and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install numpy and its dependencies.")
 
 try:
     from scipy.cluster.vq import kmeans2
 except:
     Utils.log("You need to install scipy and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install scipy and its dependencies.")
 
 from gypsum.MolContainer import MolContainer
 from gypsum.Steps.SMILES.PrepareSmiles import prepare_smiles
@@ -167,9 +167,9 @@ def merge_parameters(default, params):
             )
             Utils.log("Here are the options:")
             Utils.log(str(default.keys()))
-            sys.exit(0)
+            raise KeyError("Unrecognized parameter")
 
-        # Throw an error if the input parameter has a different type that
+        # Throw an error if the input parameter has a different type than
         # the default one.
         if not isinstance(params[param], type_dict[param]):
             Utils.log(
@@ -177,7 +177,7 @@ def merge_parameters(default, params):
                 "type" + str(type_dict[param]) + ", but it is of type " +
                 str(type(params[param])) + "."
             )
-            sys.exit(0)
+            raise TypeError("Input parameter has a different type than the default.")
 
         default[param] = params[param]
 
@@ -196,7 +196,7 @@ def make_type_dict(dictionary):
                 "JSON file. No value can have type " + str(type(val)) +
                 "."
             )
-            sys.exit(0)
+            raise Exception("ERROR: There appears to be an error in your parameter")
 
     return type_dict
 
@@ -210,7 +210,7 @@ def finalize_params(dictionary):
             "the source of the input molecules (probably a SMI or SDF " +
             "file)."
         )
-        sys.exit(0)
+        raise NotImplementedError("Missing parameter")
 
     # Note on parameter "source", the data source. If it's a string that
     # ends in ".smi", it's treated as a smiles file. If it's a string that
@@ -228,7 +228,8 @@ def finalize_params(dictionary):
             "specify where to write the output. Can be an HTML or " +
             "SDF file."
         )
-        sys.exit(0)
+        raise Exception("Missing parameter of where to write the output." +
+                        "Can be an HTML or .SDF file.")
 
     return dictionary
 

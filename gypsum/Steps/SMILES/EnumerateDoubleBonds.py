@@ -2,7 +2,6 @@ import __future__
 
 import itertools
 import copy
-import sys
 import random
 
 import gypsum.Multiprocess as mp
@@ -15,7 +14,7 @@ try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
 
 def GetDoubleBonded(mol, max_variants_per_compound):
     
