@@ -30,9 +30,11 @@ except:
     sys.exit(0)
 
 from gypsum.MolContainer import MolContainer
-from gypsum.Steps.SMILES import prepare_smiles
-from gypsum.Steps.ThreeD import prepare_three_d
-from gypsum.Steps.IO import load_smiles_file, load_sdf_file, proccess_output
+from gypsum.Steps.SMILES.PrepareSmiles import prepare_smiles
+from gypsum.Steps.ThreeD.PrepareThreeD import prepare_three_d
+from gypsum.Steps.IO.ProcessOutput import proccess_output
+from gypsum.Steps.IO.LoadFiles import load_smiles_file
+from gypsum.Steps.IO.LoadFiles import load_sdf_file
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def conf_generator(args):
@@ -52,11 +54,11 @@ def conf_generator(args):
     # Load the parameters from the json
     if 'json' in args:
         params = json.load(open(args['json']))
-        set_parameters(params)
+        params = set_parameters(params)
         if [i for i in json_warning_list if i in args.keys()]:
             print("WARNING: Using the --json flag overrides all other flags.")
     else:
-        set_parameters(args)
+        params = set_parameters(args)
 
     if isinstance(params["source"], str):
         # smiles must be array of strs
@@ -177,7 +179,6 @@ def merge_parameters(default, params):
 
         default[param] = params[param]
 
-@staticmethod
 def make_type_dict(dictionary):
     """Creates a dictionary of types from an existant dictionary."""
     type_dict = {}
@@ -197,7 +198,7 @@ def make_type_dict(dictionary):
 
     return type_dict
 
-@staticmethod
+
 def finalize_params(dictionary):
     """Checks and updates parameters to their final values."""
     # Throw an error if there's a missing parameter.

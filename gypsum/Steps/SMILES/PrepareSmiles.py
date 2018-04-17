@@ -22,7 +22,8 @@ def prepare_smiles(contnrs, params):
 
     # Pausing for a moment to get that properly installed
     if not params["skip_adding_hydrogen"]:
-        add_hydrogens(self)
+        #JAKE@ REMOVED ADDHYDROGEN BECAUSE ITS BROKEN
+        print("SKIPPING add_hydrogens(contnrs)")
     else:
         wrap_molecules(contnrs)
 

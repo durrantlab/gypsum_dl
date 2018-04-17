@@ -59,6 +59,7 @@ def desalt_orig_smi(contnrs, num_processors):
 
     # Go through each contnr and update the orig_smi_deslt
     # If we update it, also add a note in the genealogy
+    tmp = mp.strip_none(tmp)
     for desalt_mol in tmp:
         idx = desalt_mol.contnr_idx
         cont = contnrs[idx]

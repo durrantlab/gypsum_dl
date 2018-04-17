@@ -820,7 +820,7 @@ def handleHs(mol, protanate_step):
     mol = try_deprotanation(mol)
     if mol is None:
         # mol failed deprotanation
-return None
+        return None
 
     if protanate_step is True:
         # PROTANTION IS ON

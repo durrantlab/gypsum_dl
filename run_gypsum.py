@@ -58,3 +58,9 @@ for k, v in ARGS_DICT.items():
         del INPUTS[k]
 
 conf_generator(INPUTS)
+
+
+
+print("")
+print("THIS WHOLE THING WORKS!!!!!!! GOOD JOB JAKE!!!")
+
