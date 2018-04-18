@@ -7,6 +7,7 @@
     "skip_adding_hydrogen": false,
     "skip_making_tautomers": false,
     "skip_ennumerate_chiral_mol": false,
-    "skip_ennumerate_double_bonds": false
+    "skip_ennumerate_double_bonds": false,
+    "num_processors": -1
 }
 

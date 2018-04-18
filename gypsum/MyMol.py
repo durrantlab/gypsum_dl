@@ -55,7 +55,7 @@ class MyConformer:
             # The default, but just a sanity check.
             params.enforcechiral = True
 
-            # Set a max number of times it will try to determine coordinates. Will save a little time   #JAKE@
+            # Set a max number of times it will try to determine coordinates. Will save a little time   
             # This should be the default of it maxIterations= 0 
             params.maxIterations = 0   #This should be the default but lets set it anyway
             
@@ -67,12 +67,12 @@ class MyConformer:
             # fails. For example, COC(=O)c1cc(C)nc2c(C)cc3[nH]c4ccccc4c3c12 .
             # In this case, the old one still works. So if no coordinates are
             # assigned, try that one.
-            if self.mol.GetNumConformers() == 0:
+            if len(self.mol.conformers) == 0:
                 AllChem.EmbedMolecule(self.mol)
             # On rare occasions, both methods fail. For example,
             # O=c1cccc2[C@H]3C[NH2+]C[C@@H](C3)Cn21
             # Another example: COc1cccc2c1[C@H](CO)[N@H+]1[C@@H](C#N)[C@@H]3C[C@@H](C(=O)[O-])[C@H]([C@H]1C2)[N@H+]3C
-            if self.mol.GetNumConformers() == 0:
+            if len(self.mol.conformers) == 0:
                 self.mol = False
         else:
             conformer.SetId(0)
@@ -169,7 +169,7 @@ class MyConformer:
         # Make a new molecule
         amol = Chem.MolFromSmiles(self.smiles, sanitize=False)
         amol = check_sanitization(amol)
-        amol = try_reprotanation(amol)  #JAKE@
+        amol = try_reprotanation(amol)  
 
         # Add the conformer of the other MyConformer object.
         amol.AddConformer(self.conformer(), assignId=True)
@@ -180,7 +180,7 @@ class MyConformer:
         last_conf = amol.GetConformers()[-1]
 
         # Return the RMSD
-        amol = try_deprotanation(amol)  #JAKE@
+        amol = try_deprotanation(amol)  
         rmsd = AllChem.GetConformerRMS(
             amol, first_conf.GetId(), last_conf.GetId(), prealigned = True
         )
@@ -239,7 +239,7 @@ class MyMol:
         self.nonaro_ring_atom_idx = ""
         self.chiral_cntrs_only_assigned = ""
         self.chiral_cntrs_include_unasignd = ""
-        self.crzy_substruct = ""
+        self.bizarre_substruct = ""
         self.enrgy = {}  # different energies for different conformers.
         self.minimized_enrgy = {}
         self.contnr_idx = ""
@@ -278,16 +278,6 @@ class MyMol:
     
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
-    
-    def GetNumConformers(self): #Try to reduce by incorporating back in.
-        """
-        Get the number of conformers associated with this object.
-
-        :returns: int, the number of conformers.
-        :rtype: :class:`int` ???
-        """
-        
-        return len(self.conformers)
 
     def makeMolFromSmiles(self):
         """
@@ -321,18 +311,18 @@ class MyMol:
         """
         
         # Set the first 3D conformer
-        if self.GetNumConformers() > 0:
+        if len(self.mol.conformers) > 0:
             # It's already been done.
             return
 
         # Add hydrogens
-        self.rdkit_mol = try_reprotanation(self.rdkit_mol)  #JAKE@
+        self.rdkit_mol = try_reprotanation(self.rdkit_mol)  
 
         # Add a conformer
         # No minimization. Rmsd cutoff doesn't matter.
         self.add_conformers(1, 1e60, False)
 
-    def smiles(self, noh=False):        # THIS GUY HAS HALF ITS CODE NOT USED FROM IF/ELSE BEFORE!
+    def smiles(self, noh=False):        
         """
         Get the canonical smiles string associated with this object.
 
@@ -375,7 +365,7 @@ class MyMol:
             # So remove hydrogens. Note that this assumes you will have called
             # this function previously with noh = False
             amol = copy.copy(self.rdkit_mol)
-            amol = try_deprotanation(amol)  #JAKE@
+            amol = try_deprotanation(amol)  
             self.can_smi_noh = Chem.MolToSmiles(
                 amol, isomericSmiles=True, canonical=True
             )
@@ -406,6 +396,7 @@ class MyMol:
         nonaro_rngs = []
         for rng_indx_set in ring_indecies:
             for atm_idx in rng_indx_set:
+
                 if self.rdkit_mol.GetAtomWithIdx(atm_idx).GetIsAromatic() == False:
                     # One of the ring atoms is not aromatic!
                     nonaro_rngs.append(rng_indx_set)
@@ -469,19 +460,19 @@ class MyMol:
 
         return unasignd
 
-    def crzy_substruc(self): #NEED TO CHANGE NAME!!!!!! bizarre_substruc()
+    def remove_bizarre_substruc(self): 
         """
         Removes molecules with improbable substuctures, likely generated from
         the tautomerization process.
 
         Used to find artifacts.
 
-        :returns: boolean, whether or not there are crazy substructures.
+        :returns: boolean, whether or not there are impossible substructures.
         :rtype: :class:`bool`
         """
         
-        if self.crzy_substruct != "":
-            return self.crzy_substruct
+        if self.bizarre_substruct != "":
+            return self.bizarre_substruct
 
         # These are substrutures that can't be easily corrected using
         # fix_common_errors() below.
@@ -502,15 +493,15 @@ class MyMol:
             # First just match strings... could be faster, but not 100%
             # accurate.
             if s in self.orig_smi:
-                self.crzy_substruct = True 
+                self.bizarre_substruct = True 
                 return True
 
             if s in self.orig_smi_deslt:
-                self.crzy_substruct = True  
+                self.bizarre_substruct = True  
                 return True
 
             if s in self.can_smi:
-                self.crzy_substruct = True 
+                self.bizarre_substruct = True 
                 return True
 
         # Now do actual substructure matching
@@ -519,12 +510,12 @@ class MyMol:
             if self.rdkit_mol.HasSubstructMatch(pattrn):
                 # Utils.log("\tRemoving a molecule because it has an odd
                 # substructure: " + s)
-                self.crzy_substruct = True 
+                self.bizarre_substruct = True 
                 return True
         
         # Now certin patterns that are more complex.
         
-        self.crzy_substruct = False
+        self.bizarre_substruct = False
         return False
 
     def get_frags_of_orig_smi(self): 
@@ -563,49 +554,7 @@ class MyMol:
         self.orig_smi = other.orig_smi
         self.orig_smi_deslt = other.orig_smi_deslt  # initial assumption
         self.name = other.name
-       
-    def copy(self):
-        """
-        Make a copy of this MyMol.MyMol object.
-
-        :returns: a copy of this object.
-        :rtype: :class:`MyMol.MyMol` ???
-        """
-        
-        return copy.deepcopy(self)
-    
-    def GetAtomWithIdx(self, idx):
-        """
-        Get the atom with the specified index.
-
-        :param int idx: The index of the atom.
-
-        :returns: the rdkit atom object.
-        :rtype: :class:`str` ???
-        """
-        
-        # I think this one should be cached.
-        return self.rdkit_mol.GetAtomWithIdx(idx)
-    
-    def GetBondWithIdx(self, idx):
-        """
-        Get the bond with the specified index.
-
-        :param int idx: The index of the bond.
-
-        :returns: the rdkit bond object.
-        :rtype: :class:`str` ???
-        """
-        
-        return self.rdkit_mol.GetBondWithIdx(idx)
-    
-    def AssignStereochemistry(self): 
-        """
-        Assign stereochemistry to this molecule.
-        """
-        # Required to actually set it.
-        Chem.AssignStereochemistry(self.rdkit_mol, force=True)
-    
+ 
     def setRDKitMolProp(self, key, val):
         """
         Set a molecular property.

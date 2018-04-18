@@ -12,7 +12,7 @@ def prepare_smiles(contnrs, params):
     Runs the appropriate steps for processing the smile strings.
     """    
     
-    print("Begin Desaltings")   #JAKE@
+    print("Begin Desaltings")   
     max_variants_per_compound = params["max_variants_per_compound"]
     thoroughness = params["thoroughness"]
     num_processors = params["num_processors"]
@@ -20,7 +20,7 @@ def prepare_smiles(contnrs, params):
     # Run the functions
     desalt_orig_smi(contnrs, num_processors)
 
-    print("Done with Desalting") #JAKE@
+    print("Done with Desalting")
 
     # Pausing for a moment to get that properly installed
     if not params["skip_adding_hydrogen"]:

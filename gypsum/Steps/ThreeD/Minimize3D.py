@@ -19,7 +19,7 @@ def minit(mol, thoroughness, max_variants_per_compound):
         0.1, False
     )
 
-    if mol.GetNumConformers() > 0:
+    if len(self.mol.conformers) > 0:
         # Because it is possible to find a molecule that has no
         # acceptable conformers (i.e., is not possible geometrically).
         # Consider this:
@@ -36,7 +36,7 @@ def minit(mol, thoroughness, max_variants_per_compound):
 
         # Get the best scoring (lowest energy) of these minimized
         # conformers
-        new_mol = mol.copy()
+        new_mol = copy.deepcopy(mol)
         c = MyConformer(new_mol, mol.conformers[0].conformer())
         new_mol.conformers = [c]
         best_energy = c.energy

@@ -231,7 +231,7 @@ class MolContainer:
             Utils.log("")
 
             Utils.log("""Note that the third method identifies duplicates that the second
-                method doesn't. AHHHHH!!!!!!""")
+                method doesn't.""")
             Utils.log("")
             Utils.log("=" * 20)
 

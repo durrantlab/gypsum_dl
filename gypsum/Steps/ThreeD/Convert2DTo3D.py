@@ -19,9 +19,9 @@ def mk3d(mol):
     if mol.rdkit_mol is None:
         show_error_msg = True
     else:
-        if mol.crzy_substruc() == False:
+        if mol.remove_bizarre_substruc() == False:
             mol.makeMol3D()
-            if mol.GetNumConformers() > 0:
+            if len(self.mol.conformers) > 0:
                 mol.genealogy.append(
                     mol.smiles(True) + " (3D coordinates assigned)"
                 )

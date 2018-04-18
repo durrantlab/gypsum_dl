@@ -35,7 +35,7 @@ def pick_best_mols(mol_lst, num, thoroughness):
 
     # First, generate 3D structures.
     # How many? num * thoroughness
-    # mols_3d is a list of gypsum My.Mol instances #JAKE@
+    # mols_3d is a list of gypsum My.Mol instances 
     mols_3d = Utils.random_sample(mol_lst, num * thoroughness, "")
     
     # Now get the energies

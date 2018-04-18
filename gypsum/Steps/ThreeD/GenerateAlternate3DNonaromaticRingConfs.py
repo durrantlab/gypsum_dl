@@ -63,7 +63,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound):
         0.1, True
     )
 
-    if mol.GetNumConformers() > 0:
+    if len(self.mol.conformers) > 0:
         # Sometimes there are no conformers if it's an impossible structure.
         # Like [H]c1nc(N2C(=O)[C@@]3(C([H])([H])[H])[C@@]4([H])O[C@@]([H])(C([H])([H])C4([H])[H])[C@]3(C([H])([H])[H])C2=O)sc1[H]
         # So don't save this one anyway.
@@ -115,7 +115,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound):
         # Convert rdkit mols to MyMol
         results = []
         for conf in best_confs:
-            new_mol = mol.copy()
+            new_mol = copy.deepcopy(mol)
             c = MyConformer(new_mol, conf.conformer())
             new_mol.conformers = [c]
             energy = c.energy
@@ -149,9 +149,9 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
     )
 
     # params = []
-    # for contnr in self.contnrs:
+    # for contnr in contnrs:
     #     for mol in contnr.mols:
-    #         params.append((mol, self.params))
+    #         params.append((mol, params))
 
     params = []
     ones_with_nonaro_rngs = set([])
@@ -173,7 +173,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
 
     # # Remove mol list for the ones with nonaromatic rings
     # for contnr_idx in ones_with_nonaro_rngs:
-    #     self.contnrs[contnr_idx].mols = []
+    #     contnrs[contnr_idx].mols = []
     
     # Group by mol. You can't use existing functions because they would
     # require you to recalculate already calculated energies.

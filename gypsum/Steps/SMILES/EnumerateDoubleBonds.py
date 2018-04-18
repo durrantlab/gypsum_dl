@@ -112,7 +112,10 @@ def GetDoubleBonded(mol, max_variants_per_compound):
             # Sometimes you get an error if there's a bad structure
             # otherwise.
 
-            new_mol.AssignStereochemistry()
+            # Assign the StereoChemistry
+            # Required to actually set it.
+            Chem.AssignStereochemistry(new_mol, force=True)
+
             new_mol.contnr_idx = mol.contnr_idx
 
 
@@ -122,7 +125,7 @@ def GetDoubleBonded(mol, max_variants_per_compound):
                 new_mol.smiles(True) + " (cis-trans isomerization)"
             )
             
-            return new_mol #, smi))
+            return new_mol 
 
 
 def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors):

@@ -245,7 +245,7 @@ def parallel_addH(container, substructures):
 
     # Convert from rdkit mols to MyMols and remove those with odd substructures
     addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]
-    addH_mols = [mol for mol in addH_mols if mol.crzy_substruc() == False]
+    addH_mols = [mol for mol in addH_mols if mol.remove_bizarre_substruc() == False]
 
     # I once saw it add a C+ here. So do a sanity check at
     # this point.

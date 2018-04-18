@@ -38,6 +38,8 @@ from gypsum.Steps.IO.ProcessOutput import proccess_output
 from gypsum.Steps.IO.LoadFiles import load_smiles_file
 from gypsum.Steps.IO.LoadFiles import load_sdf_file
 
+
+
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def conf_generator(args):
     """
@@ -95,7 +97,6 @@ def conf_generator(args):
     deal_with_failed_molecules(contnrs, params)
 
     proccess_output(contnrs, params)
-
 
 def set_parameters(params_unicode):
     """
@@ -200,7 +201,6 @@ def make_type_dict(dictionary):
 
     return type_dict
 
-
 def finalize_params(dictionary):
     """Checks and updates parameters to their final values."""
     # Throw an error if there's a missing parameter.
@@ -243,7 +243,6 @@ def print_current_smiles(contnrs):
     for i, mol_cont in enumerate(contnrs):
         Utils.log("\t\t" + str(i) + " " + str(mol_cont.all_smiles()))
     
-
 def add_mol_id_props(contnrs):
     """
     Once all molecules have been generated, go through each and add the

@@ -24,7 +24,7 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors)
     Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
     substructure keeps popping up, add it to the list in the
-    `remove_crazy_substrings` definition.
+    `prohibited_substructures` definition found with MyMol.py in the function remove_bizarre_substruc().
     """
 
     if max_variants_per_compound == 0:
@@ -77,9 +77,9 @@ def parallel_makeTaut(contnr, mol_index, max_variants_per_compound):
     # let's do that again. Because taut requires kekulized
     # input.
     Chem.Kekulize(m)
-    m = MyMol.check_sanitization(m)   #JAKE@
-    if m is None:   #JAKE@
-        return None   #JAKE@
+    m = MyMol.check_sanitization(m)   
+    if m is None:   
+        return None   
 
     # Limit to max_variants_per_compound tauts. Note that another
     # batch could add more, so you'll need to once again trim to this
@@ -94,7 +94,7 @@ def parallel_makeTaut(contnr, mol_index, max_variants_per_compound):
     tauts_mols = [MyMol.MyMol(m) for m in tauts_rdkit_mols]
 
     # Keep only those that have reasonable substructures
-    tauts_mols = [t for t in tauts_mols if t.crzy_substruc() == False]
+    tauts_mols = [t for t in tauts_mols if t.remove_bizarre_substruc() == False]
 
     if len(tauts_mols) > 1:
         Utils.log("\t" + mol.smiles(True) + " has tauts.")

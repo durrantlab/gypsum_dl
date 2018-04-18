@@ -67,7 +67,7 @@ def GetChiral(mol, max_variants_per_compound, thoroughness):
 
         new_mol = MyMol.MyMol(a_rd_mol)
 
-        if not new_mol.crzy_substruc():
+        if not new_mol.remove_bizarre_substruc():
             new_mol.contnr_idx = mol.contnr_idx
             new_mol.name = mol.name
             new_mol.genealogy = mol.genealogy[:]
