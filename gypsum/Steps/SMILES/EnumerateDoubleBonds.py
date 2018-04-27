@@ -23,21 +23,21 @@ def GetDoubleBonded(mol, max_variants_per_compound):
 
     # Throw out any bond that is in a small ring
     unasignd = [i for i in unasignd
-                if not mol.GetBondWithIdx(i).IsInRingSize(3)]
+                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(3)]
     unasignd = [i for i in unasignd
-                if not mol.GetBondWithIdx(i).IsInRingSize(4)]
+                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(4)]
     unasignd = [i for i in unasignd
-                if not mol.GetBondWithIdx(i).IsInRingSize(5)]
+                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(5)]
     unasignd = [i for i in unasignd
-                if not mol.GetBondWithIdx(i).IsInRingSize(6)]
+                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(6)]
     unasignd = [i for i in unasignd
-                if not mol.GetBondWithIdx(i).IsInRingSize(7)]
+                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(7)]
 
     # Throw out any bond that has an atom that only participate in
     # that one bond (terminal alkene).
     bonds_to_use = []
     for bond_index in unasignd:
-        b = mol.GetBondWithIdx(bond_index)
+        b = mol.rdkit_mol.GetBondWithIdx(bond_index)
 
         a1 = b.GetBeginAtom()
         nb1 = a1.GetBonds()
@@ -108,14 +108,15 @@ def GetDoubleBonded(mol, max_variants_per_compound):
 
         new_mol = MyMol.MyMol(a_rd_mol)
 
-        if new_mol.can_smi != False and new_mol.can_smi != None:    
+        if new_mol.can_smi != False and new_mol.can_smi != None:
             # Sometimes you get an error if there's a bad structure
             # otherwise.
 
             # Assign the StereoChemistry
             # Required to actually set it.
-            Chem.AssignStereochemistry(new_mol, force=True)
+            Chem.AssignStereochemistry(a_rd_mol, force=True)
 
+            new_mol = MyMol.MyMol(a_rd_mol)
             new_mol.contnr_idx = mol.contnr_idx
 
 
@@ -124,8 +125,8 @@ def GetDoubleBonded(mol, max_variants_per_compound):
             new_mol.genealogy.append(
                 new_mol.smiles(True) + " (cis-trans isomerization)"
             )
-            
-            return new_mol 
+
+            return new_mol
 
 
 def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors):

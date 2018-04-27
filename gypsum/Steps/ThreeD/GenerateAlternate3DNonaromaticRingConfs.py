@@ -1,5 +1,7 @@
 import __future__
 
+import copy
+
 import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
@@ -40,7 +42,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound):
     for ring_atom_indecies in rings:
         bond_indecies = []
         for ring_atm_idx in ring_atom_indecies:
-            a = mol.GetAtomWithIdx(ring_atm_idx)
+            a = mol.rdkit_mol.GetAtomWithIdx(ring_atm_idx)
             bonds = a.GetBonds()
             for bond in bonds:
                 atom_indecies = [
@@ -63,7 +65,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound):
         0.1, True
     )
 
-    if len(self.mol.conformers) > 0:
+    if len(mol.conformers) > 0:
         # Sometimes there are no conformers if it's an impossible structure.
         # Like [H]c1nc(N2C(=O)[C@@]3(C([H])([H])[H])[C@@]4([H])O[C@@]([H])(C([H])([H])C4([H])[H])[C@]3(C([H])([H])[H])C2=O)sc1[H]
         # So don't save this one anyway.

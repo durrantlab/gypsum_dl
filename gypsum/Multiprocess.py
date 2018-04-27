@@ -44,6 +44,8 @@ def MultiThreading(inputs, num_processors, task_name):
     else:
         results = start_processes(tasks, num_processors)
 
+    return results
+
 
 ###
 # Worker function

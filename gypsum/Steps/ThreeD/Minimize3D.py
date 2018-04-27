@@ -19,7 +19,7 @@ def minit(mol, thoroughness, max_variants_per_compound):
         0.1, False
     )
 
-    if len(self.mol.conformers) > 0:
+    if len(mol.conformers) > 0:
         # Because it is possible to find a molecule that has no
         # acceptable conformers (i.e., is not possible geometrically).
         # Consider this:

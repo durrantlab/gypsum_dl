@@ -21,7 +21,7 @@ def mk3d(mol):
     else:
         if mol.remove_bizarre_substruc() == False:
             mol.makeMol3D()
-            if len(self.mol.conformers) > 0:
+            if len(mol.conformers) > 0:
                 mol.genealogy.append(
                     mol.smiles(True) + " (3D coordinates assigned)"
                 )
@@ -49,7 +49,6 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_proce
             params.append(mol)
 
     tmp = mp.MultiThreading(params, num_processors, mk3d)
-
     clear = mp.strip_none(tmp)
     #clear = tmp
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, clear, max_variants_per_compound, thoroughness, False)

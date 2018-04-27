@@ -53,7 +53,7 @@ def conf_generator(args):
     json_warning_list = ['source', 'output_file', 'openbabel_executable',
                             'num_processors', 'min_ph', 'max_ph',
                             'delta_ph_increment', 'thoroughness',
-                            'max_variants_per_compound']
+                            'max_variants_per_compound', 'ph_std_dev']
 
     # Load the parameters from the json
     if 'json' in args:
@@ -112,9 +112,9 @@ def set_parameters(params_unicode):
         "separate_output_files" : False,
         "openbabel_executable" : "/usr/local/bin/obabel",
         "num_processors" : -1,
-        "min_ph" : 5.0,
-        "max_ph" : 9.0,
-        "delta_ph_increment" : 0.5,
+        "min_ph" : 6.4,
+        "max_ph" : 8.4,
+        "ph_std_dev" : 1.0,
         "thoroughness" : 3,
         "max_variants_per_compound" : 5,
         "skip_optimize_geometry" : False,
