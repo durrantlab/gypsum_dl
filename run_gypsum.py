@@ -26,8 +26,8 @@ PARSER.add_argument('--min_ph', metavar='MIN', type=float,
                     help='Minimum pH to consider.')
 PARSER.add_argument('--max_ph', metavar='MAX', type=float,
                     help='Maximum pH to consider.')
-PARSER.add_argument('--delta_ph_increment', metavar='D', type=float,
-                    help='Increments of pH between min and max.')
+PARSER.add_argument('--ph_std_dev', metavar='D', type=float,
+                    help='Size of pH substructure ranges.')
 PARSER.add_argument('--thoroughness', '-t',
                     help='How wide a search to look for conformers.')
 PARSER.add_argument('--max_variants_per_compound', '-m', type=int, metavar='V',
@@ -62,5 +62,5 @@ conf_generator(INPUTS)
 
 
 print("")
-print("THIS WHOLE THING WORKS!!!!!!! GOOD JOB JAKE!!!")
+print("Run Finished")
 
