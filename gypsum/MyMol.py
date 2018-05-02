@@ -67,9 +67,9 @@ class MyConformer:
             # fails. For example, COC(=O)c1cc(C)nc2c(C)cc3[nH]c4ccccc4c3c12 .
             # In this case, the old one still works. So if no coordinates are
             # assigned, try that one.
-            if self.mol.GetNumConformers() == 0:
-                AllChem.EmbedMolecule(self.mol)
-            # On rare occasions, both methods fail. For example,
+            # if self.mol.GetNumConformers() == 0:
+            #     AllChem.EmbedMolecule(self.mol)
+            # # On rare occasions, both methods fail. For example,
             # O=c1cccc2[C@H]3C[NH2+]C[C@@H](C3)Cn21
             # Another example: COc1cccc2c1[C@H](CO)[N@H+]1[C@@H](C#N)[C@@H]3C[C@@H](C(=O)[O-])[C@H]([C@H]1C2)[N@H+]3C
             if self.mol.GetNumConformers() == 0:
