@@ -6,9 +6,10 @@ import operator
 
 
 import gypsum.Utils as Utils
+import gypsum.MolObjectHandling as MOH
 
 try:
-    import rdkit        #Jake@ Remove this when you seperate out the mol handling file for the Sanitization functions
+    import rdkit        
     from rdkit.Chem import AllChem
     from rdkit import Chem
     from rdkit.Chem.rdchem import BondStereo
@@ -168,8 +169,8 @@ class MyConformer:
 
         # Make a new molecule
         amol = Chem.MolFromSmiles(self.smiles, sanitize=False)
-        amol = check_sanitization(amol)
-        amol = try_reprotanation(amol)  
+        amol = MOH.check_sanitization(amol)
+        amol = MOH.try_reprotanation(amol)  
 
         # Add the conformer of the other MyConformer object.
         amol.AddConformer(self.conformer(), assignId=True)
@@ -180,7 +181,7 @@ class MyConformer:
         last_conf = amol.GetConformers()[-1]
 
         # Return the RMSD
-        amol = try_deprotanation(amol)  
+        amol = MOH.try_deprotanation(amol)  
         rmsd = AllChem.GetConformerRMS(
             amol, first_conf.GetId(), last_conf.GetId(), prealigned = True
         )
@@ -300,7 +301,7 @@ class MyMol:
         if m is not None:
             # Sanitization and may correct errors in the smiles string
             # such as Nitrogen charges.
-            m = check_sanitization(m)
+            m = MOH.check_sanitization(m)
         self.rdkit_mol = m
         return m
 
@@ -316,7 +317,7 @@ class MyMol:
             return
 
         # Add hydrogens
-        self.rdkit_mol = try_reprotanation(self.rdkit_mol)
+        self.rdkit_mol = MOH.try_reprotanation(self.rdkit_mol)
 
         # Add a conformer
         # No minimization. Rmsd cutoff doesn't matter.
@@ -365,7 +366,7 @@ class MyMol:
             # So remove hydrogens. Note that this assumes you will have called
             # this function previously with noh = False
             amol = copy.copy(self.rdkit_mol)
-            amol = try_deprotanation(amol)  
+            amol = MOH.try_deprotanation(amol)  
             self.can_smi_noh = Chem.MolToSmiles(
                 amol, isomericSmiles=True, canonical=True
             )
@@ -672,163 +673,3 @@ class MyMol:
             self.rdkit_mol.AddConformer(conformer.conformer())
         
 
-
-###Code taken from Jake's Autogrow MolObjectHandling.py script for sanitizing and Nitrogen fix
-
-def Nitrogen_charge_adjustment(mol):
-    """
-    When importing ligands with sanitation turned off, one can successfully import
-    import a SMILES in which a Nitrogen (N) can have 4 bonds, but no positive charge. 
-    Any 4-bonded N lacking a positive charge will fail a sanitiation check.
-        -This could be an issue with importing improper SMILES, reactions, or crossing a nuetral nitrogen
-            with a side chain which adds an extra bond, but doesn't add the extra positive charge.
-
-    To correct for this, this function will find all N atoms with a summed bond count of 4
-    (ie. 4 single bonds;2 double bonds; a single and a triple bond; two single and a double bond)
-    and set the formal charge of those N's to +1.
-
-    RDkit treats aromatic bonds as a bond count of 1.5. But we will not try to correct for 
-    Nitrogens labeled as Aromatic. As precaution, any N which is aromatic is skipped in this function.
-
-    Inputs:
-    :param rdkit.Chem.rdchem.Mol mol: any rdkit mol
-    Returns:
-    :returns: rdkit.Chem.rdchem.Mol mol: the same rdkit mol with the N's adjusted
-    """
-    for atom in mol.GetAtoms():
-        if atom.GetAtomicNum() == 7:
-            bonds = atom.GetBonds()
-            num_bond_sums = 0.0
-            for bond in bonds:
-                # GetBondTypeAsDouble prints out 1 for single, 2.0 for double, 
-                # 3.0 for triple, 1.5 for AROMATIC
-                num_bond_sums = num_bond_sums + bond.GetBondTypeAsDouble()
-            # Check if the octet is filled
-            if num_bond_sums == 4.0:
-                atom.SetFormalCharge(+1)
-    return mol
-#
-
-def check_sanitization(mol):
-    """    
-    Given a rdkit.Chem.rdchem.Mol this script will sanitize the molecule. 
-    It will be done using a series of try/except statements so that if it fails it will return a None
-    rather than causing the outer script to fail. 
-
-    Nitrogen Fixing step occurs here to correct for a common RDKit valence error in which Nitrogens with
-        with 4 bonds have the wrong formal charge by setting it to -1.
-        This can be a place to add additional correcting features for any discovered common sanitation failures.
-    
-    Handled here so there are no problems later.
-    
-    Inputs: 
-    :param rdkit.Chem.rdchem.Mol mol: an rdkit molecule to be sanitized
-    Returns:
-    :returns: rdkit.Chem.rdchem.Mol mol: A sanitized rdkit molecule or None if it failed.
-    """
-    
-    if mol is None:
-        return None
-
-    # easiest nearly everything should get through 
-    sanitize_string =  Chem.SanitizeMol(mol, sanitizeOps = rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL, catchErrors = True)
-    if sanitize_string.name == "SANITIZE_NONE":    
-        return mol
-    else:
-        # try to fix the nitrogen (common problem that 4 bonded Nitrogens improperly lose their + charges)
-        mol = Nitrogen_charge_adjustment(mol)
-        Chem.SanitizeMol(mol, sanitizeOps = rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL, catchErrors = True)
-        sanitize_string =  Chem.SanitizeMol(mol, sanitizeOps = rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL, catchErrors = True)
-        if sanitize_string.name == "SANITIZE_NONE":    
-            return mol
-
-    # run a  sanitation Filter 1 more time incase something slipped through
-    # ie. if there are any forms of sanition which fail ie. KEKULIZE then return None
-    sanitize_string =  Chem.SanitizeMol(mol, sanitizeOps = rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL, catchErrors = True)
-    if sanitize_string.name != "SANITIZE_NONE":
-        return None
-    else:    
-        return mol
-#
-def handleHs(mol, protanate_step):
-    """
-    Given a rdkit.Chem.rdchem.Mol this script will sanitize the molecule, remove all non-explicit H's
-    and add back on all implicit H's. This is to control for any discrepencies in the smiles strings or presence/
-    absense of H's. 
-    If it fails it will return a None rather than causing the outer script to fail. Handled here so there are no problems later.
-    
-    Inputs: 
-    :param rdkit.Chem.rdchem.Mol sanitized_deprotanated_mol: an rdkit molecule already sanitized and deprotanated.
-    :param bol protanate_step: True if mol needs to be protanated; False if deprotanated
-                                -Note if Protanated, SmilesMerge takes up to 10times longer
-
-    Returns:
-    :returns: rdkit.Chem.rdchem.Mol mol: an rdkit molecule with H's handled (either added or removed) and sanitized.
-                                            it returns None if H's can't be added or if sanitation fails   
-    """
-    mol = check_sanitization(mol)
-    if mol is None:
-        # mol failed Sanitation
-        return None
-        
-    mol = try_deprotanation(mol)
-    if mol is None:
-        # mol failed deprotanation
-        return None
-
-    if protanate_step is True:
-        # PROTANTION IS ON
-        mol = try_reprotanation(mol)
-        if mol is None:
-            # mol failed reprotanation
-            return None
-
-    return mol
-#
-
-def try_deprotanation(sanitized_mol):
-    """
-    Given an already sanitize rdkit.Chem.rdchem.Mol object, we will try to deprotanate the mol of all non-explicit
-    Hs. If it fails it will return a None rather than causing the outer script to fail. 
-       
-    Inputs: 
-    :param rdkit.Chem.rdchem.Mol mol: an rdkit molecule already sanitized.   
-    Returns:
-    :returns: rdkit.Chem.rdchem.Mol mol_sanitized: an rdkit molecule with H's removed and sanitized.
-                                            it returns None if H's can't be added or if sanitation fails
-    """
-    try:
-        mol = Chem.RemoveHs(sanitized_mol, sanitize = False)
-    except:
-        return None
-    
-    
-    mol_sanitized = check_sanitization(mol)
-    
-    return mol_sanitized
-#
-
-def try_reprotanation(sanitized_deprotanated_mol):
-    """
-    Given an already sanitize and deprotanate rdkit.Chem.rdchem.Mol object, we will try to reprotanate the mol with
-    implicit Hs. If it fails it will return a None rather than causing the outer script to fail. 
-        
-    Inputs: 
-    :param rdkit.Chem.rdchem.Mol sanitized_deprotanated_mol: an rdkit molecule already sanitized and deprotanated.   
-    Returns:
-    :returns: rdkit.Chem.rdchem.Mol mol_sanitized: an rdkit molecule with H's added and sanitized.
-                                            it returns None if H's can't be added or if sanitation fails
-    """
-    
-    if sanitized_deprotanated_mol is not None:
-        try:
-            mol = Chem.AddHs(sanitized_deprotanated_mol)
-        except:
-            mol = None
-        
-        
-        mol_sanitized = check_sanitization(mol)
-        return mol_sanitized
-    else:
-        return None
-#

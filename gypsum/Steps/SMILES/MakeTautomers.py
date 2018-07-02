@@ -6,6 +6,7 @@ import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
+import gypsum.MolObjectHandling as MOH
 
 try:
     from rdkit import Chem
@@ -77,7 +78,7 @@ def parallel_makeTaut(contnr, mol_index, max_variants_per_compound):
     # let's do that again. Because taut requires kekulized
     # input.
     Chem.Kekulize(m)
-    m = MyMol.check_sanitization(m)   
+    m = MOH.check_sanitization(m)   
     if m is None:   
         return None   
 
