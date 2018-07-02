@@ -9,7 +9,7 @@ import gypsum.ChemUtils as ChemUtils
 from gypsum.MyMol import MyConformer
 
 
-def minit(mol, thoroughness, max_variants_per_compound):
+def minit(mol, thoroughness, max_variants_per_compound, second_embed):
 
     # Utils.log("\tMinimizing one of the structures generated for " +
     # orig_smi)
@@ -37,7 +37,7 @@ def minit(mol, thoroughness, max_variants_per_compound):
         # Get the best scoring (lowest energy) of these minimized
         # conformers
         new_mol = copy.deepcopy(mol)
-        c = MyConformer(new_mol, mol.conformers[0].conformer())
+        c = MyConformer(new_mol, mol.conformers[0].conformer(), second_embed)
         new_mol.conformers = [c]
         best_energy = c.energy
 
@@ -55,7 +55,7 @@ def minit(mol, thoroughness, max_variants_per_compound):
 
     #######WHAT should we return if there is no conformer?????????@@@@@@@
 
-def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors):
+def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed):
     """
     This function minimizes a 3D molecular conformation. In an attempt to not
     get trapped in a local minimum, it actually generates a number of
@@ -71,7 +71,7 @@ def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors
             # Because ones with nonaromatic rings have already been minimized.
             for mol in contnr.mols:
                 ones_without_nonaro_rngs.add(mol.contnr_idx)
-                params.append((mol, thoroughness, max_variants_per_compound))
+                params.append((mol, thoroughness, max_variants_per_compound, second_embed))
 
     tmp = mp.MultiThreading(params, num_processors, minit)
 

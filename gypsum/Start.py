@@ -124,7 +124,8 @@ def set_parameters(params_unicode):
         "skip_ennumerate_chiral_mol" : False,
         "skip_ennumerate_double_bonds" : False,
         "2d_output_only" : False,
-        "break" : ""
+        "break" : "",
+        "second_embed" : False
     })
 
     # Modify params so that they keys are always lower case.

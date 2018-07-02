@@ -28,7 +28,7 @@ except:
     raise ImportError("You need to install scipy and its dependencies.")
 
 
-def GetRingConfs(mol, thoroughness, max_variants_per_compound):
+def GetRingConfs(mol, thoroughness, max_variants_per_compound, second_embed):
     contnr_idx = mol.contnr_idx
 
     # All the ones in this contnr must have nonatomatic rings.
@@ -118,7 +118,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound):
         results = []
         for conf in best_confs:
             new_mol = copy.deepcopy(mol)
-            c = MyConformer(new_mol, conf.conformer())
+            c = MyConformer(new_mol, conf.conformer(), second_embed)
             new_mol.conformers = [c]
             energy = c.energy
 
@@ -135,7 +135,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound):
                 
     
 
-def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_variants_per_compound, num_processors):
+def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed):
     """
     Docking programs like Vina rotate chemical moieties around their rotatable
     bonds, so it's not necessary to generate a larger rotomer library for each
@@ -161,7 +161,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
         if contnr.num_nonaro_rngs > 0:
             ones_with_nonaro_rngs.add(contnr_idx)
             for mol in contnr.mols:
-                params.append((mol, thoroughness, max_variants_per_compound))
+                params.append((mol, thoroughness, max_variants_per_compound, second_embed))
     
     if len(ones_with_nonaro_rngs) == 0:
         return  # There are no such ligands to process.
