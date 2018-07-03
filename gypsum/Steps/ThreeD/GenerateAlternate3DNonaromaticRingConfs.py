@@ -1,6 +1,7 @@
 import __future__
 
 import copy
+import warnings
 
 import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
@@ -97,8 +98,12 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound, second_embed):
         else:
             num_clusters = max_variants_per_compound
 
-        # try:
-        groups = kmeans2(pts, num_clusters, minit='points')[1]
+        # When kmeans2 runs on insufficient clusters, it can sometimes throw an 
+        # error about empty clusters. This is not necessary to throw for the user
+        # and so we have supressed it here.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            groups = kmeans2(pts, num_clusters, minit='points')[1]
 
 
         # Note that you have some geometrically diverse conformations
