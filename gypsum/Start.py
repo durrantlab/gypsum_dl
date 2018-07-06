@@ -123,8 +123,6 @@ def set_parameters(params_unicode):
         "skip_making_tautomers" : False,
         "skip_ennumerate_chiral_mol" : False,
         "skip_ennumerate_double_bonds" : False,
-        "2d_output_only" : False,
-        "break" : "",
         "second_embed" : False
     })
 
