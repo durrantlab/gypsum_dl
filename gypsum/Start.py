@@ -44,16 +44,15 @@ from gypsum.Steps.IO.LoadFiles import load_sdf_file
 def conf_generator(args):
     """
     A function for preparing small-molecule models for docking. To work, it
-    requires the python modules rdkit and molvs, as well as openbabel
-    installed as an executable on the system.
+    requires the python modules rdkit and molvs installed on the system.
 
     :param string param_file: A json file specifying the parameters.
     """
 
-    json_warning_list = ['source', 'output_file', 'openbabel_executable',
-                            'num_processors', 'min_ph', 'max_ph',
-                            'delta_ph_increment', 'thoroughness',
-                            'max_variants_per_compound', 'ph_std_dev']
+    json_warning_list = ['source', 'output_file', 'num_processors', 
+                         'min_ph', 'max_ph', 'delta_ph_increment', 
+                         'thoroughness', 'max_variants_per_compound',
+                         'ph_std_dev']
 
     # Load the parameters from the json
     if 'json' in args:
@@ -110,7 +109,6 @@ def set_parameters(params_unicode):
         "source" : '',
         "output_file" : '',
         "separate_output_files" : False,
-        "openbabel_executable" : "/usr/local/bin/obabel",
         "num_processors" : -1,
         "min_ph" : 6.4,
         "max_ph" : 8.4,

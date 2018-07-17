@@ -18,8 +18,6 @@ PARSER.add_argument('--source', '-s', metavar='input.smi',
                     help='Name of the source file.')
 PARSER.add_argument('--output_file', '-o', metavar='output.sdf',
                     help='Name of the output file.')
-PARSER.add_argument('--openbabel_executable',
-                    help='Path to the openbabel executable.')
 PARSER.add_argument('--num_processors', '-p', metavar='N', default=1,
                     help='Number of processors to use in parallel.')
 PARSER.add_argument('--min_ph', metavar='MIN', type=float,
