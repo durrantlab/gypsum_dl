@@ -8,6 +8,7 @@ import __future__
 import sys
 import json
 import os
+from datetime import datetime
 from collections import OrderedDict
 
 import gypsum.Utils as Utils
@@ -48,6 +49,7 @@ def conf_generator(args):
 
     :param string param_file: A json file specifying the parameters.
     """
+    start_time = datetime.now()
 
     json_warning_list = ['source', 'output_file', 'num_processors', 
                          'min_ph', 'max_ph', 'delta_ph_increment', 
@@ -95,6 +97,12 @@ def conf_generator(args):
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)
 
+    end_time = datetime.now()
+    run_time = end_time - start_time
+    params["start_time"] = str(start_time)
+    params["end_time"] = str(end_time)
+    params["run_time"] = str(run_time)
+
     proccess_output(contnrs, params)
 
 def set_parameters(params_unicode):
@@ -110,19 +118,22 @@ def set_parameters(params_unicode):
         "output_file" : '',
         "separate_output_files" : False,
         "num_processors" : -1,
+        "start_time" : 0,
+        "end_time" : 0,
+        "run_time" : 0,
         "min_ph" : 6.4,
         "max_ph" : 8.4,
         "ph_std_dev" : 1.0,
         "thoroughness" : 3,
         "max_variants_per_compound" : 5,
+        "second_embed" : False,
+        "2d_output_only" : False,
         "skip_optimize_geometry" : False,
         "skip_alternate_ring_conformations" : False,
         "skip_adding_hydrogen" : False,
         "skip_making_tautomers" : False,
         "skip_ennumerate_chiral_mol" : False,
-        "skip_ennumerate_double_bonds" : False,
-        "2d_output_only" : False,
-        "second_embed" : False
+        "skip_ennumerate_double_bonds" : False
     })
 
     # Modify params so that they keys are always lower case.
