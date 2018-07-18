@@ -1,3 +1,0 @@
-I believe I've managed to list these SMARTS strings in order of precedence,
-meaning if you find one substructure, don’t keep looking. For example, if a
-guanidine group is identified, don’t also look for an amine.
