@@ -86,7 +86,7 @@ def contnrs_no_touchd(contnrs, results):
     """
     
     # Find ones that don't have any generated. This is because sometimes
-    # obabel failes to producce valid smiles. In this case, just use the
+    # protonation failes to producce valid smiles. In this case, just use the
     # original smiles. Couldn't find a good solution to work around.
     
     # Get a dictionary of all the input smiles.

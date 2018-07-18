@@ -59,7 +59,7 @@ def prepare_smiles(contnrs, params):
 def wrap_molecules(contnrs):
     """
     Problem: Each molecule container holds one smiles string
-    (corresponding to the input structure). obabel produces multiple
+    (corresponding to the input structure). Protonation produces multiple
     smiles strings at different pH values in the previous step. There is
     no way to store muliple smiles in a molecule container. But those
     containers are designed to store multiple RDKit molecule objects. To
