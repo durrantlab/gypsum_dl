@@ -1,3 +1,0 @@
-[submodule "gypsum/Steps/SMILES/protonation"]
-	path = gypsum/Steps/SMILES/protonation
-	url = https://git.durrantlab.pitt.edu/pjropp/protonation.git
