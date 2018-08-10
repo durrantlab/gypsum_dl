@@ -111,9 +111,7 @@ def conf_generator(args):
 def detect_unassigned_bonds(smiles):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     for bond in mol.GetBonds():
-        print("BOND CHECK")
         if bond.GetBondTypeAsDouble() == 0:
-            print("###### BAD BONDS")
             return None
     return smiles
 
