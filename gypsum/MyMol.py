@@ -475,6 +475,9 @@ class MyMol:
         if self.bizarre_substruct != "":
             return self.bizarre_substruct
 
+        if self.rdkit_mol is None:
+            return True
+
         # These are substrutures that can't be easily corrected using
         # fix_common_errors() below.
         #, "[C+]", "[C-]", "[c+]", "[c-]", "[n-]", "[N-]"] # ,
