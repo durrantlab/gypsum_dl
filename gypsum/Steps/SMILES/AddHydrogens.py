@@ -1,126 +1,83 @@
-from ... import multiprocess_v2 as mp
-from ... import Utils
-from ... import ChemUtils
-from ... import MyMol
-import random
-import os
+"""
+This module is made to identify and enumerate the possible protonation sites of molecules.
+"""
 
-try:
-    from rdkit import Chem
-except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+from rdkit import Chem
+import gypsum.Multiprocess as mp
+import gypsum.Utils as Utils
+import gypsum.ChemUtils as ChemUtils
+import gypsum.MyMol as MyMol
+import gypsum.MolContainer as MolCont
 
+from gypsum.Steps.SMILES.protonation.protonation_functions import protonate
 
-def add_hydrogens(self):
+def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
+                  thoroughness, num_processors):
     """
-    Adds hydrogen atoms to the molecules, as appropriate for pH's ranging over
-    the user-specified values. Note that though not a class function, it still
-    accepts self as a parameter. This is the class that is calling it.
+    This is a stub that is used to keep track of what I need to still do.
+
     """
-    
-    Utils.log("Adding hydrogen atoms...")
 
-    # Save all smiles to a temporary file
-    flnm = str(random.randrange(0,1000000)) + ".tmp"
-    while os.path.exists(flnm):
-        flnm = str(random.randrange(0,1000000)) + ".tmp"
-    
-    f = open(flnm, 'w')
-    f.writelines(
-        [m.orig_smi_deslt + " " + m.name + "____" + str(i) + "____" +
-        m.orig_smi + "____" + m.orig_smi_deslt + "\n" for i, m in
-        enumerate(self.contnrs)]
-    )
-    f.close()
+    protonation_settings = {"min_ph": min_pH,
+                            "max_ph": max_pH,
+                            "st_dev": st_dev}
 
-    # Change pH in increments of 0.5 from min to max
-    params = []
-    pH = self.params["min_ph"]
-    while pH <= self.params["max_ph"]:
-        params.append((pH, f.name, self.params["openbabel_executable"]))
-        pH = pH + self.params["delta_ph_increment"]
+    inputs = [(cont, protonation_settings) for cont in contnrs]
 
-    class addH(mp.GeneralTask):
-        def value_func(self, items, results_queue):
-            pH, flnm, obabel_loc = items
-            Utils.log("\tat pH " + str(pH))
-            results = Utils.runit(
-                obabel_loc + ' -p ' + str(pH) + ' -ismi ' +  f.name + ' -ocan'
-            )
+    tmp = mp.MultiThreading(inputs, num_processors, parallel_addH)
 
-            for s in results:
-                s = s.strip()
-                if s != "":
-                    prts = s.split()
-                    smi = prts[0]
-                    mol_info = " ".join(prts[1:])
-                    name, contnr_idx, orig_smi, orig_smi_deslt = mol_info.split("____")
+    tmp = mp.flatten_list(tmp)
 
-                    amol = MyMol.MyMol(smi)
-
-                    # I once saw it add a C+ here. So do a sanity check at
-                    # this point.
-                    if amol.rdkit_mol is not None:
-                        
-                        # Unfortuantely, obabel makes some systematic mistakes
-                        # when it comes to pH assignments. Try to correct them
-                        # here.
-                        
-                        amol.fix_common_errors()
-                        
-                        if amol.crzy_substruc() == False:
-                            amol.contnr_idx = int(
-                                contnr_idx
-                            )
-
-                            amol.genealogy.append(orig_smi + " (source)")
-
-                            if orig_smi != orig_smi_deslt:
-                                amol.genealogy.append(
-                                    orig_smi_deslt + " (desalted)"
-                                )
-                            
-                            amol.genealogy.append(
-                                amol.smiles(True) + " (at pH " + 
-                                str(pH) + ")"
-                            )
-
-                            amol.name = name
-
-                            self.results.append(amol)
-                        else:
-                            Utils.log(
-                                "\WARNING: " + smi + " (" + name  + 
-                                ") discarded."
-                            )
-    tmp = mp.MultiThreading(params, self.params["num_processors"], addH)
-        
-    # Add back in remaining, using original smiles (no protonation). This is
-    # better than nothing.
-
-    contnr_indx_no_touch = Utils.contnrs_no_touchd(
-        self, tmp.results
-    )
+    contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, tmp)
 
     for miss_indx in contnr_indx_no_touch:
         Utils.log(
-            "\tWARNING: OBABEL produced no valid protonation states for " +
-            self.contnrs[miss_indx].orig_smi + " (" +
-            self.contnrs[miss_indx].name + "), so using the original " +
+            "\tWARNING: Gypsum produced no valid protonation states for " +
+            contnrs[miss_indx].orig_smi + " (" +
+            contnrs[miss_indx].name + "), so using the original " +
             "smiles."
         )
-        amol = self.contnrs[miss_indx].mol_orig_smi
+        amol = contnrs[miss_indx].mol_orig_smi
         amol.contnr_idx = miss_indx
 
         amol.genealogy = [
             amol.orig_smi + " (source)",
             amol.orig_smi_deslt + " (desalted)",
-            "(WARNING: OBABEL could not assign protonation states)"
+            "(WARNING: Gypsum could not assign protonation states)"
         ]
 
-        tmp.results.append(amol)
+        tmp.append(amol)
 
-    os.unlink(f.name)
+    ChemUtils.bst_for_each_contnr_no_opt(contnrs, tmp, max_variants, thoroughness)
 
-    ChemUtils.bst_for_each_contnr_no_opt(self, tmp.results)
+def parallel_addH(container, protonation_settings):
+    """
+    We take a container and a list of substructures and return all the
+    appropriate protonation variants.
+
+    :params container container: A container for a
+    """
+    return_value = []
+
+    protonation_settings["smiles"] = container.orig_smi_canonical
+    smis = protonate(protonation_settings)
+    rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
+
+    # Convert from rdkit mols to MyMols and remove those with odd substructures
+    addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]
+    addH_mols = [mol for mol in addH_mols if mol.remove_bizarre_substruc() is False]
+
+    # I once saw it add a C+ here. So do a sanity check at
+    # this point.
+    orig_mol = container.mol_orig_smi
+    for Hm in addH_mols:
+        Hm.inherit_contnr_props(container)
+        Hm.genealogy = orig_mol.genealogy[:]
+        Hm.name = orig_mol.name
+
+        if Hm.smiles() != orig_mol.smiles():
+            Hm.genealogy.append(Hm.smiles(True) + " (protonated)")
+
+        return_value.append(Hm)
+
+    return return_value

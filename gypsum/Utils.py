@@ -1,3 +1,5 @@
+import __future__
+
 import subprocess
 import textwrap
 import random
@@ -19,11 +21,11 @@ def group_mols_by_container_index(mol_lst):
     grouped_results = {}
     for mol in mol_lst:
         idx = mol.contnr_idx
-        
+
         if not idx in grouped_results:
             grouped_results[idx] = []
         grouped_results[idx].append(mol)
-    
+
     for key in grouped_results.keys():
         grouped_results[key] = list(set(grouped_results[key]))
 
@@ -65,45 +67,12 @@ def log(txt):
     """
 
     whitespace_before = txt[:len(txt) - len(txt.lstrip())].replace("\t", "    ")
-    print textwrap.fill(
+    print(textwrap.fill(
         txt.strip(), width = 80, initial_indent = whitespace_before,
         subsequent_indent = whitespace_before + "    "
-    )
+    ))
 
-def runit(cmd):
-    """
-    Runs a command and returns the output as a list.
-    
-    :param str cmd: The command.
-    
-    :returns: A list containing the output, each line as a separate item
-                in the list. 
-    :rtype: :class:`list` ???
-    """
-    
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, stdin=subprocess.PIPE,
-                            shell = True)
-    
-    out, err = p.communicate()
-
-    return out.split("\n")  # So returns a list of lines.
-
-
-# See http://stackoverflow.com/questions/952914/making-a-flat-list-out-of-list-of-lists-in-python
-def flatten(list_of_lists):
-    """
-    Flattens a list of lists to just a list.
-    
-    :param list list_of_lists: The list of lists.
-    
-    :returns: A list, flattened.
-    :rtype: :class:`list` ???
-    """
-
-    return [item for sublist in list_of_lists for item in sublist]
-
-def contnrs_no_touchd(self, results):
+def contnrs_no_touchd(contnrs, results):
     """
     Identify contnrs that have no representative elements in results.
 
@@ -117,17 +86,16 @@ def contnrs_no_touchd(self, results):
     """
     
     # Find ones that don't have any generated. This is because sometimes
-    # obabel failes to producce valid smiles. In this case, just use the
+    # protonation failes to producce valid smiles. In this case, just use the
     # original smiles. Couldn't find a good solution to work around.
     
     # Get a dictionary of all the input smiles.
     idx_to_smi = {}
-    for contnr in self.contnrs:
+    for contnr in contnrs:
         if not contnr.contnr_idx in idx_to_smi:
-            idx_to_smi[contnr.contnr_idx] = self.contnrs[contnr.contnr_idx].orig_smi_deslt
+            idx_to_smi[contnr.contnr_idx] = contnrs[contnr.contnr_idx].orig_smi_deslt
     
-    # Now remove from those any that have associated protonated smiles strings
-    # from obabel.
+    # Now remove from those any that have associated protonated smiles strings.
     for m in results:
         if m.contnr_idx in idx_to_smi:
             del idx_to_smi[m.contnr_idx]

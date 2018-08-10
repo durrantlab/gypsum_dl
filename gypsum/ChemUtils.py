@@ -1,12 +1,15 @@
-import Utils
-import sys
+import __future__
+
+import gypsum.Utils as Utils
 
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except:
     Utils.log("You need to install rdkit and its dependencies.")
-    sys.exit(0)
+    raise ImportError("You need to install rdkit and its dependencies.")
+
+
 
 def pick_best_mols(mol_lst, num, thoroughness):
     """
@@ -32,8 +35,9 @@ def pick_best_mols(mol_lst, num, thoroughness):
 
     # First, generate 3D structures.
     # How many? num * thoroughness
+    # mols_3d is a list of gypsum My.Mol instances 
     mols_3d = Utils.random_sample(mol_lst, num * thoroughness, "")
-
+    
     # Now get the energies
     data = []
     for i, mol in enumerate(mols_3d):
@@ -53,14 +57,19 @@ def pick_best_mols(mol_lst, num, thoroughness):
     # return those smiles
     return new_mols_list
 
-def bst_for_each_contnr_no_opt(self, mol_lst, 
+def bst_for_each_contnr_no_opt(contnrs, mol_lst,
+                                max_variants_per_compound, thoroughness,
                                crry_ovr_frm_lst_step_if_no_fnd=True):
     # smiles_tuple_data is (contnr_idx, MyMols)
+
+    # Remove duplicate ligands from cluster.
+    for mol_cont in contnrs:
+        mol_cont.remove_identical_mols_from_container()
 
     # Group the smiles by contnr_idx
     data = Utils.group_mols_by_container_index(mol_lst)
     # Go through each contnr
-    for contnr_idx in range(len(self.contnrs)):
+    for contnr_idx, contnr in enumerate(contnrs):
         none_generated = False
 
         # Pick just the lowest-energy conformers from the new candidates.
@@ -68,17 +77,16 @@ def bst_for_each_contnr_no_opt(self, mol_lst,
         if contnr_idx in data.keys():
             mols = data[contnr_idx]
             mols = pick_best_mols(
-                mols, self.params["max_variants_per_compound"], 
-                self.params["thoroughness"]
+                mols, max_variants_per_compound, thoroughness
             )
 
             if len(mols) > 0:
                 # Now remove all previously determined mols for this container
-                self.contnrs[contnr_idx].mols = []
+                contnr.mols = []
 
                 # Add in the lowest-energy conformers back to the smiles.
                 for mol in mols:
-                    self.contnrs[contnr_idx].add_mol(mol)
+                    contnr.add_mol(mol)
             else:
                 none_generated = True
         else:
@@ -87,15 +95,16 @@ def bst_for_each_contnr_no_opt(self, mol_lst,
         if none_generated:
             if crry_ovr_frm_lst_step_if_no_fnd:
                 Utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: " + 
-                    self.contnrs[contnr_idx].orig_smi_deslt + " (" + 
-                    self.contnrs[contnr_idx].name + "). Keeping original " +
+                    "\tWARNING: Unable to find low-energy conformations: " +
+                    contnr.orig_smi_deslt + " (" +
+                    contnr.name + "). Keeping original " +
                     "conformers."
                 )
             else:
                 Utils.log(
                     "\tWARNING: Unable to find low-energy conformations: " +
-                    self.contnrs[contnr_idx].orig_smi_deslt + " (" +
-                    self.contnrs[contnr_idx].name + "). Discarding conformer."
+                    contnr.orig_smi_deslt + " (" +
+                    contnr.name + "). Discarding conformer."
                 )
-                self.contnrs[contnr_idx].mols = []
+                contnr.mols = []
+    
