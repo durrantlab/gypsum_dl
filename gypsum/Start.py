@@ -83,6 +83,9 @@ def conf_generator(args):
     contnrs = []
     for idx, data in enumerate(smiles_data):
         smiles, name, props = data
+        if detect_unassigned_bonds(smiles) is None:
+            print("Warning: Throwing out smile because of unassigned bonds: " + smiles)
+            continue
         new_contnr = MolContainer(smiles, name, idx, props)
         contnrs.append(new_contnr)
 
@@ -104,6 +107,15 @@ def conf_generator(args):
     params["run_time"] = str(run_time)
 
     proccess_output(contnrs, params)
+
+def detect_unassigned_bonds(smiles):
+    mol = Chem.MolFromSmiles(smiles, sanitize=False)
+    for bond in mol.GetBonds():
+        print("BOND CHECK")
+        if bond.GetBondTypeAsDouble() == 0:
+            print("###### BAD BONDS")
+            return None
+    return smiles
 
 def set_parameters(params_unicode):
     """
