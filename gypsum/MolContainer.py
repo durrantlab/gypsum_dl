@@ -117,7 +117,7 @@ class MolContainer:
 
                 self.mols.append(result)
         
-    def add_mol(self, mol):     #JAKE@ #Expose@ just add the append to where its called.
+    def add_mol(self, mol):    
         """Adds a molecule to this container. Does NOT check for uniqueness.
 
         :param MyMol.MyMol mol: The MyMol.MyMol object to add.

@@ -52,9 +52,7 @@ def minit(mol, thoroughness, max_variants_per_compound, second_embed):
         # processors. So save the separately so they can be readded to
         # the molecule in a bit. props =
         return new_mol
-
-    #######WHAT should we return if there is no conformer?????????@@@@@@@
-
+        
 def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed):
     """
     This function minimizes a 3D molecular conformation. In an attempt to not

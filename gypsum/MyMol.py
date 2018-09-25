@@ -164,9 +164,6 @@ class MyConformer:
         :rtype: :class:`float` ???
         """
 
-        ### WHAT DO IF BREAK??? WHAT IF THIS FAILS???? SHOULD I RETURN NONE?
-        ### #JAKE@ @@@@@@@@@@@@@@@@@@@@
-
         # Make a new molecule
         amol = Chem.MolFromSmiles(self.smiles, sanitize=False)
         amol = MOH.check_sanitization(amol)
