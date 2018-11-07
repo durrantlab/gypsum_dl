@@ -12,6 +12,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 import gypsum.Utils as Utils
+from gypsum.parallelizer import Parallelizer
 
 try:
     from rdkit.Chem import AllChem
@@ -79,6 +80,43 @@ def conf_generator(args):
     else:
         pass  # It's already in the required format.
 
+    # Handle Serial overriding num_processors
+    # serial fixes it to 1 processor
+    if params["multithread_mode"] == "serial" or params["multithread_mode"]=="Serial":
+        
+        if params["num_processors"] != 1:
+            print("Because --multithread_mode was set to serial, this will be run on a single processor.")
+        params["num_processors"] = 1
+
+    # Handle mpi errors if mpi4py isn't installed
+    if params["multithread_mode"] == "mpi" or params["multithread_mode"] == "MPI":
+        try:
+            import mpi4py
+        except:
+            printout = "mpi4py not installed but --multithread_mode is set to mpi. \n Either install mpi4py or switch multithread_mode to multithreading or serial"
+            raise ImportError(printout)
+
+    # # # launch mpi workers
+    if params["multithread_mode"] == 'mpi':
+        params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"])
+    else:
+        # Lower level mpi (ie making a new Parallelizer within an mpi) 
+        #   has problems with importing the MPI enviorment and mpi4py
+        #   So we will flag it to skip the MPI mode and just go to multithread/serial
+        # This is a saftey precaution
+        params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"], True)
+
+
+    # For Debugging
+    # print("")
+    # print("###########################")
+    # print("num_processors  :  ", params["num_processors"])
+    # print("chosen mode  :  ", params["multithread_mode"])
+    # print("Parallel style:  ", params["Parallelizer"].return_mode())
+    # print("Number Nodes:  ", params["Parallelizer"].return_node())
+    # print("###########################")
+    # print("")
+
     # Make the containers
     contnrs = []
     for idx, data in enumerate(smiles_data):
@@ -107,6 +145,9 @@ def conf_generator(args):
     params["run_time"] = str(run_time)
 
     proccess_output(contnrs, params)
+
+    # # kill mpi workers
+    params["Parallelizer"].end(params["multithread_mode"])
 
 def detect_unassigned_bonds(smiles):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)

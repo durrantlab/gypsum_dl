@@ -2,7 +2,6 @@ import __future__
 
 import copy
 
-import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 
@@ -53,7 +52,7 @@ def minit(mol, thoroughness, max_variants_per_compound, second_embed):
         # the molecule in a bit. props =
         return new_mol
         
-def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed):
+def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed, multithread_mode, Parallelizer_obj):
     """
     This function minimizes a 3D molecular conformation. In an attempt to not
     get trapped in a local minimum, it actually generates a number of
@@ -71,7 +70,7 @@ def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors
                 ones_without_nonaro_rngs.add(mol.contnr_idx)
                 params.append((mol, thoroughness, max_variants_per_compound, second_embed))
 
-    tmp = mp.MultiThreading(params, num_processors, minit)
+    tmp = Parallelizer_obj.run(minit, params, num_processors, multithread_mode)
 
     results = []
     # Save energy into MyMol object, and get a list of just those objects.

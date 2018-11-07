@@ -1,0 +1,8 @@
+{
+    "source": "/ihome/jdurrant/jspiegel/test_mpi/gypsumout/test_smi_file.smi",
+    "output_file": "output.sdf",
+    "separate_output_files": false,
+    "num_processors": -1,
+    "multithread_mode":"mpi"
+}
+

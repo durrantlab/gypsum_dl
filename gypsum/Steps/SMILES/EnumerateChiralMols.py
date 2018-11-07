@@ -4,7 +4,7 @@ import copy
 import itertools
 import random
 
-import gypsum.Multiprocess as mp
+import gypsum.parallelizer as parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
@@ -78,7 +78,7 @@ def GetChiral(mol, max_variants_per_compound, thoroughness):
     return results
 
 
-def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_processors):
+def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj):
     """
     Enumerates all possible enantiomers of a molecule. If the chiral of an
     atom is given, that chiral is not varied. Only the chiral of
@@ -95,10 +95,10 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
         for mol in contnr.mols:
             params.append((mol, thoroughness, max_variants_per_compound))
 
-    tmp = mp.MultiThreading(params, num_processors, GetChiral)
+    tmp = Parallelizer_obj.run(GetChiral, params, num_processors, multithread_mode)
 
-    clean = mp.strip_none(tmp)
-    flat = mp.flatten_list(clean)
+    clean = parallelizer.strip_none(tmp)
+    flat = parallelizer.flatten_list(clean)
     contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, flat)
 
     for miss_indx in contnr_indx_no_touch:

@@ -1,6 +1,7 @@
 import __future__
 
-import gypsum.Multiprocess as mp
+
+import gypsum.parallelizer as parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
@@ -47,7 +48,7 @@ def DeSalter(contnr):
         new_mol.makeMolFromSmiles() # Need to update the mol.
         return new_mol
 
-def desalt_orig_smi(contnrs, num_processors):
+def desalt_orig_smi(contnrs, num_processors, multithread_mode, Parallelizer_obj):
     """
     If an input molecule has multiple unconnected fragments, this removes all
     but the largest fragment.
@@ -57,11 +58,14 @@ def desalt_orig_smi(contnrs, num_processors):
         "Desalting all molecules (i.e., keeping only largest fragment)."
     )
 
-    tmp = mp.MultiThreading(contnrs, num_processors, DeSalter)
+    # @@@@@@@@@@@ JAKE FIX LATER TO MULTI BELOW
+    # tmp = mp.MultiThreading(contnrs, num_processors, DeSalter)
+    tmp = [DeSalter(x) for x in contnrs]
+
 
     # Go through each contnr and update the orig_smi_deslt
     # If we update it, also add a note in the genealogy
-    tmp = mp.strip_none(tmp)
+    tmp = parallelizer.strip_none(tmp)
     for desalt_mol in tmp:
         idx = desalt_mol.contnr_idx
         cont = contnrs[idx]
