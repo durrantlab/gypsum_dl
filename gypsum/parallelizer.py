@@ -537,6 +537,9 @@ def MultiThreading(inputs, num_processors, task_name):
     if len(inputs) == 0:
         return results
 
+
+    inputs = check_and_format_inputs_to_list_of_tuples(inputs)
+
     num_processors = count_processors(len(inputs), num_processors)
 
     tasks = []
@@ -571,6 +574,31 @@ def worker(input, output):
         ret_val = (seq, result)
         output.put(ret_val)
 
+
+def check_and_format_inputs_to_list_of_tuples(args):
+    # Make sure args is a list of tuples
+    if type(args) !=  list:
+        printout = "args must be a list of tuples"
+        print(printout)
+        raise Exception(printout)
+
+    item_type = type(args[0])
+    for i in range(0, len(args)):
+        if type(args[i]) ==item_type:
+            continue
+        else:
+            printout = "all items within args must be the same type and must be either a list or tuple"
+            print(printout)
+            raise Exception(printout)
+    if item_type == tuple:
+        return args
+    elif item_type == list:
+        args = [tuple(x) for x in args]
+        return args
+    else:
+        printout = "all items within args must be either a list or tuple"
+        print(printout)
+        raise Exception(printout)
 
 
 def count_processors(num_inputs, num_processors):
