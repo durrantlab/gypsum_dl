@@ -4,7 +4,7 @@ This module is made to identify and enumerate the possible protonation sites of 
 
 from rdkit import Chem
 
-import gypsum.parallelizer
+import gypsum.parallelizer as parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol

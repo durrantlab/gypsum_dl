@@ -184,7 +184,8 @@ def set_parameters(params_unicode):
         "skip_adding_hydrogen" : False,
         "skip_making_tautomers" : False,
         "skip_ennumerate_chiral_mol" : False,
-        "skip_ennumerate_double_bonds" : False
+        "skip_ennumerate_double_bonds" : False,
+        "multithread_mode" : "multithreading"
     })
 
     # Modify params so that they keys are always lower case.
