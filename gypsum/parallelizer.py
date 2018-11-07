@@ -263,7 +263,7 @@ class Parallelizer(object):
 
 
         if mode != self.mode:
-            printout = f"changing mode from {mode} to {self.mode} for development purpose"
+            printout = "changing mode from {} to {} for development purpose".format(mode,self.mode)
             print(printout)
         # compute
         if mode == 'mpi':
