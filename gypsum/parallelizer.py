@@ -19,7 +19,7 @@ class Parallelizer(object):
     Abstract parallelization class
     """
 
-    def __init__(self, mode, num_processors=None, flag_for_low_level=False):
+    def __init__(self, mode=None, num_processors=None, flag_for_low_level=False):
         """
         This will initialize the Parallelizer class and kick off the specific classes for multithreading and MPI.
 
@@ -101,8 +101,6 @@ class Parallelizer(object):
         else:
             self.num_processors = self.compute_nodes()
         
-
-
     def test_import_MPI(self, mode, flag_for_low_level=False):
         """
         This tests for the ability of importing the MPI sublibrary from mpi4py.
@@ -287,7 +285,6 @@ class Parallelizer(object):
 
         # default to multithreading
         return 'multithreading'
-
 
     def return_mode(self):
         """
