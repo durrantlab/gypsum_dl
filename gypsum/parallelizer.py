@@ -75,7 +75,7 @@ class Parallelizer(object):
             self.mode = 'multithreading'
 
         elif mode == 'Serial' or mode == 'serial':
-            self.mode = 'Serial'
+            self.mode = 'serial'
 
         else:
             # Default setting will be multithreading
@@ -89,7 +89,7 @@ class Parallelizer(object):
             self.parallel_obj=None
 
 
-        if self.mode =="Serial":
+        if self.mode =="serial":
             self.num_processors = 1
 
         elif num_processors == None:
@@ -229,9 +229,9 @@ class Parallelizer(object):
         Inputs:
         :param python_obj func: This is the object of the function which will be used. 
         :param list args: a list of lists/tuples, each sublist/tuple must contain all information required by the function for a single object which will be multiprocessed
-        :param int num_processors:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
+        :param int num_processors:  (Primarily for Developers)  the number of processors or nodes that will be used. If None than we will use all available nodes/processors
                                         This will be overriden and fixed to a single processor if mode==serial
-        :param str mode: the multithread mode to be used, ie) serial, multithreading, mpi, or None:
+        :param str mode:  (Primarily for Developers) the multithread mode to be used, ie) serial, multithreading, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for 
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -243,9 +243,27 @@ class Parallelizer(object):
         # determine the mode
         if mode == None:
             mode = self.mode
+        else:
+            if self.mode != mode:
+                if mode != "mpi" and  mode != "serial" and  mode != "multithreading":
+                    printout = "Overriding function with a multiprocess mode which doesn't match: {mode}"
+                    raise Exception(printout)
+                if mode == "mpi":
+                    printout = "Overriding multiprocess can't go from non-mpi to mpi mode"
+                    raise Exception(printout)          
 
         if num_processors == None:
             num_processors = self.num_processors
+
+        if num_processors != self.num_processors:
+            if mode == "serial":
+                printout = "Can't override num_processors in serial mode"
+                raise Exception(printout)     
+                
+
+
+        if mode != self.mode:
+            print(f"changing mode from {mode} to {self.mode} for development purpose")
 
         # compute
         if mode == 'mpi':
@@ -258,7 +276,7 @@ class Parallelizer(object):
         elif mode == 'multithreading':
             return MultiThreading(args, num_processors,  func)
         else:
-            # Serial is running the ParallelThreading with num_processors=1
+            # serial is running the ParallelThreading with num_processors=1
             return MultiThreading(args, 1,  func)
 
     
@@ -333,156 +351,6 @@ class Parallelizer(object):
         :returns: int num_processors: the number of nodes/processors which is to be used 
         """
         return self.num_processors
-
-class Serial(object):
-    """
-    Serial class
-    """
-
-    @staticmethod
-    def run(func, args):
-        """
-        Simply compute func(i) for each i in args
-        """
-        return [func(*i) for i in args]
-
-
-class ParallelThreading(object):
-    """
-    Utility class for running tasks in parallel using multithreading
-    """
-
-    @staticmethod
-    def run(func, args, num_processors=0):
-        """
-        Initialize this object.
-
-        Args:
-            inputs ([data]): A list of data. Each datum contains the details to
-                run a single job on a single processor.
-            num_processors (int): The number of processors to use.
-            task_class_name (class): The class that governs what to do for each
-                job on each processor.
-        """
-
-        results = []
-
-        # If there are no inputs, just return an empty list.
-        if len(args) == 0:
-            return results
-
-        num_processors = ParallelThreading.count_processors(len(args), num_processors)
-
-        tasks = []
-
-        for index, item in enumerate(args):
-            if not isinstance(item, tuple):
-                item = (item,)
-            task = (index, (func, item))
-            tasks.append(task)
-
-        if num_processors == 1:
-            for item in tasks:
-                job, args = item[1]
-                output = job(*args)
-                results.append(output)
-        else:
-            results = ParallelThreading.start_processes(tasks, num_processors)
-
-        return results
-
-    @staticmethod
-    def worker(input, output):
-        """
-        worker queue function
-        """
-        for seq, job in iter(input.get, 'STOP'):
-            func, args = job
-            result = func(*args)
-            ret_val = (seq, result)
-            output.put(ret_val)
-
-    @staticmethod
-    def count_processors(num_inputs, num_processors):
-        """
-        Checks processors available and returns a safe number of them to
-        utilize.
-
-        :param int num_inputs: The number of inputs.
-        :param int num_processors: The number of desired processors.
-
-        :returns: The number of processors to use.
-        """
-        # first, if num_processors <= 0, determine the number of processors to
-        # use programatically
-        if num_processors <= 0:
-            num_processors = multiprocessing.cpu_count()
-
-        # reduce the number of processors if too many have been specified
-        if num_inputs < num_processors:
-            num_processors = num_inputs
-
-        return num_processors
-
-    @staticmethod
-    def start_processes(inputs, num_processors):
-        """
-        Creates a queue of inputs and outputs
-        """
-
-        # Create queues
-        task_queue = multiprocessing.Queue()
-        done_queue = multiprocessing.Queue()
-
-        # Submit tasks
-        for item in inputs:
-            task_queue.put(item)
-
-        # Start worker processes
-        for i in range(num_processors):
-            multiprocessing.Process(target=ParallelThreading.worker, args=(task_queue, done_queue)).start()
-
-        # Get and print results
-        results = []
-        for i in range(len(inputs)):
-            results.append(done_queue.get())
-
-        # Tell child processes to stop
-        for i in range(num_processors):
-            task_queue.put('STOP')
-
-        results.sort(key=lambda tup: tup[0])
-
-        return  [item[1] for item in map(list, results)]
-
-    @staticmethod
-    def flatten_list(tier_list):
-        """
-        Given a list of lists, this returns a flat list of all items.
-
-        :params list tier_list: A 2D list.
-
-        :returns: A flat list of all items.
-        """
-        if tier_list is None:
-            return []
-        flat_list = [item for sublist in tier_list for item in sublist]
-        return flat_list
-
-    @staticmethod
-    def strip_none(none_list):
-        """
-        Given a list that might contain None items, this returns a list with no
-        None items.
-
-        :params list none_list: A list that may contain None items.
-
-        :returns: A list stripped of None items.
-        """
-        if none_list is None:
-            return []
-        results = [x for x in none_list if x != None]
-        return results
 
 
 class ParallelMPI(object):
