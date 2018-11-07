@@ -451,6 +451,31 @@ class ParallelMPI(object):
         """
         return [a for sub in arr for a in sub]
 
+    def check_and_format_args(self, args):
+        # Make sure args is a list of lists
+        if type(args) !=  list:
+            printout = "args must be a list of lists"
+            print(printout)
+            raise Exception(printout)
+
+        item_type = type(args[0])
+        for i in range(0, len(args)):
+            if type(args[i]) ==item_type:
+                continue
+            else:
+                printout = "all items within args must be the same type and must be either a list or tuple"
+                print(printout)
+                raise Exception(printout)
+        if item_type == list:
+            return args
+        elif item_type == tuple:
+            args = [list(x) for x in args]
+            return args
+        else:
+            printout = "all items within args must be either a list or tuple"
+            print(printout)
+            raise Exception(printout)
+
     def run(self, func, args):
         """
         Run a function in parallel across the current MPI cluster.
@@ -463,6 +488,8 @@ class ParallelMPI(object):
 
         Important note: func must exist in the namespace at initialization.
         """
+
+        args = self.check_and_format_args(args)
 
         size = self.COMM.Get_size()
 
