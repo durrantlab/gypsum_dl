@@ -145,7 +145,7 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     params = []
     for contnr in contnrs:
         for mol in contnr.mols:
-            params.append((mol, max_variants_per_compound))
+            params.append([mol, max_variants_per_compound])
 
     tmp = Parallelizer_obj.run(GetDoubleBonded, params, num_processors, multithread_mode)
 

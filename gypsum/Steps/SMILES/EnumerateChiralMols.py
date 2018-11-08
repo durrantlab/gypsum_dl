@@ -93,7 +93,7 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     params = []
     for contnr in contnrs:
         for mol in contnr.mols:
-            params.append((mol, thoroughness, max_variants_per_compound))
+            params.append([mol, thoroughness, max_variants_per_compound])
 
     tmp = Parallelizer_obj.run(GetChiral, params, num_processors, multithread_mode)
 

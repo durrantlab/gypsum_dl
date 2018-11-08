@@ -47,7 +47,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_proce
     params = []
     for contnr in contnrs:
         for mol in contnr.mols:
-            params.append(mol)
+            params.append([mol])
 
     tmp = Parallelizer_obj.run(mk3d, params, num_processors, multithread_mode)
     clear = parallelizer.strip_none(tmp)

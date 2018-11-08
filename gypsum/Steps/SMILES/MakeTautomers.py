@@ -36,7 +36,7 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors,
     params = []
     for contnr in contnrs:
         for mol_index, mol in enumerate(contnr.mols):
-            params.append((contnr, mol_index, max_variants_per_compound))
+            params.append([contnr, mol_index, max_variants_per_compound])
 
     tmp = Parallelizer_obj.run(parallel_makeTaut, params, num_processors, multithread_mode)
 
@@ -131,7 +131,7 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mod
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append((taut_mol, contnrs[taut_mol.contnr_idx]))
+        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
 
     tmp = Parallelizer_obj.run(parallel_CheckNonaroRings, 
                             params, num_processors, multithread_mode)
@@ -159,7 +159,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append((taut_mol, contnrs[taut_mol.contnr_idx]))
+        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
 
     tmp = Parallelizer_obj.run(parallel_CheckChiralCenters, 
                             params, num_processors, multithread_mode)
@@ -184,7 +184,7 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append((taut_mol, contnrs[taut_mol.contnr_idx]))
+        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
 
     tmp = Parallelizer_obj.run(parallel_CheckCarbonHydrogens, 
                             params, num_processors, multithread_mode)
