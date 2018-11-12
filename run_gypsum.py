@@ -46,6 +46,10 @@ PARSER.add_argument('--skip_ennumerate_double_bonds', action='store_true',
                     help='Skips the ennumeration of double bonds.')
 PARSER.add_argument('--2d_output_only', action='store_true',
                     help='Skips using non-aromatic ring conformations.')
+PARSER.add_argument('--multithread_mode', default='multithreading', choices = ["mpi","multithreading","serial"],
+                    help='Determine what style multithreading: mpi, multithreading, or serial.\
+                    If this program is being used by a program in MPI mode we recommend setting this to serial.\
+                    serial will override num_processors and force it to be on a single processor.')
 
 ARGS_DICT = vars(PARSER.parse_args())
 
@@ -58,7 +62,4 @@ for k, v in ARGS_DICT.items():
 conf_generator(INPUTS)
 
 
-
-print("")
-print("Run Finished")
 

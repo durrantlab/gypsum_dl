@@ -4,7 +4,6 @@ import itertools
 import copy
 import random
 
-import gypsum.Multiprocess as mp
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
@@ -129,7 +128,7 @@ def GetDoubleBonded(mol, max_variants_per_compound):
             return new_mol
 
 
-def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors):
+def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj):
     """
     Enumerates all possible cis-trans isomers. If the stereochemistry of a
     double bond is specified, it is not varied. All unspecified double bonds
@@ -146,10 +145,8 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     params = []
     for contnr in contnrs:
         for mol in contnr.mols:
-            params.append((mol, max_variants_per_compound))
+            params.append([mol, max_variants_per_compound])
 
-    tmp = mp.MultiThreading(
-        params, num_processors, GetDoubleBonded
-    )
+    tmp = Parallelizer_obj.run(GetDoubleBonded, params, num_processors, multithread_mode)
 
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, tmp, max_variants_per_compound, thoroughness)

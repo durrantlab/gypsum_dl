@@ -3,7 +3,7 @@ import __future__
 import copy
 import warnings
 
-import gypsum.Multiprocess as mp
+import gypsum.parallelizer as parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 
@@ -140,7 +140,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound, second_embed):
                 
     
 
-def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed):
+def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed, multithread_mode, Parallelizer_obj):
     """
     Docking programs like Vina rotate chemical moieties around their rotatable
     bonds, so it's not necessary to generate a larger rotomer library for each
@@ -166,15 +166,14 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
         if contnr.num_nonaro_rngs > 0:
             ones_with_nonaro_rngs.add(contnr_idx)
             for mol in contnr.mols:
-                params.append((mol, thoroughness, max_variants_per_compound, second_embed))
+                params.append([mol, thoroughness, max_variants_per_compound, second_embed])
     
     if len(ones_with_nonaro_rngs) == 0:
         return  # There are no such ligands to process.
 
     #Utils.log("\tApplies to molecule derived from " + orig_smi)
-    tmp = mp.MultiThreading(
-        params, num_processors, GetRingConfs
-    )
+    tmp = Parallelizer_obj.run(
+        GetRingConfs, params, num_processors, multithread_mode)
 
     results = [item for sublist in tmp for item in sublist]
 

@@ -3,7 +3,8 @@ This module is made to identify and enumerate the possible protonation sites of 
 """
 
 from rdkit import Chem
-import gypsum.Multiprocess as mp
+
+import gypsum.parallelizer as parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
@@ -12,7 +13,7 @@ import gypsum.MolContainer as MolCont
 from gypsum.Steps.SMILES.protonation.protonation_functions import protonate
 
 def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
-                  thoroughness, num_processors):
+                thoroughness, num_processors, multithread_mode, Parallelizer_obj):
     """
     This is a stub that is used to keep track of what I need to still do.
 
@@ -22,11 +23,11 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
                             "max_ph": max_pH,
                             "st_dev": st_dev}
 
-    inputs = [(cont, protonation_settings) for cont in contnrs]
+    inputs = [[cont, protonation_settings] for cont in contnrs]
 
-    tmp = mp.MultiThreading(inputs, num_processors, parallel_addH)
+    tmp = Parallelizer_obj.run(parallel_addH, inputs, num_processors, multithread_mode)
 
-    tmp = mp.flatten_list(tmp)
+    tmp = parallelizer.flatten_list(tmp)
 
     contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, tmp)
 
