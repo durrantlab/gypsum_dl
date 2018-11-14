@@ -10,7 +10,7 @@ import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
 import gypsum.MolContainer as MolCont
 
-from gypsum.Steps.SMILES.protonation.protonation_functions import protonate
+from gypsum.Steps.SMILES.protonation.protonate import protonate
 
 def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
                 thoroughness, num_processors, multithread_mode, Parallelizer_obj):
@@ -25,7 +25,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
 
     inputs = [[cont, protonation_settings] for cont in contnrs]
 
-    tmp = Parallelizer_obj.run(parallel_addH, inputs, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
 
     tmp = parallelizer.flatten_list(tmp)
 

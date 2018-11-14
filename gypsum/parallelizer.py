@@ -210,7 +210,7 @@ class Parallelizer(object):
             else:
                 raise Exception('mpi4py package must be available to use mpi mode')
 
-    def run(self, func, args, num_processors=None, mode=None):
+    def run(self, args, func, num_processors=None, mode=None):
         """
         Run a task in parallel across the system.
 
@@ -402,12 +402,29 @@ class ParallelMPI(object):
             # receive arguments
             args_chunk = self.COMM.scatter([], root=0)
 
-            # perform the calculation and send results
-            result_chunk = [func(*arg) for arg in args_chunk]
-            result_chunk = self.COMM.gather(result_chunk, root=0)
+            if args_chunk[0] == ["EMPTY NODE"] or  args_chunk[0] == [["EMPTY NODE"]]:
+                result_chunk = [["EMPTY NODE"]]
+                result_chunk = self.COMM.gather(result_chunk, root=0)
 
-    @staticmethod
-    def _split(arr, n):
+            else:
+                # perform the calculation and send results
+                result_chunk = [func(*arg) for arg in args_chunk]
+                result_chunk = self.COMM.gather(result_chunk, root=0)
+
+    def handle_undersized_jobs(self, arr, n):
+        if len(arr) > n:
+            printout = "the length of the package is bigger than the length of the number of nodes!"
+            print(printout)
+            raise Exception(printout)
+        
+        filler_slot = [["EMPTY NODE"]]
+        while len(arr) < n:
+            arr.append(filler_slot)
+            if len(arr) == n:
+                break
+        return arr
+
+    def _split(self, arr, n):
         """
         Takes an array of items and splits it into n "equally" sized
         chunks that can be provided to a worker cluster.
@@ -440,6 +457,9 @@ class ParallelMPI(object):
             if x == len(arr)-1:
                 chuck_list.append(temp)         
             
+        if len(chuck_list) != n:
+            chuck_list = self.handle_undersized_jobs(chuck_list, n)
+
         return chuck_list
 
     @staticmethod
@@ -476,6 +496,7 @@ class ParallelMPI(object):
             print(printout)
             raise Exception(printout)
 
+
     def run(self, func, args):
         """
         Run a function in parallel across the current MPI cluster.
@@ -506,8 +527,10 @@ class ParallelMPI(object):
         result_chunk = [func(*arg) for arg in args_chunk]
         result_chunk = self.COMM.gather(result_chunk, root=0)
 
+
         # group results
         results = self._join(result_chunk)
+        results = [x for x in results if x!=["EMPTY NODE"] and x!=[["EMPTY NODE"]]]
 
         return results
     

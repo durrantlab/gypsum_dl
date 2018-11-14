@@ -35,6 +35,7 @@ else:
 #   So its unnecessary to provide multithread_mode or num_processors again but it is possible
 
 
-    tmp = Parallelizer_obj.run(parallel_addH, inputs, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
 
-    tmp = Parallelizer_obj.run(parallel_addH, inputs)
+    tmp = Parallelizer_obj.run(inputs, parallel_addH)
+    

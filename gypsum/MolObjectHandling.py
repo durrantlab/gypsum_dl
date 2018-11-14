@@ -3,6 +3,9 @@ import __future__
 
 import rdkit
 from rdkit import Chem
+#Disable the unnecessary RDKit warnings
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.*')
 
 def check_sanitization(mol):
     """    

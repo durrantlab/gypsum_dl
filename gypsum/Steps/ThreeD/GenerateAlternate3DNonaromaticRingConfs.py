@@ -173,7 +173,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
 
     #Utils.log("\tApplies to molecule derived from " + orig_smi)
     tmp = Parallelizer_obj.run(
-        GetRingConfs, params, num_processors, multithread_mode)
+        params, GetRingConfs, num_processors, multithread_mode)
 
     results = [item for sublist in tmp for item in sublist]
 

@@ -70,7 +70,7 @@ def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_processors
                 ones_without_nonaro_rngs.add(mol.contnr_idx)
                 params.append([mol, thoroughness, max_variants_per_compound, second_embed])
 
-    tmp = Parallelizer_obj.run(minit, params, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(params, minit, num_processors, multithread_mode)
 
     results = []
     # Save energy into MyMol object, and get a list of just those objects.
