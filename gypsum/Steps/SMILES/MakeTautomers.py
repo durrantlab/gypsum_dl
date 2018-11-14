@@ -38,7 +38,7 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors,
         for mol_index, mol in enumerate(contnr.mols):
             params.append([contnr, mol_index, max_variants_per_compound])
 
-    tmp = Parallelizer_obj.run(parallel_makeTaut, params, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(params, parallel_makeTaut, num_processors, multithread_mode)
 
     # Flatten the resulting list of lists
     #none_data = parallelizer.strip_none(tmp)
@@ -133,8 +133,8 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mod
     for taut_mol in taut_data:
         params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
 
-    tmp = Parallelizer_obj.run(parallel_CheckNonaroRings, 
-                            params, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(params, parallel_CheckNonaroRings, 
+                            num_processors, multithread_mode)
 
     # Stripping out None values
     results = parallelizer.strip_none(tmp)
@@ -161,8 +161,8 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
     for taut_mol in taut_data:
         params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
 
-    tmp = Parallelizer_obj.run(parallel_CheckChiralCenters, 
-                            params, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(params, parallel_CheckChiralCenters, 
+                            num_processors, multithread_mode)
 
     # Stripping out None values
     results = [x for x in tmp if x != None]
@@ -186,8 +186,8 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
     for taut_mol in taut_data:
         params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
 
-    tmp = Parallelizer_obj.run(parallel_CheckCarbonHydrogens, 
-                            params, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(params, parallel_CheckCarbonHydrogens, 
+                            num_processors, multithread_mode)
 
     # Stripping out None values
     results = [x for x in tmp if x != None]

@@ -8,6 +8,10 @@ import operator
 import gypsum.Utils as Utils
 import gypsum.MolObjectHandling as MOH
 
+#Disable the unnecessary RDKit warnings
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.*')
+
 try:
     import rdkit        
     from rdkit.Chem import AllChem

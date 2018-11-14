@@ -147,6 +147,6 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
         for mol in contnr.mols:
             params.append([mol, max_variants_per_compound])
 
-    tmp = Parallelizer_obj.run(GetDoubleBonded, params, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(params, GetDoubleBonded, num_processors, multithread_mode)
 
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, tmp, max_variants_per_compound, thoroughness)

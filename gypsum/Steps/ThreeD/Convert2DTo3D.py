@@ -49,7 +49,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_proce
         for mol in contnr.mols:
             params.append([mol])
 
-    tmp = Parallelizer_obj.run(mk3d, params, num_processors, multithread_mode)
+    tmp = Parallelizer_obj.run(params, mk3d, num_processors, multithread_mode)
     clear = parallelizer.strip_none(tmp)
     #clear = tmp
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, clear, max_variants_per_compound, thoroughness, False)
