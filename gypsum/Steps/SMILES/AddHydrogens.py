@@ -10,7 +10,7 @@ import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
 import gypsum.MolContainer as MolCont
 
-from gypsum.Steps.SMILES.protonation.protonate import protonate
+from gypsum.Steps.SMILES.dimorphite.dimorphite_dl import protonate
 
 def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
                 thoroughness, num_processors, multithread_mode, Parallelizer_obj):

@@ -19,16 +19,30 @@ strings.
 
 import copy
 import os
-import rdkit
-from rdkit import Chem
-from rdkit.Chem import AllChem
 import argparse
+import sys
+
+try:
+    import rdkit
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+except:
+    msg = "Dimorphite-DL requires RDKit. See https://www.rdkit.org/"
+    print(msg)
+    raise Exception(msg)
 
 def main():
     """The main definition run when you call the script from the commandline."""
 
     parser = get_args()
     args = vars(parser.parse_args())
+
+    # If being run from the command line, print out all parameters.
+    if __name__ == "__main__":
+        print("\nPARAMETERS:\n")
+        for k in sorted(args.keys()):
+            print(k.rjust(13) + ": " + str(args[k]))
+        print("")
 
     if args["test"]:
         # Run tests.
@@ -44,28 +58,64 @@ def main():
             for out in output:
                 print(out)
 
+class MyParser(argparse.ArgumentParser):
+    """Overwrite default parse so it displays help file on error. See
+    https://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu"""
+
+    def error(self, message):
+        """Overwrites the default error message.
+
+        :param message: The default error message.
+        """
+
+        self.print_help()
+        sys.stderr.write('error: %s\n\n' % message)
+        sys.exit(2)
+
+    def print_help(self, file=None):
+        """Overwrite the default print_help function
+
+        :param file: Output file, defaults to None
+        """
+
+        print("")
+
+        if file is None:
+            file = sys.stdout
+        self._print_message(self.format_help(), file)
+        print("""
+examples:
+  python dimorphite_dl.py --smiles_file sample_molecules.smi
+  python dimorphite_dl.py --smiles "CCC(=O)O" --min_ph -3.0 --max_ph -2.0
+  python dimorphite_dl.py --smiles "CCCN" --min_ph -3.0 --max_ph -2.0 --output_file output.smi
+  python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
+  python dimorphite_dl.py --test""")
+        print("")
+
 def get_args():
     """Gets the arguments from the command line.
 
     :return: A parser object.
     """
 
-    parser = argparse.ArgumentParser(description="Protonates small moleucles.")
+    parser = MyParser(description="Creates models of appropriately protonated " +
+                                  "small moleucles. Apache 2.0 License. " +
+                                  "Copyright 2018 Jacob D. Durrant")
     parser.add_argument('--min_ph', metavar='MIN', type=float, default=6.4,
-                        help='minimum pH to consider')
+                        help='minimum pH to consider (default: 6.4)')
     parser.add_argument('--max_ph', metavar='MAX', type=float, default=8.4,
-                        help='maximum pH to consider')
+                        help='maximum pH to consider (default: 8.4)')
     parser.add_argument('--pka_precision', metavar='PRE', type=float, default=1.0,
-                        help='pKa precision factor (number of standard devations)')
-    parser.add_argument('--smiles', type=str,
+                        help='pKa precision factor (number of standard devations, default: 1.0)')
+    parser.add_argument('--smiles', metavar='SMI', type=str,
                         help='SMILES string to protonate')
-    parser.add_argument('--smiles_file', type=str,
+    parser.add_argument('--smiles_file', metavar="FILE", type=str,
                         help='file that contains SMILES strings to protonate')
-    parser.add_argument('--output_file', type=str,
+    parser.add_argument('--output_file', metavar="FILE", type=str,
                         help='output file to write protonated SMILES (optional)')
     parser.add_argument('--label_states', action="store_true",
                         help='label protonated SMILES with target state ' + \
-                             '("DEPROTONATED", "PROTONATED", or "BOTH").')
+                             '(i.e., "DEPROTONATED", "PROTONATED", or "BOTH").')
     parser.add_argument('--test', action="store_true",
                         help='run unit tests (for debugging)')
 
@@ -146,7 +196,7 @@ def clean_args(args):
 
     defaults = {'min_ph' : 6.4,
                 'max_ph' : 8.4,
-                'pka_precision' : 1.5,
+                'pka_precision' : 1.0,
                 'label_states' : False,
                 'test' : False}
 
@@ -167,7 +217,9 @@ def clean_args(args):
     elif "smiles_file" in args:
         args["smiles"], args["data"] = load_files(args["smiles_file"])
     else:
-        raise Exception("Error: No SMILES in params.")
+        msg = "Error: No SMILES in params. Use the -h parameter for help."
+        print(msg)
+        raise Exception(msg)
 
     mol_str_list = []
     for i, smiles_str in enumerate(args["smiles"]):
@@ -358,7 +410,9 @@ def define_protonation_state(mean, std, min_ph, max_ph):
 
     # We are error handling here
     if protonation_state == 'ERROR':
-        raise Exception("HORRIBLE NONSENSE HAS OCCURED.")
+        msg = "HORRIBLE NONSENSE HAS OCCURED."
+        print(msg)
+        raise Exception(msg)
 
     return protonation_state
 
@@ -650,7 +704,6 @@ def test():
     average_pkas = {l.split()[0].replace("*", ""):float(l.split()[3]) for l in open("site_substructures.smarts") if l.split()[0] not in ["Phosphate", "Phosphonate"]}
     average_pkas_phos = {l.split()[0].replace("*", ""):[float(l.split()[3]), float(l.split()[6])] for l in open("site_substructures.smarts") if l.split()[0] in ["Phosphate", "Phosphonate"]}
 
-    print("")
     print("Running Tests")
     print("=============")
     print("")
@@ -745,20 +798,23 @@ def _test_check(args, expected_output, labels):
     num_states = len(expected_output)
 
     if (len(output) != num_states):
-        raise Exception(
-            args["smiles"][0] + " should have " + str(num_states) + " states at at pH " + str(args["min_ph"]) + ": " + \
-            str(output)
-        )
+        msg = args["smiles"][0] + " should have " + str(num_states) + \
+            " states at at pH " + str(args["min_ph"]) + ": " + str(output)
+        print(msg)
+        raise Exception(msg)
 
     if (len(set([l[0] for l in output]) - set(expected_output)) != 0):
-        raise Exception(
-            args["smiles"][0] + " is not " + " AND ".join(expected_output) + " at pH " + str(args["min_ph"]) + " - " + str(args["max_ph"]) + "; it is " + " AND ".join([l[0] for l in output])
-        )
+        msg = args["smiles"][0] + " is not " + " AND ".join(expected_output) + \
+            " at pH " + str(args["min_ph"]) + " - " + str(args["max_ph"]) + \
+            "; it is " + " AND ".join([l[0] for l in output])
+        print(msg)
+        raise Exception(msg)
 
     if (len(set([l[1] for l in output]) - set(labels)) != 0):
-        raise Exception(
-            args["smiles"][0] + " not labeled as " + " AND ".join(labels) + "; it is " + " AND ".join([l[1] for l in output])
-        )
+        msg = args["smiles"][0] + " not labeled as " + " AND ".join(labels) + \
+            "; it is " + " AND ".join([l[1] for l in output])
+        print(msg)
+        raise Exception(msg)
 
     ph_range = sorted(list(set([args["min_ph"], args["max_ph"]])))
     ph_range_str = "(" + " - ".join("{0:.2f}".format(n) for n in ph_range) + ")"
