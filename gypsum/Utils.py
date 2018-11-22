@@ -86,7 +86,7 @@ def contnrs_no_touchd(contnrs, results):
     """
     
     # Find ones that don't have any generated. This is because sometimes
-    # protonation failes to producce valid smiles. In this case, just use the
+    # Dimorphite-DL failes to producce valid smiles. In this case, just use the
     # original smiles. Couldn't find a good solution to work around.
     
     # Get a dictionary of all the input smiles.
