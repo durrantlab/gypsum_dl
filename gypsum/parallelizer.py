@@ -470,7 +470,6 @@ class ParallelMPI(object):
 
         Returns a single list.
         """
-        if len(arr) == 1:
             
         return [a for sub in arr for a in sub]
 
