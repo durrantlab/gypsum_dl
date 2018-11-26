@@ -24,26 +24,10 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
                             "st_dev": st_dev}
 
     inputs = [[cont, protonation_settings] for cont in contnrs]
-    print("")
-    print("")
-    print("")
-    print("Start AddH's")
-    print("inputs: ", inputs)
-    print("")
+
     tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
     tmp = parallelizer.flatten_list(tmp)
-    print("")
-    # print("tmp: ", tmp)
-    # import pickle
-    # outfile = "/home/jacob/pickle_tmp"
-    # with open(outfile, 'wb') as outfile:
-    #     pickle.dump(tmp, outfile, protocol=pickle.HIGHEST_PROTOCOL)
-        
-    
-    print("End AddH's")
-    print("")
-    print("")
-    print("")
+
     contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, tmp)
 
     for miss_indx in contnr_indx_no_touch:

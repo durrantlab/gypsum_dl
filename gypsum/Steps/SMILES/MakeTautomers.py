@@ -133,7 +133,6 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mod
     for taut_mol in taut_data:
         params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
 
-    print("params in Taut: ", params)
     tmp = Parallelizer_obj.run(params, parallel_CheckNonaroRings, 
                             num_processors, multithread_mode)
 
