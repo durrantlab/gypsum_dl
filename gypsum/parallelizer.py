@@ -549,8 +549,9 @@ class ParallelMPI(object):
         print("")
         print("results: ", results)
         new_results = []
-
-        results = [x for x in results if x[0]!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
+        if type(results[0]) != list:
+            results = [results]
+        results = [x for x in results if type(x)!=type(self.Empty_object) and x!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
 
         return results
     
