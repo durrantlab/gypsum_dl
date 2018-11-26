@@ -39,6 +39,9 @@ def prepare_smiles(contnrs, params):
 
     if not params["skip_making_tautomers"]:
         print("Tautomerizing Molecules")
+        print("")
+        print("TYPE OF contnrs: ", type(contnrs))
+        print(" contnrs: ", contnrs)
         make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj)
         print("Done with Tautomerization")
     else:
