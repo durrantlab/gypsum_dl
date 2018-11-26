@@ -33,11 +33,11 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
     tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
     tmp = parallelizer.flatten_list(tmp)
     print("")
-    print("tmp: ", tmp)
-    import pickle
-    outfile = "/home/jacob/pickle_tmp"
-    with open(outfile, 'wb') as outfile:
-        pickle.dump(tmp, outfile, protocol=pickle.HIGHEST_PROTOCOL)
+    # print("tmp: ", tmp)
+    # import pickle
+    # outfile = "/home/jacob/pickle_tmp"
+    # with open(outfile, 'wb') as outfile:
+    #     pickle.dump(tmp, outfile, protocol=pickle.HIGHEST_PROTOCOL)
         
     
     print("End AddH's")
