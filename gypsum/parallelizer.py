@@ -522,14 +522,28 @@ class ParallelMPI(object):
 
         # scatter argument chunks to workers
         args_chunk = self.COMM.scatter(args_chunk, root=0)
+        
+        if type(args_chunk) != list:
+            raise Exception("args_chunk needs to be a list")
 
         # perform the calculation and get results
         result_chunk = [func(*arg) for arg in args_chunk]
         result_chunk = self.COMM.gather(result_chunk, root=0)
 
 
+        if type(result_chunk) != list:
+            print("result_chunk needs to be a list")
+            print("result_chunk: ", result_chunk)
+            print("type result_chunk: ", type(result_chunk))
+            raise Exception("result_chunk needs to be a list")
+
         # group results
         results = self._join(result_chunk)
+        if type(result_chunk) != list:
+            print("results needs to be a list")
+            print("results: ", result_chunk)
+            print("type results: ", type(result_chunk))
+            raise Exception("results needs to be a list")
         results = [x for x in results if x!=["EMPTY NODE"] and x!=[["EMPTY NODE"]]]
 
         return results

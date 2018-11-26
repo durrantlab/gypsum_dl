@@ -25,8 +25,20 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
 
     inputs = [[cont, protonation_settings] for cont in contnrs]
 
+    print("")
+    print("")
+    print("")
+    print("HERE IS INPUTS")
+    print(inputs)
+    print("")
     tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
 
+    print("")
+    print(tmp)
+    print("")
+    print("")
+    print("")
+    print("")
     tmp = parallelizer.flatten_list(tmp)
 
     contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, tmp)
