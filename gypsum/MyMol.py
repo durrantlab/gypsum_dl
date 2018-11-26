@@ -272,14 +272,6 @@ class MyMol:
 
         return self.stdrd_smiles
 
-    # def __hash__(self):
-    #     can_smi = self.smiles()
-        
-    #     # So it hashes based on the cannonical smiles.
-    #     return hash(can_smi)
-    
-    # def __eq__(self, other):
-    #     return self.__hash__() == other.__hash__()
 
     def makeMolFromSmiles(self):
         """
