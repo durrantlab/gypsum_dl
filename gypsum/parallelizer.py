@@ -470,6 +470,8 @@ class ParallelMPI(object):
 
         Returns a single list.
         """
+        if len(arr) == 1:
+            
         return [a for sub in arr for a in sub]
 
     def check_and_format_args(self, args):
@@ -539,7 +541,9 @@ class ParallelMPI(object):
             raise Exception("result_chunk needs to be a list")
 
         # group results
+        print("CHUNK PRE JOINED: ", result_chunk)
         results = self._join(result_chunk)
+        print("CHUNK JOINED: ", results)
         if type(result_chunk) != list:
             print("results needs to be a list")
             print("results: ", result_chunk)
@@ -548,7 +552,8 @@ class ParallelMPI(object):
 
         print("")
         print("results: ", results)
-        new_results = []
+
+        # results should be list of lists
         if type(results[0]) != list:
             results = [results]
         results = [x for x in results if type(x)!=type(self.Empty_object) and x!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
