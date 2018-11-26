@@ -158,8 +158,17 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
 
     # You need to group the taut_data by contnr
     params = []
+    print("")
+    print("")
+    print("")
+    print("contnrs: 165: ", contnrs)
     for taut_mol in taut_data:
         params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
+    print("")
+    print("params: 165: ", params)
+    print("")
+    print("")
+    print("")
 
     tmp = Parallelizer_obj.run(params, parallel_CheckChiralCenters, 
                             num_processors, multithread_mode)
