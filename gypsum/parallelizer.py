@@ -550,7 +550,7 @@ class ParallelMPI(object):
         print("results: ", results)
         new_results = []
 
-        results = [x for x in results if x!=[self.Empty_object] and x!=[[self.Empty_object]]]
+        results = [x for x in results if x[0]!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
 
         return results
     
