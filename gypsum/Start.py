@@ -56,13 +56,14 @@ def conf_generator(args):
                          'min_ph', 'max_ph', 'delta_ph_increment', 
                          'thoroughness', 'max_variants_per_compound',
                          'ph_std_dev']
-
+    need_to_print_override_warning = False
     # Load the parameters from the json
     if 'json' in args:
         params = json.load(open(args['json']))
         params = set_parameters(params)
         if [i for i in json_warning_list if i in args.keys()]:
-            print("WARNING: Using the --json flag overrides all other flags.")
+            need_to_print_override_warning = True
+
     else:
         params = set_parameters(args)
 
@@ -106,7 +107,9 @@ def conf_generator(args):
         # This is a saftey precaution
         params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"], True)
 
-
+    if need_to_print_override_warning == True:
+        print("WARNING: Using the --json flag overrides all other flags.")
+    
     # For Debugging
     # print("")
     # print("###########################")
