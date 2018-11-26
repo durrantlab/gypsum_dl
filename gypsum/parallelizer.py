@@ -544,6 +544,8 @@ class ParallelMPI(object):
             print("results: ", result_chunk)
             print("type results: ", type(result_chunk))
             raise Exception("results needs to be a list")
+
+        print("RESULTS!!!! ", results)
         results = [x for x in results if x!=["EMPTY NODE"] and x!=[["EMPTY NODE"]]]
 
         return results
