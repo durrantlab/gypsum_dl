@@ -470,6 +470,18 @@ class ParallelMPI(object):
 
         Returns a single list.
         """
+        if type(arr)==list:
+            if type(arr[0])==list:
+                if type(arr[0][0])==list:
+                    pass
+                else:
+                    arr = [arr]
+            else:
+                raise Exception("Arr needs to be a list of lists of lists")
+        else:
+            raise Exception("Arr needs to be a list of lists of lists")
+
+
             
         return [a for sub in arr for a in sub]
 
