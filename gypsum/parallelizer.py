@@ -365,6 +365,7 @@ class ParallelMPI(object):
 
         self.COMM = mpi4py.MPI.COMM_WORLD
 
+        self.Empty_object = Empty_obj()
 
     def start(self):
         """
@@ -402,8 +403,8 @@ class ParallelMPI(object):
             # receive arguments
             args_chunk = self.COMM.scatter([], root=0)
 
-            if args_chunk[0] == ["EMPTY NODE"] or  args_chunk[0] == [["EMPTY NODE"]]:
-                result_chunk = [["EMPTY NODE"]]
+            if args_chunk[0] == [self.Empty_object] or  args_chunk[0] == [[self.Empty_object]]:
+                result_chunk = [[self.Empty_object]]
                 result_chunk = self.COMM.gather(result_chunk, root=0)
 
             else:
@@ -417,7 +418,7 @@ class ParallelMPI(object):
             print(printout)
             raise Exception(printout)
         
-        filler_slot = [["EMPTY NODE"]]
+        filler_slot = [[self.Empty_object]]
         while len(arr) < n:
             arr.append(filler_slot)
             if len(arr) == n:
@@ -545,10 +546,25 @@ class ParallelMPI(object):
             print("type results: ", type(result_chunk))
             raise Exception("results needs to be a list")
 
-        results = [x for x in results if x!=["EMPTY NODE"] and x!=[["EMPTY NODE"]]]
+        print("")
+        print("results: ", results)
+        new_results = []
+
+        results = [x for x in results if x!=[self.Empty_object] and x!=[[self.Empty_object]]]
 
         return results
     
+
+
+
+class Empty_obj(object):
+    """
+    Create a unique Empty Object to hand to empty processors
+    """
+    pass
+
+#
+
 
 
 
@@ -557,6 +573,10 @@ Run commands on multiple processors in python.
 
 Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
 """
+
+
+
+
 
 def MultiThreading(inputs, num_processors, task_name):
     """Initialize this object.
