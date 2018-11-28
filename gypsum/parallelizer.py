@@ -402,12 +402,7 @@ class ParallelMPI(object):
 
             # receive arguments
             args_chunk = self.COMM.scatter([], root=0)
-            
-            print("")
-            print("")
-            print("ARGS_CHUNK[0]", args_chunk[0])
-            print("")
-            print("")
+
 
             if type(args_chunk[0]) == type(self.Empty_object): # or  args_chunk[0] == [[self.Empty_object]]:
                 result_chunk = [[self.Empty_object]]
@@ -415,7 +410,7 @@ class ParallelMPI(object):
 
             else:
                 # perform the calculation and send results
-                result_chunk = [func(*arg) for arg in args_chunk]
+                result_chunk = [func(*arg) for arg in args_chunk if type(arg[0])!=type(self.Empty_object)]
                 result_chunk = self.COMM.gather(result_chunk, root=0)
 
     def handle_undersized_jobs(self, arr, n):
