@@ -186,15 +186,18 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
     for taut_mol in taut_data:
         taut_mol_idx = int(taut_mol.contnr_idx)
         params.append(tuple([taut_mol, contnrs[taut_mol_idx]]))
+    params = tuple(params)
     print("")
     print("params: 165: ", params)
     print("")
     print("")
     print("")
-    params = tuple(params)
     tmp = Parallelizer_obj.run(params, parallel_CheckChiralCenters, 
                             num_processors, multithread_mode)
-
+    print("")
+    print("tmp line 197: ", tmp)
+    print("")
+    print("")
     # Stripping out None values
     results = [x for x in tmp if x != None]
 

@@ -423,6 +423,24 @@ class ParallelMPI(object):
             arr.append(filler_slot)
             if len(arr) == n:
                 break
+
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print(arr)
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
+        print("UNDERSIZED JOB!!!!!!!")
         return arr
 
     def _split(self, arr, n):
@@ -512,8 +530,13 @@ class ParallelMPI(object):
 
         Important note: func must exist in the namespace at initialization.
         """
-
+        print("")
+        print("args pre: ", args)
+        print("func: ", func)
+        if len(args) == 0:
+            return []
         args = self.check_and_format_args(args)
+        print("args post: ", args)
 
         size = self.COMM.Get_size()
 
@@ -543,6 +566,7 @@ class ParallelMPI(object):
         # group results
         print("CHUNK PRE JOINED: ", result_chunk)
         results = self._join(result_chunk)
+        # results = self._join(results)
         print("CHUNK JOINED: ", results)
         if type(result_chunk) != list:
             print("results needs to be a list")
@@ -554,9 +578,10 @@ class ParallelMPI(object):
         print("results: ", results)
 
         # results should be list of lists
-        if type(results[0]) != list:
+        if type(results) != list:
             results = [results]
-        results = [x for x in results if type(x)!=type(self.Empty_object) and x!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
+
+        results = [x for x in results if type(x)!=type(self.Empty_object)] # and x!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
 
         return results
     
@@ -648,7 +673,7 @@ def check_and_format_inputs_to_list_of_tuples(args):
 
     item_type = type(args[0])
     for i in range(0, len(args)):
-        if type(args[i]) ==item_type:
+        if type(args[i]) == item_type:
             continue
         else:
             printout = "all items within args must be the same type and must be either a list or tuple"
@@ -730,6 +755,13 @@ def flatten_list(tier_list):
     """
     if tier_list is None:
         return []
+    already_flattened = False
+    for item in tier_list:
+        if type(item) != list:
+            already_flattened = True
+    if already_flattened == True:
+        return tier_list
+
     flat_list = [item for sublist in tier_list for item in sublist]
     return flat_list
 
