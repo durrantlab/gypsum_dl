@@ -402,8 +402,8 @@ class ParallelMPI(object):
 
             # receive arguments
             args_chunk = self.COMM.scatter([], root=0)
-
-            if args_chunk[0] == [self.Empty_object] or  args_chunk[0] == [[self.Empty_object]]:
+            
+            if type(args_chunk[0]) == type(self.Empty_object): # or  args_chunk[0] == [[self.Empty_object]]:
                 result_chunk = [[self.Empty_object]]
                 result_chunk = self.COMM.gather(result_chunk, root=0)
 
@@ -649,7 +649,7 @@ def MultiThreading(inputs, num_processors, task_name):
             results.append(output)
     else:
         results = start_processes(tasks, num_processors)
-
+    results = flatten_list(results)
     return results
 
 

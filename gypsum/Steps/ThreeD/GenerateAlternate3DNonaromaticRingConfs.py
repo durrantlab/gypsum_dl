@@ -176,8 +176,9 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
     #Utils.log("\tApplies to molecule derived from " + orig_smi)
     tmp = Parallelizer_obj.run(
         params, GetRingConfs, num_processors, multithread_mode)
+    
 
-    results = [item for sublist in tmp for item in sublist]
+    results = parallelizer.flatten_list(tmp)
 
     # # Remove mol list for the ones with nonaromatic rings
     # for contnr_idx in ones_with_nonaro_rngs:
