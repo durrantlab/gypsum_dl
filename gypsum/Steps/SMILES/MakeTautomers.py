@@ -162,8 +162,30 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
     print("")
     print("")
     print("contnrs: 165: ", contnrs)
+    top_dir = "/ihome/jdurrant/jspiegel/gypsum/"
+    import os
+    import pickle
+    if os.path.exists(top_dir) == False:
+        top_dir = "/home/jacob/Documents/gypsum/"
+        if os.path.exists(top_dir) == False:
+            raise Exception("where is this?")
+    pickle_file = top_dir + "picklefile"
+    # if os.path.exists(pickle_file) == True:
+    #     with open(pickle_file, 'rb') as handle:
+    #             # should keep as list
+    #             old_data = pickle.load(handle)
+    with open(pickle_file, 'wb') as handle:
+        pickle.dump(contnrs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+    with open(pickle_file+"taut_data", 'wb') as handle:
+        pickle.dump(taut_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+    print("")
+    print("")
+    print("taut_data: ", taut_data)
     for taut_mol in taut_data:
-        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
+        taut_mol_idx = int(taut_mol.contnr_idx)
+        params.append([taut_mol, contnrs[taut_mol_idx]])
     print("")
     print("params: 165: ", params)
     print("")
