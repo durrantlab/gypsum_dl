@@ -279,7 +279,10 @@ class MyMol:
         return hash(can_smi)
 
     def __eq__(self, other):
-        return self.__hash__() == other.__hash__()
+        if other is None:
+            return False
+        else:
+            return self.__hash__() == other.__hash__()
 
 
     def makeMolFromSmiles(self):
