@@ -424,23 +424,6 @@ class ParallelMPI(object):
             if len(arr) == n:
                 break
 
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print(arr)
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
-        print("UNDERSIZED JOB!!!!!!!")
         return arr
 
     def _split(self, arr, n):
@@ -530,13 +513,10 @@ class ParallelMPI(object):
 
         Important note: func must exist in the namespace at initialization.
         """
-        print("")
-        print("args pre: ", args)
-        print("func: ", func)
+
         if len(args) == 0:
             return []
         args = self.check_and_format_args(args)
-        print("args post: ", args)
 
         size = self.COMM.Get_size()
 
@@ -558,25 +538,14 @@ class ParallelMPI(object):
 
 
         if type(result_chunk) != list:
-            print("result_chunk needs to be a list")
-            print("result_chunk: ", result_chunk)
-            print("type result_chunk: ", type(result_chunk))
             raise Exception("result_chunk needs to be a list")
 
         # group results
-        print("CHUNK PRE JOINED: ", result_chunk)
         results = self._join(result_chunk)
         results = flatten_list(results)
 
-        print("CHUNK JOINED: ", results)
         if type(result_chunk) != list:
-            print("results needs to be a list")
-            print("results: ", result_chunk)
-            print("type results: ", type(result_chunk))
             raise Exception("results needs to be a list")
-
-        print("")
-        print("results: ", results)
 
         # results should be list of lists
         if type(results) != list:
