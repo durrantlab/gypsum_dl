@@ -566,7 +566,8 @@ class ParallelMPI(object):
         # group results
         print("CHUNK PRE JOINED: ", result_chunk)
         results = self._join(result_chunk)
-        # results = self._join(results)
+        results = self._join(results)
+        
         print("CHUNK JOINED: ", results)
         if type(result_chunk) != list:
             print("results needs to be a list")
