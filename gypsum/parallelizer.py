@@ -419,26 +419,12 @@ class ParallelMPI(object):
             print(printout)
             raise Exception(printout)
         
-        print("UNDERSIZED!!!!!!!!!!")
-        print("UNDERSIZED!!!!!!!!!!")
-        print("UNDERSIZED!!!!!!!!!!")
-        print("UNDERSIZED!!!!!!!!!!")
-        print("UNDERSIZED!!!!!!!!!!")
-        print("UNDERSIZED!!!!!!!!!!")
-        print("n: ", n)
-        print("arr: ", arr)
-
         filler_slot = [[self.Empty_object]]
         while len(arr) < n:
             arr.append(filler_slot)
             if len(arr) == n:
                 break
         
-        print("arr with filler: ", arr)
-        print("UNDERSIZED!!!!!!!!!!")
-        print("UNDERSIZED!!!!!!!!!!")
-        print("UNDERSIZED!!!!!!!!!!")
-
         return arr
 
     def _split(self, arr, n):
