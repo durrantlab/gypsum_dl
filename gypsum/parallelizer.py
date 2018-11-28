@@ -479,8 +479,7 @@ class ParallelMPI(object):
 
         return chuck_list
 
-    @staticmethod
-    def _join(arr):
+    def _join(self, arr):
         """
         Joins a "list of lists" that was previously split by _split().
 
@@ -490,7 +489,7 @@ class ParallelMPI(object):
         arr = [x for x in arr if type(x)!=type(self.Empty_object)] 
         arr = [a for sub in arr for a in sub]
         arr = [x for x in arr if type(x)!=type(self.Empty_object)] 
-        return 
+        return arr
 
     def check_and_format_args(self, args):
         # Make sure args is a list of lists
@@ -559,6 +558,7 @@ class ParallelMPI(object):
 
         # group results
         results = self._join(result_chunk)
+        
         if len(results) != num_of_args_start:
             results = [x for x in results if type(x)!=type(self.Empty_object)]
             results = flatten_list(results)
@@ -633,7 +633,7 @@ def MultiThreading(inputs, num_processors, task_name):
             results.append(output)
     else:
         results = start_processes(tasks, num_processors)
-    results = flatten_list(results)
+
     return results
 
 
