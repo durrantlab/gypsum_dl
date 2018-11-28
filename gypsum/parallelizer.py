@@ -403,6 +403,12 @@ class ParallelMPI(object):
             # receive arguments
             args_chunk = self.COMM.scatter([], root=0)
             
+            print("")
+            print("")
+            print("ARGS_CHUNK[0]", args_chunk[0])
+            print("")
+            print("")
+
             if type(args_chunk[0]) == type(self.Empty_object): # or  args_chunk[0] == [[self.Empty_object]]:
                 result_chunk = [[self.Empty_object]]
                 result_chunk = self.COMM.gather(result_chunk, root=0)
