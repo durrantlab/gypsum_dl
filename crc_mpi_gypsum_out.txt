@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "run_gypsum.py", line 62, in <module>
+    conf_generator(INPUTS)
+  File "/ihome/jdurrant/jspiegel/gypsum/gypsum/Start.py", line 134, in conf_generator
+    prepare_smiles(contnrs, params)
+  File "/ihome/jdurrant/jspiegel/gypsum/gypsum/Steps/SMILES/PrepareSmiles.py", line 42, in prepare_smiles
+    make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj)
+  File "/ihome/jdurrant/jspiegel/gypsum/gypsum/Steps/SMILES/MakeTautomers.py", line 50, in make_tauts
+    taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, Parallelizer_obj)
+  File "/ihome/jdurrant/jspiegel/gypsum/gypsum/Steps/SMILES/MakeTautomers.py", line 187, in tauts_no_elim_chiral
+    taut_mol_idx = int(taut_mol.contnr_idx)
+AttributeError: 'list' object has no attribute 'contnr_idx'
