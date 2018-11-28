@@ -548,7 +548,7 @@ class ParallelMPI(object):
             raise Exception("args_chunk needs to be a list")
 
         # perform the calculation and get results
-        result_chunk = [func(*arg) for arg in args_chunk]
+        result_chunk = [func(*arg) for arg in args_chunk if type(arg[0])!=type(self.Empty_object)]]
         result_chunk = self.COMM.gather(result_chunk, root=0)
 
 
