@@ -487,8 +487,10 @@ class ParallelMPI(object):
         Returns a single list.
         """
         arr = tuple(arr)
-
-        return [a for sub in arr for a in sub]
+        arr = [x for x in arr if type(x)!=type(self.Empty_object)] 
+        arr = [a for sub in arr for a in sub]
+        arr = [x for x in arr if type(x)!=type(self.Empty_object)] 
+        return 
 
     def check_and_format_args(self, args):
         # Make sure args is a list of lists
@@ -528,7 +530,7 @@ class ParallelMPI(object):
 
         Important note: func must exist in the namespace at initialization.
         """
-
+        num_of_args_start = len(args)
         if len(args) == 0:
             return []
         args = self.check_and_format_args(args)
@@ -557,16 +559,14 @@ class ParallelMPI(object):
 
         # group results
         results = self._join(result_chunk)
-        results = flatten_list(results)
+        if len(results) != num_of_args_start:
+            results = [x for x in results if type(x)!=type(self.Empty_object)]
+            results = flatten_list(results)
 
-        if type(result_chunk) != list:
+        if type(results) != list:
             raise Exception("results needs to be a list")
 
-        # results should be list of lists
-        if type(results) != list:
-            results = [results]
-
-        results = [x for x in results if type(x)!=type(self.Empty_object)] # and x!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
+        results = [x for x in results if type(x)!=type(self.Empty_object)]
 
         return results
     
