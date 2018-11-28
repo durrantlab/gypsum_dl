@@ -476,7 +476,7 @@ class ParallelMPI(object):
 
     def check_and_format_args(self, args):
         # Make sure args is a list of lists
-        if type(args) !=  list:
+        if type(args) !=  list and type(args) !=  tuple:
             printout = "args must be a list of lists"
             print(printout)
             raise Exception(printout)
@@ -641,7 +641,7 @@ def worker(input, output):
 
 def check_and_format_inputs_to_list_of_tuples(args):
     # Make sure args is a list of tuples
-    if type(args) !=  list:
+    if type(args) !=  list and type(args)!=tuple:
         printout = "args must be a list of tuples"
         print(printout)
         raise Exception(printout)

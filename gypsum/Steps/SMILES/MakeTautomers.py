@@ -36,8 +36,8 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors,
     params = []
     for contnr in contnrs:
         for mol_index, mol in enumerate(contnr.mols):
-            params.append([contnr, mol_index, max_variants_per_compound])
-
+            params.append(tuple([contnr, mol_index, max_variants_per_compound]))
+    params = tuple(params)
     tmp = Parallelizer_obj.run(params, parallel_makeTaut, num_processors, multithread_mode)
 
     # Flatten the resulting list of lists
@@ -131,8 +131,8 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mod
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
-
+        params.append(tuple([taut_mol, contnrs[taut_mol.contnr_idx]]))
+    params = tuple(params)
     tmp = Parallelizer_obj.run(params, parallel_CheckNonaroRings, 
                             num_processors, multithread_mode)
 
@@ -185,13 +185,13 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
     print("taut_data: ", taut_data)
     for taut_mol in taut_data:
         taut_mol_idx = int(taut_mol.contnr_idx)
-        params.append([taut_mol, contnrs[taut_mol_idx]])
+        params.append(tuple([taut_mol, contnrs[taut_mol_idx]]))
     print("")
     print("params: 165: ", params)
     print("")
     print("")
     print("")
-
+    params = tuple(params)
     tmp = Parallelizer_obj.run(params, parallel_CheckChiralCenters, 
                             num_processors, multithread_mode)
 
@@ -215,7 +215,8 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
+        params.append(tuple([taut_mol, contnrs[taut_mol.contnr_idx]]))
+    params = tuple(params)
 
     tmp = Parallelizer_obj.run(params, parallel_CheckCarbonHydrogens, 
                             num_processors, multithread_mode)

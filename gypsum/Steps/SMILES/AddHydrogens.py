@@ -23,7 +23,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
                             "max_ph": max_pH,
                             "st_dev": st_dev}
 
-    inputs = [[cont, protonation_settings] for cont in contnrs]
+    inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs])
 
     tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
     tmp = parallelizer.flatten_list(tmp)
