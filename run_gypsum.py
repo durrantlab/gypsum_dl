@@ -5,67 +5,12 @@ into 3D models.
 """
 import argparse
 import copy
+from gypsum.Start import conf_generator
 
-def mpi_1(ARGS_DICT):
-    MPI_installed = False
-    try:
-        import mpi4py 
-        import mpi4py.MPI 
-        MPI_installed = True
-    except:
-        MPI_installed = False
-
-    if MPI_installed == False:
-        printout = "Tried to be run in MPI mode without mpi4py dependency. Please install mpi4py or remove the --mpi from user params"
-        print(printout)
-        raise Exception(printout)
-    
-    COMM = mpi4py.MPI.COMM_WORLD
-
-    rank = COMM.Get_rank()
-
-    if rank == 0:
-        params = get_params(ARGS_DICT)
-    else:
-        params = get_params(ARGS_DICT)
-    COMM.barrier()
-    return params
-
-def handle_mpi(ARGS_DICT):
-    params =mpi_1(ARGS_DICT)
-    from gypsum.Start import conf_generator
-    conf_generator(params)  
-    print("Finished Gypsum")
-
-        
-
-
-def get_params(ARGS_DICT):
-    INPUTS = copy.deepcopy(ARGS_DICT)
-
-    for k, v in ARGS_DICT.items():
-        if v is None:
-            del INPUTS[k]
-
-    from gypsum.Start import get_user_params
-    params = get_user_params(INPUTS)
-
-    return params
-
-def run_gypsum(ARGS_DICT):
-
-    params = get_params(ARGS_DICT)
-    from gypsum.Start import conf_generator
-    conf_generator(params)  
-    print("Finished Gypsum")
-
-#
 
 PARSER = argparse.ArgumentParser()
 
 
-PARSER.add_argument('--mpi', '-q', action='store_true',
-                    help='place in bash command ex) python run_gypsum --mpi -j json_file.json')
 PARSER.add_argument('--json', '-j', metavar='param.json',
                     help='Name of a json file containing all parameters. \
                     Overrides other arguments.')
@@ -108,11 +53,13 @@ PARSER.add_argument('--multithread_mode', default='multithreading', choices = ["
 
 ARGS_DICT = vars(PARSER.parse_args())
 
-if ARGS_DICT["mpi"] == True:
-    handle_mpi(ARGS_DICT)
-else:
-    run_gypsum(ARGS_DICT)
+INPUTS = copy.deepcopy(ARGS_DICT)
 
+for k, v in ARGS_DICT.items():
+    if v is None:
+        del INPUTS[k]
+
+conf_generator(INPUTS)
 
 
 
