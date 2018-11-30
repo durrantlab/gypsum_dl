@@ -6,8 +6,8 @@ into 3D models.
 import argparse
 import copy
 
-def mpi_part_1(ARGS_DICT):
-    MPI_installed = False
+def handle_mpi(ARGS_DICT):
+        MPI_installed = False
     try:
         import mpi4py 
         import mpi4py.MPI 
@@ -29,14 +29,15 @@ def mpi_part_1(ARGS_DICT):
     else:
         pass
     COMM.barrier()
-    return params
-def handle_mpi(ARGS_DICT):
-    
-    params = mpi_part_1(ARGS_DICT)
-    print(params)
-    from gypsum.Start import conf_generator
-    conf_generator(params)  
-    print("Finished Gypsum")
+
+    if rank == 0:
+        print(params)
+        from gypsum.Start import conf_generator
+        conf_generator(params)  
+        print("Finished Gypsum")
+    else:
+        pass
+        
 
 
 def get_params(ARGS_DICT):
@@ -111,8 +112,7 @@ if ARGS_DICT["mpi"] == True:
     handle_mpi(ARGS_DICT)
 else:
     run_gypsum(ARGS_DICT)
-import sys
-sys.exit(0)
+
 
 
 
