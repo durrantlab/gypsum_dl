@@ -23,7 +23,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
                             "max_ph": max_pH,
                             "st_dev": st_dev}
 
-    inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs])
+    inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])
 
     tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
 
@@ -60,7 +60,12 @@ def parallel_addH(container, protonation_settings):
     """
     return_value = []
 
+    if type(container.orig_smi_canonical) != str:
+        print("container.orig_smi_canonical: ", container.orig_smi_canonical)
+        print("type container.orig_smi_canonical: ", type(container.orig_smi_canonical))
+        raise Exception("container.orig_smi_canonical: ", container.orig_smi_canonical)
     protonation_settings["smiles"] = container.orig_smi_canonical
+    
     smis = protonate(protonation_settings)
     rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
 
