@@ -6,7 +6,7 @@ into 3D models.
 import argparse
 import copy
 
-def handle_mpi(ARGS_DICT):
+def mpi_1(ARGS_DICT):
     MPI_installed = False
     try:
         import mpi4py 
@@ -27,16 +27,16 @@ def handle_mpi(ARGS_DICT):
     if rank == 0:
         params = get_params(ARGS_DICT)
     else:
-        pass
+        params = get_params(ARGS_DICT)
     COMM.barrier()
+    return params
 
-    if rank == 0:
-        print(params)
-        from gypsum.Start import conf_generator
-        conf_generator(params)  
-        print("Finished Gypsum")
-    else:
-        pass
+def handle_mpi(ARGS_DICT):
+    params =mpi_1(ARGS_DICT)
+    from gypsum.Start import conf_generator
+    conf_generator(params)  
+    print("Finished Gypsum")
+
         
 
 
