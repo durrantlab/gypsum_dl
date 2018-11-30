@@ -43,7 +43,7 @@ from gypsum.Steps.IO.LoadFiles import load_sdf_file
 
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
-def conf_generator(args):
+def get_user_params(args):
     """
     A function for preparing small-molecule models for docking. To work, it
     requires the python modules rdkit and molvs installed on the system.
@@ -80,7 +80,7 @@ def conf_generator(args):
             smiles_data = [params["source"]]
     else:
         pass  # It's already in the required format.
-
+    params["smiles_data"] = smiles_data
     # Handle Serial overriding num_processors
     # serial fixes it to 1 processor
     if params["multithread_mode"] == "serial" or params["multithread_mode"]=="Serial":
@@ -109,7 +109,10 @@ def conf_generator(args):
 
     if need_to_print_override_warning == True:
         print("WARNING: Using the --json flag overrides all other flags.")
-    
+    params["start_time"] = start_time
+    return params
+
+def conf_generator(params):
     # For Debugging
     # print("")
     # print("###########################")
@@ -119,6 +122,8 @@ def conf_generator(args):
     # print("Number Nodes:  ", params["Parallelizer"].return_node())
     # print("###########################")
     # print("")
+
+    smiles_data = params["smiles_data"]
 
     # Make the containers
     contnrs = []
@@ -153,7 +158,7 @@ def conf_generator(args):
 
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)
-
+    start_time =params["start_time"]
     end_time = datetime.now()
     run_time = end_time - start_time
     params["start_time"] = str(start_time)

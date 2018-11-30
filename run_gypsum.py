@@ -25,20 +25,33 @@ def handle_mpi(ARGS_DICT):
     rank = COMM.Get_rank()
 
     if rank == 0:
-        run_gypsum(ARGS_DICT)
+        params = get_params(ARGS_DICT)
     else:
         pass
-
-def run_gypsum(ARGS_DICT):
-    INPUTS = copy.deepcopy(ARGS_DICT)
-
+    COMM.barrier()
     from gypsum.Start import conf_generator
+    conf_generator(params)  
+    print("Finished Gypsum")
+
+
+def get_params(ARGS_DICT):
+    INPUTS = copy.deepcopy(ARGS_DICT)
 
     for k, v in ARGS_DICT.items():
         if v is None:
             del INPUTS[k]
 
-    conf_generator(INPUTS)  
+    from gypsum.Start import get_user_params
+    params = get_user_params(INPUTS)
+
+    return params
+
+def run_gypsum(ARGS_DICT):
+
+    params = get_params(ARGS_DICT)
+    from gypsum.Start import conf_generator
+    conf_generator(params)  
+    print("Finished Gypsum")
 
 #
 
