@@ -554,20 +554,15 @@ class ParallelMPI(object):
 
         results = [x for x in results if type(x)!=type(self.Empty_object)]
 
-        return results
-    
-
-
+        return results   
+#
 
 class Empty_obj(object):
     """
     Create a unique Empty Object to hand to empty processors
     """
     pass
-
 #
-
-
 
 
 """
