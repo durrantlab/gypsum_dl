@@ -13,5 +13,6 @@ module load intel/2017.1.132 intel-mpi/2017.1.132
 module load python/anaconda2.7-4.2.0
 
 ## Run the process
+srun -n 1 --mpi=pmi2 python run_gypsum.py -c
 srun -n $SLURM_NTASKS --mpi=pmi2 python run_gypsum.py -j mpi_sample_molecules.json > test_mpi_gypsum_output.txt
 
