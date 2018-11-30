@@ -36,8 +36,8 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors,
     params = []
     for contnr in contnrs:
         for mol_index, mol in enumerate(contnr.mols):
-            params.append([contnr, mol_index, max_variants_per_compound])
-
+            params.append(tuple([contnr, mol_index, max_variants_per_compound]))
+    params = tuple(params)
     tmp = Parallelizer_obj.run(params, parallel_makeTaut, num_processors, multithread_mode)
 
     # Flatten the resulting list of lists
@@ -131,8 +131,8 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mod
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
-
+        params.append(tuple([taut_mol, contnrs[taut_mol.contnr_idx]]))
+    params = tuple(params)
     tmp = Parallelizer_obj.run(params, parallel_CheckNonaroRings, 
                             num_processors, multithread_mode)
 
@@ -158,39 +158,10 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
 
     # You need to group the taut_data by contnr
     params = []
-    print("")
-    print("")
-    print("")
-    print("contnrs: 165: ", contnrs)
-    top_dir = "/ihome/jdurrant/jspiegel/gypsum/"
-    import os
-    import pickle
-    if os.path.exists(top_dir) == False:
-        top_dir = "/home/jacob/Documents/gypsum/"
-        if os.path.exists(top_dir) == False:
-            raise Exception("where is this?")
-    pickle_file = top_dir + "picklefile"
-    # if os.path.exists(pickle_file) == True:
-    #     with open(pickle_file, 'rb') as handle:
-    #             # should keep as list
-    #             old_data = pickle.load(handle)
-    with open(pickle_file, 'wb') as handle:
-        pickle.dump(contnrs, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        
-    with open(pickle_file+"taut_data", 'wb') as handle:
-        pickle.dump(taut_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        
-    print("")
-    print("")
-    print("taut_data: ", taut_data)
     for taut_mol in taut_data:
         taut_mol_idx = int(taut_mol.contnr_idx)
-        params.append([taut_mol, contnrs[taut_mol_idx]])
-    print("")
-    print("params: 165: ", params)
-    print("")
-    print("")
-    print("")
+        params.append(tuple([taut_mol, contnrs[taut_mol_idx]]))
+    params = tuple(params)
 
     tmp = Parallelizer_obj.run(params, parallel_CheckChiralCenters, 
                             num_processors, multithread_mode)
@@ -215,7 +186,8 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
     # You need to group the taut_data by contnr
     params = []
     for taut_mol in taut_data:
-        params.append([taut_mol, contnrs[taut_mol.contnr_idx]])
+        params.append(tuple([taut_mol, contnrs[taut_mol.contnr_idx]]))
+    params = tuple(params)
 
     tmp = Parallelizer_obj.run(params, parallel_CheckCarbonHydrogens, 
                             num_processors, multithread_mode)

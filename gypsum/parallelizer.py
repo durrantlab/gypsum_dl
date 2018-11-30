@@ -403,13 +403,14 @@ class ParallelMPI(object):
             # receive arguments
             args_chunk = self.COMM.scatter([], root=0)
 
-            if args_chunk[0] == [self.Empty_object] or  args_chunk[0] == [[self.Empty_object]]:
+
+            if type(args_chunk[0]) == type(self.Empty_object): # or  args_chunk[0] == [[self.Empty_object]]:
                 result_chunk = [[self.Empty_object]]
                 result_chunk = self.COMM.gather(result_chunk, root=0)
 
             else:
                 # perform the calculation and send results
-                result_chunk = [func(*arg) for arg in args_chunk]
+                result_chunk = [func(*arg) for arg in args_chunk if type(arg[0])!=type(self.Empty_object)]
                 result_chunk = self.COMM.gather(result_chunk, root=0)
 
     def handle_undersized_jobs(self, arr, n):
@@ -423,6 +424,7 @@ class ParallelMPI(object):
             arr.append(filler_slot)
             if len(arr) == n:
                 break
+        
         return arr
 
     def _split(self, arr, n):
@@ -463,20 +465,21 @@ class ParallelMPI(object):
 
         return chuck_list
 
-    @staticmethod
-    def _join(arr):
+    def _join(self, arr):
         """
         Joins a "list of lists" that was previously split by _split().
 
         Returns a single list.
         """
         arr = tuple(arr)
-
-        return [a for sub in arr for a in sub]
+        arr = [x for x in arr if type(x)!=type(self.Empty_object)] 
+        arr = [a for sub in arr for a in sub]
+        arr = [x for x in arr if type(x)!=type(self.Empty_object)] 
+        return arr
 
     def check_and_format_args(self, args):
         # Make sure args is a list of lists
-        if type(args) !=  list:
+        if type(args) !=  list and type(args) !=  tuple:
             printout = "args must be a list of lists"
             print(printout)
             raise Exception(printout)
@@ -512,7 +515,9 @@ class ParallelMPI(object):
 
         Important note: func must exist in the namespace at initialization.
         """
-
+        num_of_args_start = len(args)
+        if len(args) == 0:
+            return []
         args = self.check_and_format_args(args)
 
         size = self.COMM.Get_size()
@@ -535,43 +540,29 @@ class ParallelMPI(object):
 
 
         if type(result_chunk) != list:
-            print("result_chunk needs to be a list")
-            print("result_chunk: ", result_chunk)
-            print("type result_chunk: ", type(result_chunk))
             raise Exception("result_chunk needs to be a list")
 
         # group results
-        print("CHUNK PRE JOINED: ", result_chunk)
         results = self._join(result_chunk)
-        print("CHUNK JOINED: ", results)
-        if type(result_chunk) != list:
-            print("results needs to be a list")
-            print("results: ", result_chunk)
-            print("type results: ", type(result_chunk))
+        
+        if len(results) != num_of_args_start:
+            results = [x for x in results if type(x)!=type(self.Empty_object)]
+            results = flatten_list(results)
+
+        if type(results) != list:
             raise Exception("results needs to be a list")
 
-        print("")
-        print("results: ", results)
+        results = [x for x in results if type(x)!=type(self.Empty_object)]
 
-        # results should be list of lists
-        if type(results[0]) != list:
-            results = [results]
-        results = [x for x in results if type(x)!=type(self.Empty_object) and x!=[self.Empty_object] and x[0]!=[[self.Empty_object]]]
-
-        return results
-    
-
-
+        return results   
+#
 
 class Empty_obj(object):
     """
     Create a unique Empty Object to hand to empty processors
     """
     pass
-
 #
-
-
 
 
 """
@@ -641,14 +632,14 @@ def worker(input, output):
 
 def check_and_format_inputs_to_list_of_tuples(args):
     # Make sure args is a list of tuples
-    if type(args) !=  list:
+    if type(args) !=  list and type(args)!=tuple:
         printout = "args must be a list of tuples"
         print(printout)
         raise Exception(printout)
 
     item_type = type(args[0])
     for i in range(0, len(args)):
-        if type(args[i]) ==item_type:
+        if type(args[i]) == item_type:
             continue
         else:
             printout = "all items within args must be the same type and must be either a list or tuple"
@@ -730,6 +721,13 @@ def flatten_list(tier_list):
     """
     if tier_list is None:
         return []
+    already_flattened = False
+    for item in tier_list:
+        if type(item) != list:
+            already_flattened = True
+    if already_flattened == True:
+        return tier_list
+
     flat_list = [item for sublist in tier_list for item in sublist]
     return flat_list
 

@@ -166,7 +166,9 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
         if contnr.num_nonaro_rngs > 0:
             ones_with_nonaro_rngs.add(contnr_idx)
             for mol in contnr.mols:
-                params.append([mol, thoroughness, max_variants_per_compound, second_embed])
+                params.append(tuple([mol, thoroughness, max_variants_per_compound, second_embed]))
+    
+    params = tuple(params)
     
     if len(ones_with_nonaro_rngs) == 0:
         return  # There are no such ligands to process.
@@ -174,8 +176,9 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
     #Utils.log("\tApplies to molecule derived from " + orig_smi)
     tmp = Parallelizer_obj.run(
         params, GetRingConfs, num_processors, multithread_mode)
+    
 
-    results = [item for sublist in tmp for item in sublist]
+    results = parallelizer.flatten_list(tmp)
 
     # # Remove mol list for the ones with nonaromatic rings
     # for contnr_idx in ones_with_nonaro_rngs:

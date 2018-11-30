@@ -251,3 +251,9 @@ class MolContainer:
         
         while None in self.mols:
             self.mols.remove(None)
+
+    def update_idx(self, new_idx):
+        if type(new_idx)!= int:
+            raise Exception("new idx value must be an int")
+        self.contnr_idx = new_idx
+        self.mol_orig_smi.contnr_idx = self.contnr_idx

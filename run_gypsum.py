@@ -50,16 +50,21 @@ PARSER.add_argument('--multithread_mode', default='multithreading', choices = ["
                     help='Determine what style multithreading: mpi, multithreading, or serial.\
                     If this program is being used by a program in MPI mode we recommend setting this to serial.\
                     serial will override num_processors and force it to be on a single processor.')
+PARSER.add_argument('--cache_prerun', '-c', action='store_true',
+                    help='Run this before running gypsum in mpi-mode.')
 
 ARGS_DICT = vars(PARSER.parse_args())
+if ARGS_DICT["cache_prerun"]==False:
 
-INPUTS = copy.deepcopy(ARGS_DICT)
+    INPUTS = copy.deepcopy(ARGS_DICT)
 
-for k, v in ARGS_DICT.items():
-    if v is None:
-        del INPUTS[k]
+    for k, v in ARGS_DICT.items():
+        if v is None:
+            del INPUTS[k]
 
-conf_generator(INPUTS)
-
+    conf_generator(INPUTS)
+    print("Finished Gypsum")
+else:
+    pass
 
 

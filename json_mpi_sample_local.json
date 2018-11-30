@@ -2,6 +2,6 @@
     "source": "sample_molecules.smi",
     "output_file": "output.sdf",
     "separate_output_files": false,
-    "multithread_mode": "mpi"
+    "multithread_mode":"mpi",
+    "num_processors": -1
 }
-

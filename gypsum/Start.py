@@ -122,13 +122,26 @@ def conf_generator(args):
 
     # Make the containers
     contnrs = []
-    for idx, data in enumerate(smiles_data):
-        smiles, name, props = data
+    idx_counter = 0
+    for i in range(0,len(smiles_data)):
+        
+        smiles, name, props = smiles_data[i]
         if detect_unassigned_bonds(smiles) is None:
             print("Warning: Throwing out smile because of unassigned bonds: " + smiles)
             continue
-        new_contnr = MolContainer(smiles, name, idx, props)
+
+        new_contnr = MolContainer(smiles, name, idx_counter, props)
+        if new_contnr.orig_smi_canonical==None or type(new_contnr.orig_smi_canonical) !=str:
+            print("Warning: Throwing out smile because of it couldn't convert to mol: " + smiles)
+            continue
+        
         contnrs.append(new_contnr)
+        idx_counter += 1
+
+    # Sanity check to remove None types from failed conversion
+    contnrs = [x for x in contnrs if x.orig_smi_canonical!=None]
+    if len(contnrs)!= idx_counter: 
+        raise Exception("There is a corrupted container")
 
     # RUNNING MAIN SCRIPT
     prepare_smiles(contnrs, params)
