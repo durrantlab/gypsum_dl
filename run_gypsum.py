@@ -7,7 +7,7 @@ import argparse
 import copy
 
 def handle_mpi(ARGS_DICT):
-        MPI_installed = False
+    MPI_installed = False
     try:
         import mpi4py 
         import mpi4py.MPI 
