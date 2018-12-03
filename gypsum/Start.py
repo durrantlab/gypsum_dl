@@ -97,6 +97,12 @@ def conf_generator(args):
             printout = "mpi4py not installed but --multithread_mode is set to mpi. \n Either install mpi4py or switch multithread_mode to multithreading or serial"
             raise ImportError(printout)
 
+    # Handle Windows
+    if sys.platform == "win32":
+        print("Our Multiprocessing is not supportive of Windows. We will run tasks in Serial")
+        params["num_processors"] = 1
+        params["multithread_mode"] = "serial"
+        
     # # # launch mpi workers
     if params["multithread_mode"] == 'mpi':
         params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"])
