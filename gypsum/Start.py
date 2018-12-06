@@ -67,20 +67,6 @@ def conf_generator(args):
     else:
         params = set_parameters(args)
 
-    if isinstance(params["source"], str):
-        # smiles must be array of strs
-        src = params["source"]
-        if src.lower().endswith(".smi") or src.lower().endswith(".can"):
-            # It's an smi file.
-            smiles_data = load_smiles_file(src)
-        elif params["source"].lower().endswith(".sdf"):
-            # It's an sdf file. Convert it to a smiles.
-            smiles_data = load_sdf_file(src)
-        else:
-            smiles_data = [params["source"]]
-    else:
-        pass  # It's already in the required format.
-
     # Handle Serial overriding num_processors
     # serial fixes it to 1 processor
     if params["multithread_mode"] == "serial" or params["multithread_mode"]=="Serial":
@@ -116,6 +102,29 @@ def conf_generator(args):
     if need_to_print_override_warning == True:
         print("WARNING: Using the --json flag overrides all other flags.")
     
+
+    # Load Smiles data
+    if isinstance(params["source"], str):
+        # smiles must be array of strs
+        src = params["source"]
+        if src.lower().endswith(".smi") or src.lower().endswith(".can"):
+            # It's an smi file.
+            smiles_data = load_smiles_file(src)
+        elif params["source"].lower().endswith(".sdf"):
+            # It's an sdf file. Convert it to a smiles.
+            smiles_data = load_sdf_file(src)
+        else:
+            smiles_data = [params["source"]]
+    else:
+        pass  # It's already in the required format.
+
+    # Handle the output directorys    
+    if os.path.exists(params["output_folder"]) == False:
+        os.mkdir(params["output_folder"])
+        if os.path.exists(params["output_folder"]) == False:
+            raise Exception("Output folder directory couldn't be found or created.")
+
+
     # For Debugging
     # print("")
     # print("###########################")
@@ -188,8 +197,10 @@ def set_parameters(params_unicode):
     # Set the default values.
     default = OrderedDict({
         "source" : '',
+        "output_folder": '',
         "output_file" : '',
         "separate_output_files" : False,
+        "output_pdb": False,
         "num_processors" : -1,
         "start_time" : 0,
         "end_time" : 0,
@@ -302,17 +313,41 @@ def finalize_params(dictionary):
     # name of "". If it's a list, it's assumed to be a list of tuples,
     # [SMILES, Name].
 
-    if dictionary["output_file"] == "" and dictionary["source"] != "":
-        dictionary["output_file"] = dictionary["source"] + ".output.sdf"
+    # Check some required variables
+    try:
+        dictionary["source"] = os.path.abspath(dictionary["source"])
+    except:
+        raise Exception("Source file doesn't exist")
+    source_dir = dictionary["source"].strip(os.path.basename(dictionary["source"]))
 
-    if dictionary["output_file"] == "":
+    if dictionary["output_folder"] == "" and dictionary["source"] != "":
+        dictionary["output_folder"] = source_dir + "output" + str(os.sep)
+        
+    if dictionary["output_pdb"] == True and dictionary["output_folder"] == "":
         Utils.log(
-            "ERROR! Missing parameter \"output_file\". You need to " +
-            "specify where to write the output. Can be an HTML or " +
-            "SDF file."
+            "ERROR! To output files as .pdbs one needs to specify the output_folder."
         )
-        raise Exception("Missing parameter of where to write the output." +
-                        "Can be an HTML or .SDF file.")
+        raise Exception("To output files as .pdbs one needs to specify the output_folder.")
+
+    if dictionary["separate_output_files"] == True and dictionary["output_folder"] == "":
+        Utils.log(
+            "ERROR! For separate_output_files one needs to specify the output_folder."
+        )
+        raise Exception("For separate_output_files one needs to specify the output_folder.")
+
+    if dictionary["output_file"] == "" and dictionary["output_folder"] != "":
+        dictionary["output_file"] = dictionary["output_folder"] + "output.sdf"
+
+    if dictionary["output_file"] == "" and dictionary["output_folder"]=="":
+        Utils.log(
+            "ERROR! Missing parameters \"output_folder\" and \"output_folder\". You need to " +
+            "specify where to write the output file(s). Can be an HTML or " +
+            "SDF file or a directory."
+        )
+        raise Exception("Missing parameter of where to write the output(s)." +
+                        "Can be an HTML or .SDF file or a directory.")
+
+
 
     return dictionary
 

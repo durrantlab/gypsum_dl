@@ -16,8 +16,8 @@ PARSER.add_argument('--json', '-j', metavar='param.json',
                     Overrides other arguments.')
 PARSER.add_argument('--source', '-s', metavar='input.smi',
                     help='Name of the source file.')
-PARSER.add_argument('--output_file', '-o', metavar='output.sdf',
-                    help='Name of the output file.')
+PARSER.add_argument('--output_folder_pdbs', '-f', 
+                    help='The directory that output files will be placed.')
 PARSER.add_argument('--num_processors', '-p', metavar='N', default=1,
                     help='Number of processors to use in parallel.')
 PARSER.add_argument('--min_ph', metavar='MIN', type=float,
@@ -32,6 +32,8 @@ PARSER.add_argument('--max_variants_per_compound', '-m', type=int, metavar='V',
                     help='The maximum number of models to create.')
 PARSER.add_argument('--separate_output_files', action='store_true',
                     help='Indicates that the outputs should be split between files.')
+PARSER.add_argument('--output_pdb', action='store_true',
+                    help='Indicates that the outputs should be converted from .sdf to .pdb.')
 PARSER.add_argument('--skip_optimize_geometry', action='store_true',
                     help='Skips the optimization step.')
 PARSER.add_argument('--skip_alternate_ring_conformations', action='store_true',

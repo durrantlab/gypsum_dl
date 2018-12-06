@@ -1,7 +1,7 @@
 {
     "source": "sample_molecules.smi",
-    "output_file": "output.sdf",
-    "separate_output_files": false,
-    "multithread_mode": "mpi"
+    "separate_output_files": true,
+    "multithread_mode": "mpi",
+    "output_folder": "/home/jacob/Desktop/Output_Gypsum/",
+    "output_pdb": true
 }
-
