@@ -18,6 +18,8 @@ PARSER.add_argument('--source', '-s', metavar='input.smi',
                     help='Name of the source file.')
 PARSER.add_argument('--output_folder_pdbs', '-f', 
                     help='The directory that output files will be placed.')
+PARSER.add_argument('--output_file', '-o', 
+                    help='The file name of the output .sdf file(s).')
 PARSER.add_argument('--num_processors', '-p', metavar='N', default=1,
                     help='Number of processors to use in parallel.')
 PARSER.add_argument('--min_ph', metavar='MIN', type=float,
