@@ -1,4 +1,6 @@
-"""Runs the smile preparation process."""
+"""Runs the smile preparation process. Generates alternate ionization,
+tautomeric, chiral forms, etc."""
+
 import __future__
 
 from gypsum.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
@@ -8,12 +10,15 @@ from gypsum.Steps.SMILES.EnumerateChiralMols import enumerate_chiral_molecules
 from gypsum.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 
 def prepare_smiles(contnrs, params):
-    """
-    Runs the appropriate steps for processing the smile strings.
+    """Runs the appropriate steps for processing the SMILES strings.
+
+    :param contnrs: The molecule containers.
+    :type contnrs: list
+    :param params: The user parameters.
+    :type params: dict
     """
 
-    print("Begin Desaltings")
-
+    # Unpack some of the parameter values.
     min_ph = params["min_ph"]
     max_ph = params["max_ph"]
     std_dev = params["ph_std_dev"]
@@ -23,57 +28,70 @@ def prepare_smiles(contnrs, params):
     multithread_mode = params["multithread_mode"]
     Parallelizer_obj = params["Parallelizer"]
 
-    # Run the functions
+    # Desalt the molecules.
+    print("Begin Desaltings")
     desalt_orig_smi(contnrs, num_processors, multithread_mode, Parallelizer_obj)
-
     print("Done with Desalting")
 
+    # Add hydrogens for user-specified pH, if requested.
     if not params["skip_adding_hydrogen"]:
-        print("Protonating Molecules")        
+        print("Protonating Molecules")
         add_hydrogens(contnrs, min_ph, max_ph, std_dev, max_variants_per_compound,
-                      thoroughness, num_processors, multithread_mode, Parallelizer_obj)
+                      thoroughness, num_processors, multithread_mode,
+                      Parallelizer_obj)
         print("Done with Protonating")
     else:
         print("Skipping Protonation")
         wrap_molecules(contnrs)
 
+    # Make alternate tautomeric forms, if requested.
     if not params["skip_making_tautomers"]:
         print("Tautomerizing Molecules")
-        make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj)
+        make_tauts(contnrs, max_variants_per_compound, thoroughness,
+                   num_processors, multithread_mode, Parallelizer_obj)
         print("Done with Tautomerization")
     else:
         print("Skipping Tautomerization")
 
+    # Make alternate chiral forms, if requested.
     if not params["skip_ennumerate_chiral_mol"]:
         print("Enumerating Chirality")
-        enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj)
+        enumerate_chiral_molecules(contnrs, max_variants_per_compound,
+                                   thoroughness, num_processors,
+                                   multithread_mode, Parallelizer_obj)
         print("Done with Chirality Enumeration")
     else:
         print("Skipping Chirality Enumeration")
 
+    # Make alternate double-bond isomers, if requested.
     if not params["skip_ennumerate_double_bonds"]:
         print("Enumerating Double Bonds")
-        enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj)
+        enumerate_double_bonds(contnrs, max_variants_per_compound,
+                               thoroughness, num_processors,
+                               multithread_mode, Parallelizer_obj)
         print("Done with Double Bond Enumeration")
     else:
         print("Skipping Double Bond Enumeration")
 
 def wrap_molecules(contnrs):
-    """
-    Problem: Each molecule container holds one smiles string
-    (corresponding to the input structure). Dimorphite-DL produces multiple
-    smiles strings at different pH values in the previous step. There is
-    no way to store muliple smiles in a molecule container. But those
-    containers are designed to store multiple RDKit molecule objects. To
-    the previous step stores the differently protonated models as those
+    """Each molecule container holds only one SMILES string
+    (corresponding to the input structure). Dimorphite-DL can potentially
+    produce multiple SMILES strings with different ionization states. There is
+    no way to store muliple smiles in a molecule container.
+
+    But those containers are designed to store multiple RDKit molecule
+    objects. Gypsum stores Dimorphite-DL output molecules as RdKit molecule
     objects, in the container's mol list.
 
-    But, if the user skips the previous step, then the one smiles needs
-    to be converted to a RDKit mol object for subsequent steps to work.
-    Let's do that here.
+    But Gypsum gives the user the option of skipping the protonation step. In
+    this case, the one SMILES needs to be converted to a RDKit mol object for
+    subsequent steps to work. Let's do that here.
+
+    :param contnrs: The molecule containers.
+    :type contnrs: list
     """
+
     for mol_cont in contnrs:
         if len(mol_cont.mols) == 0:
             smi = mol_cont.orig_smi_canonical
             mol_cont.add_smiles(smi)
-
