@@ -20,6 +20,9 @@ def group_mols_by_container_index(mol_lst):
 
     grouped_results = {}
     for mol in mol_lst:
+        if mol is None:
+            continue
+
         idx = mol.contnr_idx
 
         if not idx in grouped_results:
