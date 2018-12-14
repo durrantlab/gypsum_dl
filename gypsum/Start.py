@@ -40,72 +40,83 @@ from gypsum.Steps.IO.ProcessOutput import proccess_output
 from gypsum.Steps.IO.LoadFiles import load_smiles_file
 from gypsum.Steps.IO.LoadFiles import load_sdf_file
 
-
-
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def conf_generator(args):
-    """
-    A function for preparing small-molecule models for docking. To work, it
+    """A function for preparing small-molecule models for docking. To work, it
     requires the python modules rdkit and molvs installed on the system.
 
-    :param string param_file: A json file specifying the parameters.
+    :param args: The arguments, from the commandline.
+    :type args: dict
+    :raises ImportError: mpi4py not installed, but --multithread_mode is set
+       to mpi.
+    :raises Exception: Output folder directory couldn't be found or created.
+    :raises Exception: There is a corrupted container.
     """
+
+    # Keep track of the tim the program starts.
     start_time = datetime.now()
 
-    json_warning_list = ['source', 'output_file', 'num_processors', 
-                         'min_ph', 'max_ph', 'delta_ph_increment', 
+    # A list of command-line parameters that will be ignored if using a json
+    # file.
+    json_warning_list = ['source', 'output_file', 'num_processors',
+                         'min_ph', 'max_ph', 'delta_ph_increment',
                          'thoroughness', 'max_variants_per_compound',
                          'ph_std_dev']
+
+    # Whether to warn the user that the above parameters, if specified, will
+    # be ignored.
     need_to_print_override_warning = False
-    # Load the parameters from the json
-    if 'json' in args:
+
+    if "json" in args:
+        # "json" is one of the parameters, so we'll be ignoring the rest.
         params = json.load(open(args['json']))
         params = set_parameters(params)
         if [i for i in json_warning_list if i in args.keys()]:
             need_to_print_override_warning = True
-
     else:
+        # We're actually going to use all the command-line parameters. No
+        # warning necessary.
         params = set_parameters(args)
 
-    # Handle Serial overriding num_processors
-    # serial fixes it to 1 processor
-    if params["multithread_mode"] == "serial" or params["multithread_mode"]=="Serial":
-        
+    # If running in serial mode, make sure only one processor is used.
+    if params["multithread_mode"] == "serial":
         if params["num_processors"] != 1:
             print("Because --multithread_mode was set to serial, this will be run on a single processor.")
         params["num_processors"] = 1
 
     # Handle mpi errors if mpi4py isn't installed
-    if params["multithread_mode"] == "mpi" or params["multithread_mode"] == "MPI":
+    if params["multithread_mode"] == "mpi":
         try:
             import mpi4py
         except:
             printout = "mpi4py not installed but --multithread_mode is set to mpi. \n Either install mpi4py or switch multithread_mode to multithreading or serial"
             raise ImportError(printout)
 
-    # Handle Windows
+    # Throw a message if running on windows. Windows doesn't deal with with
+    # multiple processors, so use only 1.
     if sys.platform == "win32":
         print("Our Multiprocessing is not supportive of Windows. We will run tasks in Serial")
         params["num_processors"] = 1
         params["multithread_mode"] = "serial"
-        
-    # # # launch mpi workers
+
+    # Launch mpi workers if that's what's specified.
     if params["multithread_mode"] == 'mpi':
         params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"])
     else:
-        # Lower level mpi (ie making a new Parallelizer within an mpi) 
-        #   has problems with importing the MPI enviorment and mpi4py
-        #   So we will flag it to skip the MPI mode and just go to multithread/serial
-        # This is a saftey precaution
+        # Lower-level mpi (i.e. making a new Parallelizer within an mpi) has
+        # problems with importing the MPI environment and mpi4py. So we will
+        # flag it to skip the MPI mode and just go to multithread/serial. This
+        # is a saftey precaution
         params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"], True)
 
+    # Let the user know that their command-line parameters will be ignored, if
+    # they have specified a json file.
     if need_to_print_override_warning == True:
         print("WARNING: Using the --json flag overrides all other flags.")
-    
 
-    # Load Smiles data
+    # Load SMILES data
     if isinstance(params["source"], str):
-        # smiles must be array of strs
+        # Smiles must be array of strs.
         src = params["source"]
         if src.lower().endswith(".smi") or src.lower().endswith(".can"):
             # It's an smi file.
@@ -118,12 +129,11 @@ def conf_generator(args):
     else:
         pass  # It's already in the required format.
 
-    # Handle the output directorys    
+    # Make the output directory if necessary.
     if os.path.exists(params["output_folder"]) == False:
         os.mkdir(params["output_folder"])
         if os.path.exists(params["output_folder"]) == False:
             raise Exception("Output folder directory couldn't be found or created.")
-
 
     # For Debugging
     # print("")
@@ -135,52 +145,68 @@ def conf_generator(args):
     # print("###########################")
     # print("")
 
-    # Make the containers
+    # Make the molecule containers.
     contnrs = []
     idx_counter = 0
     for i in range(0,len(smiles_data)):
-        
         smiles, name, props = smiles_data[i]
         if detect_unassigned_bonds(smiles) is None:
-            print("Warning: Throwing out smile because of unassigned bonds: " + smiles)
+            print("Warning: Throwing out SMILES because of unassigned bonds: " + smiles)
             continue
 
         new_contnr = MolContainer(smiles, name, idx_counter, props)
         if new_contnr.orig_smi_canonical==None or type(new_contnr.orig_smi_canonical) !=str:
-            print("Warning: Throwing out smile because of it couldn't convert to mol: " + smiles)
+            print("Warning: Throwing out SMILES because of it couldn't convert to mol: " + smiles)
             continue
-        
+
         contnrs.append(new_contnr)
         idx_counter += 1
 
-    # Sanity check to remove None types from failed conversion
+    # Remove None types from failed conversion
     contnrs = [x for x in contnrs if x.orig_smi_canonical!=None]
-    if len(contnrs)!= idx_counter: 
+    if len(contnrs)!= idx_counter:
         raise Exception("There is a corrupted container")
 
-    # RUNNING MAIN SCRIPT
+    # Start creating the models.
+
+    # Prepare the smiles. Desalt, consider alternate ionization, tautometeric,
+    # stereoisomeric forms, etc.
     prepare_smiles(contnrs, params)
 
+    # Convert the processed SMILES strings to 3D.
     prepare_three_d(contnrs, params)
 
+    # JDD: What?
     add_mol_id_props(contnrs)
+
+    # Output the current SMILES.
     print_current_smiles(contnrs)
 
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)
 
+    # Calculate the total run time.
     end_time = datetime.now()
     run_time = end_time - start_time
     params["start_time"] = str(start_time)
     params["end_time"] = str(end_time)
     params["run_time"] = str(run_time)
 
+    # Process the output.
     proccess_output(contnrs, params)
 
-    # # kill mpi workers
+    # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["multithread_mode"])
 
 def detect_unassigned_bonds(smiles):
+    """Detects whether a give smiles string has unassigned bonds.
+
+    :param smiles: The smiles string.
+    :type smiles: string
+    :return: None if it has bad bonds, or the input smiles string otherwise.
+    :rtype: None|string
+    """
+
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     for bond in mol.GetBonds():
         if bond.GetBondTypeAsDouble() == 0:
@@ -188,12 +214,16 @@ def detect_unassigned_bonds(smiles):
     return smiles
 
 def set_parameters(params_unicode):
-    """
-    Set the parameters that will control this ConfGenerator object.
+    """Set the parameters that will control this ConfGenerator object.
 
-    :param {} params: The parameters. A dictionary of {parameter name:
-                value}.
+    :param params_unicode: The parameters, with keys and values possibly in
+       unicode.
+    :type params_unicode: dict
+    :return: The parameters, properly processed, with defaults used when no
+       value specified.
+    :rtype: dict
     """
+
     # Set the default values.
     default = OrderedDict({
         "source" : '',
@@ -228,6 +258,7 @@ def set_parameters(params_unicode):
     # usecases here.
     params = {}
     if sys.version_info < (3,):
+        # For Python3
         for param in params_unicode:
             val = params_unicode[param]
             if isinstance(val, unicode):
@@ -235,34 +266,44 @@ def set_parameters(params_unicode):
             key = param.lower().encode("utf8")
             params[key] = val
     else:
+        # For Python2
         for param in params_unicode:
             val = params_unicode[param]
             key = param.lower()
             params[key] = val
 
-    # Overlays the user parameters where they exits.
+    # Overwrites values with the user parameters where they exit.
     merge_parameters(default, params)
 
-    # Checks and prepares the final parameter list
-    default = finalize_params(default)
+    # Checks and prepares the final parameter list.
+    final_params = finalize_params(default)
 
-    return default # PARAMS
+    return final_params
 
 def merge_parameters(default, params):
-    """Combines the defaults with the user parameters."""
-    # Generate a dictionary of the types
+    """Add default values if missing from parameters.
+
+    :param default: The parameters.
+    :type default: dict
+    :param params: The default values
+    :type params: dict
+    :raises KeyError: Unrecognized parameter.
+    :raises TypeError: Input parameter has a different type than the default.
+    """
+
+    # Generate a dictionary with the same keys, but the types for the values.
     type_dict = make_type_dict(default)
 
-    # Move user-specified values into the parameter
+    # Move user-specified values into the parameter.
     for param in params:
-        # Throw an error if there's an unrecognized parameter
+        # Throw an error if there's an unrecognized parameter.
         if param not in default:
             Utils.log(
                 "ERROR! Parameter \"" + str(param) + "\" not recognized!"
             )
             Utils.log("Here are the options:")
             Utils.log(str(default.keys()))
-            raise KeyError("Unrecognized parameter")
+            raise KeyError("Unrecognized parameter.")
 
         # Throw an error if the input parameter has a different type than
         # the default one.
@@ -274,37 +315,67 @@ def merge_parameters(default, params):
             )
             raise TypeError("Input parameter has a different type than the default.")
 
+        # Update the parameter value with the user-defined one.
         default[param] = params[param]
 
 def make_type_dict(dictionary):
-    """Creates a dictionary of types from an existant dictionary."""
+    """Creates a types dictionary from an existant dictionary. Keys are
+       preserved, but values are the types.
+
+    :param dictionary: A dictionary, with keys are values.
+    :type dictionary: dict
+    :raises Exception: There appears to be an error in your parameters.
+    :return: A dictionary with the same keys, but the values are the types.
+    :rtype: dict
+    """
+
     type_dict = {}
     allowed_types = [int, float, bool, str]
+    # Go through the dictionary keys.
     for key in dictionary:
+        # Get the the type of the value.
         val = dictionary[key]
         for allowed in allowed_types:
             if isinstance(val, allowed):
+                # Add it to the type_dict.
                 type_dict[key] = allowed
+
+        # The value ha san unacceptable type. Throw an error.
         if key not in type_dict:
             Utils.log(
                 "ERROR: There appears to be an error in your parameter " +
                 "JSON file. No value can have type " + str(type(val)) +
                 "."
             )
-            raise Exception("ERROR: There appears to be an error in your parameter")
+            raise Exception("ERROR: There appears to be an error in your parameters.")
 
     return type_dict
 
-def finalize_params(dictionary):
-    """Checks and updates parameters to their final values."""
+def finalize_params(params):
+    """Checks and updates parameters to their final values.
+
+    :param params: The parameters.
+    :type params: dict
+    :raises NotImplementedError: Missing parameter.
+    :raises Exception: Source file doesn't exist.
+    :raises Exception: To output files as .pdbs one needs to specify the
+        output_folder.
+    :raises Exception: For separate_output_files, one needs to specify the
+       output_folder.
+    :raises Exception: Missing parameter indicating where to write the
+       output(s). Can be an HTML or .SDF file, or a directory.
+    :return: The parameters, corrected/updated where needed.
+    :rtype: dict
+    """
+
     # Throw an error if there's a missing parameter.
-    if dictionary["source"] == "":
+    if params["source"] == "":
         Utils.log(
             "ERROR! Missing parameter \"source\". You need to specify " +
             "the source of the input molecules (probably a SMI or SDF " +
             "file)."
         )
-        raise NotImplementedError("Missing parameter")
+        raise NotImplementedError("Missing parameter.")
 
     # Note on parameter "source", the data source. If it's a string that
     # ends in ".smi", it's treated as a smiles file. If it's a string that
@@ -313,76 +384,90 @@ def finalize_params(dictionary):
     # name of "". If it's a list, it's assumed to be a list of tuples,
     # [SMILES, Name].
 
-    # Check some required variables
+    # Check some required variables.
     try:
-        dictionary["source"] = os.path.abspath(dictionary["source"])
+        params["source"] = os.path.abspath(params["source"])
     except:
-        raise Exception("Source file doesn't exist")
-    source_dir = dictionary["source"].strip(os.path.basename(dictionary["source"]))
+        raise Exception("Source file doesn't exist.")
+    source_dir = params["source"].strip(os.path.basename(params["source"]))
 
-    if dictionary["output_folder"] == "" and dictionary["source"] != "":
-        dictionary["output_folder"] = source_dir + "output" + str(os.sep)
-        
-    if dictionary["output_pdb"] == True and dictionary["output_folder"] == "":
+    if params["output_folder"] == "" and params["source"] != "":
+        params["output_folder"] = source_dir + "output" + str(os.sep)
+
+    if params["output_pdb"] == True and params["output_folder"] == "":
         Utils.log(
             "ERROR! To output files as .pdbs one needs to specify the output_folder."
         )
         raise Exception("To output files as .pdbs one needs to specify the output_folder.")
 
-    if dictionary["separate_output_files"] == True and dictionary["output_folder"] == "":
+    if params["separate_output_files"] == True and params["output_folder"] == "":
         Utils.log(
             "ERROR! For separate_output_files one needs to specify the output_folder."
         )
         raise Exception("For separate_output_files one needs to specify the output_folder.")
 
-    if dictionary["output_file"] == "" and dictionary["output_folder"] != "":
-        dictionary["output_file"] = dictionary["output_folder"] + "output.sdf"
+    if params["output_file"] == "" and params["output_folder"] != "":
+        params["output_file"] = params["output_folder"] + "output.sdf"
 
-    if dictionary["output_file"] == "" and dictionary["output_folder"]=="":
+    if params["output_file"] == "" and params["output_folder"] == "":
         Utils.log(
             "ERROR! Missing parameters \"output_folder\" and \"output_folder\". You need to " +
             "specify where to write the output file(s). Can be an HTML or " +
             "SDF file or a directory."
         )
-        raise Exception("Missing parameter of where to write the output(s)." +
-                        "Can be an HTML or .SDF file or a directory.")
+        raise Exception("Missing parameter indicating where to write the" +
+                        "output(s). Can be an HTML or .SDF file, or a " +
+                        "directory.")
 
+    # Make sure multithread_mode is always lower case.
+    params["multithread_mode"] = params["multithread_mode"].lower()
 
-
-    return dictionary
+    return params
 
 def print_current_smiles(contnrs):
-    """
-    Prints the smiles of the current containers.
+    """Prints the smiles of the current containers.
+
+    :param contnrs: A list of containers.
+    :type contnrs: list
     """
 
     # For debugging.
     print("    Contents of MolContainers")
     for i, mol_cont in enumerate(contnrs):
         Utils.log("\t\t" + str(i) + " " + str(mol_cont.all_smiles()))
-    
+
 def add_mol_id_props(contnrs):
+    """Once all molecules have been generated, go through each and add the
+       name and a unique id (for writing to the SDF file, for example).
+
+    :param contnrs: A list of containers.
+    :type contnrs: list
     """
-    Once all molecules have been generated, go through each and add the
-    name and a unique id (for writing to the SDF file, for example).
-    """
+
     cont_id = 0
     for contnr in contnrs:
         for mol in contnr.mols:
             cont_id = cont_id + 1
             mol.setRDKitMolProp("UniqueID", str(cont_id))
             mol.setAllRDKitMolProps()
-   
+
 def deal_with_failed_molecules(contnrs, params):
+    """Removes and logs failed molecules.
+
+    :param contnrs: A list of containers.
+    :type contnrs: list
+    :param params: The parameters, used to determine the filename that will
+       contain the failed molecules.
+    :type params: dict
     """
-    Removes and logs failed molecules.
-    """
-    failed_ones = []
+
+    failed_ones = []  # To keep track of failed molecules
     for contnr in contnrs:
         if len(contnr.mols) == 0:
             astr = contnr.orig_smi + "\t" + contnr.name
             failed_ones.append(astr)
 
+    # Let the user know if there's more than one failed molecule.
     if len(failed_ones) > 0:
         Utils.log(
             "\n3D models could not be generated for the following entries:"
@@ -390,6 +475,7 @@ def deal_with_failed_molecules(contnrs, params):
         Utils.log("\n".join(failed_ones))
         Utils.log("\n")
 
+        # Write the failures to an smi file.
         outfile = open(params["output_file"] + ".failed.smi", 'w')
         outfile.write("\n".join(failed_ones))
         outfile.close()

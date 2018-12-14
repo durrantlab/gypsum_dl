@@ -38,7 +38,7 @@ def GetChiral(mol, max_variants_per_compound, thoroughness):
         options = [["R"], ["S"]]
         for i in range(num - 1):
             options = list(itertools.product(options, starting))
-            options = [list(itertools.chain(c[0], c[1])) 
+            options = [list(itertools.chain(c[0], c[1]))
                        for c in options]
 
     Utils.log(
@@ -53,7 +53,6 @@ def GetChiral(mol, max_variants_per_compound, thoroughness):
     )
 
     for option in options:
-        # print mol.smiles(), mol.name, option, "*"
         a_rd_mol = copy.copy(mol.rdkit_mol)
         for idx, chiral in zip(unasignd, option):
             if chiral == "R":
