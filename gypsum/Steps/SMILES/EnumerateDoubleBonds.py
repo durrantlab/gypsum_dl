@@ -16,7 +16,7 @@ except:
     raise ImportError("You need to install rdkit and its dependencies.")
 
 def GetDoubleBonded(mol, max_variants_per_compound):
-    
+
     # Get all double bonds that don't have defined stereochemistry
     unasignd = mol.get_double_bonds_without_stereochemistry()
 
@@ -128,7 +128,7 @@ def GetDoubleBonded(mol, max_variants_per_compound):
             return new_mol
 
 
-def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj):
+def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, parallelizer_obj):
     """
     Enumerates all possible cis-trans isomers. If the stereochemistry of a
     double bond is specified, it is not varied. All unspecified double bonds
@@ -147,6 +147,6 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
         for mol in contnr.mols:
             params.append(tuple([mol, max_variants_per_compound]))
     params = tuple(params)
-    tmp = Parallelizer_obj.run(params, GetDoubleBonded, num_processors, multithread_mode)
+    tmp = parallelizer_obj.run(params, GetDoubleBonded, num_processors, multithread_mode)
 
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, tmp, max_variants_per_compound, thoroughness)

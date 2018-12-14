@@ -3,7 +3,7 @@ molecule, keep the larger one."""
 
 import __future__
 
-import gypsum.parallelizer as parallelizer
+import gypsum.Parallelizer as Parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
@@ -14,13 +14,48 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def DeSalter(contnr):
+def desalt_orig_smi(contnrs, num_processors, multithread_mode, parallelizer_obj):
+    """If an input molecule has multiple unconnected fragments, this removes
+       all but the largest fragment.
+
+    :param contnrs: The molecule containers.
+    :type contnrs: list
+    :param num_processors: Number of processors to use.
+    :type num_processors: int
+    :param multithread_mode: The multithread mode.
+    :type multithread_mode: string
+    :param parallelizer_obj: The Parallelizer object.
+    :type parallelizer_obj: Parallelizer.Parallelizer
+    """
+
+    Utils.log(
+        "Desalting all molecules (i.e., keeping only largest fragment)."
+    )
+
+    # Desalt each of the molecule containers.
+    # @@@@@@@@@@@ JAKE FIX LATER TO MULTI BELOW. JDD: Needs attention? Maybe
+    # not. This is probably fast.
+    # tmp = mp.MultiThreading(contnrs, num_processors, desalter)
+    tmp = [desalter(x) for x in contnrs]
+
+    # Go through each contnr and update the orig_smi_deslt. If we update it,
+    # also add a note in the genealogy record.
+    tmp = Parallelizer.strip_none(tmp)
+    for desalt_mol in tmp:
+        idx = desalt_mol.contnr_idx
+        cont = contnrs[idx]
+        if contnrs[desalt_mol.contnr_idx].orig_smi != desalt_mol.orig_smi:
+            desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
+            cont.update_orig_smi(desalt_mol.orig_smi_deslt)
+        cont.add_mol(desalt_mol)
+
+def desalter(contnr):
     """Desalts molecules in a molecule container.
 
     :param contnr: The molecule container.
     :type contnr: MolContainer.MolContainer
-    :return: [description]
-    :rtype: [type]
+    :return: A molecule object.
+    :rtype: MyMol.MyMol
     """
 
     # Split it into fragments
@@ -29,7 +64,6 @@ def DeSalter(contnr):
     if len(frags) == 1:
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
-        import pdb; pdb.set_trace()
         return contnr.mol_orig_smi
     else:
         Utils.log(
@@ -55,31 +89,4 @@ def DeSalter(contnr):
         new_mol.name = contnr.name
         new_mol.genealogy = contnr.mol_orig_smi.genealogy
         new_mol.makeMolFromSmiles() # Need to update the mol.
-        import pdb; pdb.set_trace()
         return new_mol
-
-def desalt_orig_smi(contnrs, num_processors, multithread_mode, Parallelizer_obj):
-    """
-    If an input molecule has multiple unconnected fragments, this removes all
-    but the largest fragment.
-    """
-
-    Utils.log(
-        "Desalting all molecules (i.e., keeping only largest fragment)."
-    )
-
-    # @@@@@@@@@@@ JAKE FIX LATER TO MULTI BELOW
-    # tmp = mp.MultiThreading(contnrs, num_processors, DeSalter)
-    tmp = [DeSalter(x) for x in contnrs]
-
-
-    # Go through each contnr and update the orig_smi_deslt
-    # If we update it, also add a note in the genealogy
-    tmp = parallelizer.strip_none(tmp)
-    for desalt_mol in tmp:
-        idx = desalt_mol.contnr_idx
-        cont = contnrs[idx]
-        if contnrs[desalt_mol.contnr_idx].orig_smi != desalt_mol.orig_smi:
-            desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
-            cont.update_orig_smi(desalt_mol.orig_smi_deslt)
-        cont.add_mol(desalt_mol)

@@ -2,7 +2,7 @@ import __future__
 
 import random
 
-import gypsum.parallelizer as parallelizer
+import gypsum.Parallelizer as Parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
@@ -20,7 +20,7 @@ except:
     Utils.log("You need to install molvs and its dependencies.")
     raise ImportError("You need to install molv and its dependencies.")
 
-def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj):
+def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, parallelizer_obj):
     """
     Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
@@ -38,18 +38,18 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors,
         for mol_index, mol in enumerate(contnr.mols):
             params.append(tuple([contnr, mol_index, max_variants_per_compound]))
     params = tuple(params)
-    tmp = Parallelizer_obj.run(params, parallel_makeTaut, num_processors, multithread_mode)
+    tmp = parallelizer_obj.run(params, parallel_makeTaut, num_processors, multithread_mode)
 
     # Flatten the resulting list of lists
-    #none_data = parallelizer.strip_none(tmp)
+    #none_data = Parallelizer.strip_none(tmp)
     none_data = tmp
-    taut_data = parallelizer.flatten_list(none_data)
+    taut_data = Parallelizer.flatten_list(none_data)
 
     # Remove bad tauts
-    taut_data = tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mode, Parallelizer_obj)
-    taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, Parallelizer_obj)
+    taut_data = tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mode, parallelizer_obj)
+    taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, parallelizer_obj)
     taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-        contnrs, taut_data, num_processors, multithread_mode, Parallelizer_obj
+        contnrs, taut_data, num_processors, multithread_mode, parallelizer_obj
     )
 
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, taut_data,
@@ -78,9 +78,9 @@ def parallel_makeTaut(contnr, mol_index, max_variants_per_compound):
     # let's do that again. Because taut requires kekulized
     # input.
     Chem.Kekulize(m)
-    m = MOH.check_sanitization(m)   
-    if m is None:   
-        return None   
+    m = MOH.check_sanitization(m)
+    if m is None:
+        return None
 
     # Limit to max_variants_per_compound tauts. Note that another
     # batch could add more, so you'll need to once again trim to this
@@ -116,7 +116,7 @@ def parallel_makeTaut(contnr, mol_index, max_variants_per_compound):
     #print "End", id
 
 
-def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mode, Parallelizer_obj):
+def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mode, parallelizer_obj):
     """
     For a given molecule, the number of atomatic rings should never change
     regardless of tautization, ionization, etc. Any taut that breaks
@@ -133,16 +133,16 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_processors, multithread_mod
     for taut_mol in taut_data:
         params.append(tuple([taut_mol, contnrs[taut_mol.contnr_idx]]))
     params = tuple(params)
-    tmp = Parallelizer_obj.run(params, parallel_CheckNonaroRings, 
+    tmp = parallelizer_obj.run(params, parallel_CheckNonaroRings,
                             num_processors, multithread_mode)
 
     # Stripping out None values
-    results = parallelizer.strip_none(tmp)
+    results = Parallelizer.strip_none(tmp)
 
     return results
 
 
-def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, Parallelizer_obj):
+def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, parallelizer_obj):
     """
     Unfortunately, molvs sees removing chiral specifications as being a
     distinct taut. I imagine there are cases where tautization could
@@ -163,7 +163,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
         params.append(tuple([taut_mol, contnrs[taut_mol_idx]]))
     params = tuple(params)
 
-    tmp = Parallelizer_obj.run(params, parallel_CheckChiralCenters, 
+    tmp = parallelizer_obj.run(params, parallel_CheckChiralCenters,
                             num_processors, multithread_mode)
 
     # Stripping out None values
@@ -171,7 +171,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_processors, multithread_mode, P
 
     return results
 
-def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_processors, multithread_mode, Parallelizer_obj):
+def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_processors, multithread_mode, parallelizer_obj):
     """
     Generally speaking, only carbons that are alpha to a carbonyl are
     sufficiently acidic to participate in taut formation. The
@@ -189,7 +189,7 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
         params.append(tuple([taut_mol, contnrs[taut_mol.contnr_idx]]))
     params = tuple(params)
 
-    tmp = Parallelizer_obj.run(params, parallel_CheckCarbonHydrogens, 
+    tmp = parallelizer_obj.run(params, parallel_CheckCarbonHydrogens,
                             num_processors, multithread_mode)
 
     # Stripping out None values

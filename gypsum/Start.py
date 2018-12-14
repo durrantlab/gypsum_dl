@@ -12,7 +12,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 import gypsum.Utils as Utils
-from gypsum.parallelizer import Parallelizer
+from gypsum.Parallelizer import Parallelizer
 
 try:
     from rdkit.Chem import AllChem

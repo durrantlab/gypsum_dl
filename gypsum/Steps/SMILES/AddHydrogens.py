@@ -4,7 +4,7 @@ This module is made to identify and enumerate the possible protonation sites of 
 
 from rdkit import Chem
 
-import gypsum.parallelizer as parallelizer
+import gypsum.Parallelizer as Parallelizer
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
@@ -13,7 +13,7 @@ import gypsum.MolContainer as MolCont
 from gypsum.Steps.SMILES.dimorphite.dimorphite_dl import protonate
 
 def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
-                thoroughness, num_processors, multithread_mode, Parallelizer_obj):
+                thoroughness, num_processors, multithread_mode, parallelizer_obj):
     """
     This is a stub that is used to keep track of what I need to still do.
 
@@ -25,9 +25,9 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
 
     inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])
 
-    tmp = Parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
+    tmp = parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
 
-    tmp = parallelizer.flatten_list(tmp)
+    tmp = Parallelizer.flatten_list(tmp)
 
     contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, tmp)
 
@@ -65,7 +65,7 @@ def parallel_addH(container, protonation_settings):
         print("type container.orig_smi_canonical: ", type(container.orig_smi_canonical))
         raise Exception("container.orig_smi_canonical: ", container.orig_smi_canonical)
     protonation_settings["smiles"] = container.orig_smi_canonical
-    
+
     smis = protonate(protonation_settings)
     rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
 

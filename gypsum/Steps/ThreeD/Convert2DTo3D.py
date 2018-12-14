@@ -2,7 +2,7 @@ import __future__
 
 import copy
 
-import gypsum.parallelizer as parallelizer
+import gypsum.Parallelizer as Parallelizer
 
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
@@ -37,7 +37,7 @@ def mk3d(mol):
             "discarded."
         )
 
-def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, Parallelizer_obj):
+def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, parallelizer_obj):
     """
     Converts the 1D smiles strings into 3D small-molecule models.
     """
@@ -49,7 +49,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_proce
         for mol in contnr.mols:
             params.append(tuple([mol]))
     params = tuple(params)
-    tmp = Parallelizer_obj.run(params, mk3d, num_processors, multithread_mode)
-    clear = parallelizer.strip_none(tmp)
+    tmp = parallelizer_obj.run(params, mk3d, num_processors, multithread_mode)
+    clear = Parallelizer.strip_none(tmp)
     #clear = tmp
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, clear, max_variants_per_compound, thoroughness, False)

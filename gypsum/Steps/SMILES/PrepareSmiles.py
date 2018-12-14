@@ -26,11 +26,11 @@ def prepare_smiles(contnrs, params):
     thoroughness = params["thoroughness"]
     num_processors = params["num_processors"]
     multithread_mode = params["multithread_mode"]
-    Parallelizer_obj = params["Parallelizer"]
+    parallelizer_obj = params["Parallelizer"]
 
     # Desalt the molecules.
     print("Begin Desaltings")
-    desalt_orig_smi(contnrs, num_processors, multithread_mode, Parallelizer_obj)
+    desalt_orig_smi(contnrs, num_processors, multithread_mode, parallelizer_obj)
     print("Done with Desalting")
 
     # Add hydrogens for user-specified pH, if requested.
@@ -38,7 +38,7 @@ def prepare_smiles(contnrs, params):
         print("Protonating Molecules")
         add_hydrogens(contnrs, min_ph, max_ph, std_dev, max_variants_per_compound,
                       thoroughness, num_processors, multithread_mode,
-                      Parallelizer_obj)
+                      parallelizer_obj)
         print("Done with Protonating")
     else:
         print("Skipping Protonation")
@@ -48,7 +48,7 @@ def prepare_smiles(contnrs, params):
     if not params["skip_making_tautomers"]:
         print("Tautomerizing Molecules")
         make_tauts(contnrs, max_variants_per_compound, thoroughness,
-                   num_processors, multithread_mode, Parallelizer_obj)
+                   num_processors, multithread_mode, parallelizer_obj)
         print("Done with Tautomerization")
     else:
         print("Skipping Tautomerization")
@@ -58,7 +58,7 @@ def prepare_smiles(contnrs, params):
         print("Enumerating Chirality")
         enumerate_chiral_molecules(contnrs, max_variants_per_compound,
                                    thoroughness, num_processors,
-                                   multithread_mode, Parallelizer_obj)
+                                   multithread_mode, parallelizer_obj)
         print("Done with Chirality Enumeration")
     else:
         print("Skipping Chirality Enumeration")
@@ -68,7 +68,7 @@ def prepare_smiles(contnrs, params):
         print("Enumerating Double Bonds")
         enumerate_double_bonds(contnrs, max_variants_per_compound,
                                thoroughness, num_processors,
-                               multithread_mode, Parallelizer_obj)
+                               multithread_mode, parallelizer_obj)
         print("Done with Double Bond Enumeration")
     else:
         print("Skipping Double Bond Enumeration")
