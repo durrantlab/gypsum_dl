@@ -98,9 +98,9 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
 
     clean = Parallelizer.strip_none(tmp)
     flat = Parallelizer.flatten_list(clean)
-    contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, flat)
+    contnr_idxs_prot_failed = Utils.fix_no_prot_generated(contnrs, flat)
 
-    for miss_indx in contnr_indx_no_touch:
+    for miss_indx in contnr_idxs_prot_failed:
         Utils.log(
             "\tCould not generate valid enantiomers for " +
             contnrs[miss_indx].orig_smi + " (" +
@@ -110,4 +110,6 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
             mol.genealogy.append("(WARNING: Unable to generate enantiomers)")
             clean.append(mol)
 
+    # Keep only the top few compound variants in each container, to prevent a
+    # combinatorial explosion.
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, flat, max_variants_per_compound, thoroughness)

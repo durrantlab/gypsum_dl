@@ -48,13 +48,13 @@ def random_sample(lst, num, msg_if_cut=""):
     :returns: a list that contains at most num elements.
     :rtype: :class:`str` ???
     """
-    
+
     try:
         lst = list(set(lst))
     except:
         # Because someitems lst element may be unhashable.
         pass
-    
+
     random.shuffle(lst)
     if num < len(lst):
         lst = lst[:num]
@@ -75,7 +75,7 @@ def log(txt):
         subsequent_indent = whitespace_before + "    "
     ))
 
-def contnrs_no_touchd(contnrs, results):
+def fix_no_prot_generated(contnrs, results):
     """
     Identify contnrs that have no representative elements in results.
 
@@ -87,20 +87,22 @@ def contnrs_no_touchd(contnrs, results):
               no associated elements in results.
     :rtype: :class:`str` ???
     """
-    
+
     # Find ones that don't have any generated. This is because sometimes
     # Dimorphite-DL failes to producce valid smiles. In this case, just use the
     # original smiles. Couldn't find a good solution to work around.
-    
-    # Get a dictionary of all the input smiles.
+
+    # Get a dictionary of all the input smiles. Keys are indexes, values are
+    # smiles.
     idx_to_smi = {}
     for contnr in contnrs:
         if not contnr.contnr_idx in idx_to_smi:
             idx_to_smi[contnr.contnr_idx] = contnrs[contnr.contnr_idx].orig_smi_deslt
-    
-    # Now remove from those any that have associated protonated smiles strings.
+
+    # Now remove from those any that have associated protonated smiles
+    # strings.
     for m in results:
         if m.contnr_idx in idx_to_smi:
             del idx_to_smi[m.contnr_idx]
-    
+
     return idx_to_smi.keys()

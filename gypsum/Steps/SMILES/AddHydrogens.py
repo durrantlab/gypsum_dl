@@ -12,26 +12,53 @@ import gypsum.MolContainer as MolCont
 
 from gypsum.Steps.SMILES.dimorphite.dimorphite_dl import protonate
 
-def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
-                thoroughness, num_processors, multithread_mode, parallelizer_obj):
+def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants, thoroughness,
+                  num_processors, multithread_mode, parallelizer_obj):
+    """Adds hydrogen atoms to molecule containers, as appropriate for a given
+       pH.
+
+    :param contnrs: The molecule containers.
+    :type contnrs: A list.
+    :param min_pH: The minimum pH to consider.
+    :type min_pH: float
+    :param max_pH: The maximum pH to consider.
+    :type max_pH: float
+    :param st_dev: The standard deviation. See Dimorphite-DL paper.
+    :type st_dev: float
+    :param max_variants: [description] JDD: Figure out.
+    :type max_variants: int
+    :param thoroughness: [description] JDD: Figure out.
+    :type thoroughness: int
+    :param num_processors: The number of processors to use.
+    :type num_processors: int
+    :param multithread_mode: The multithred mode to use.
+    :type multithread_mode: string
+    :param parallelizer_obj: The Parallelizer object.
+    :type parallelizer_obj: Parallelizer.Parallelizer
     """
-    This is a stub that is used to keep track of what I need to still do.
 
     """
+    JDD: What is this? This is a stub that is used to keep track of what I need to still do.
+    """
 
+    # Make a simple directory with the ionization parameters.
     protonation_settings = {"min_ph": min_pH,
                             "max_ph": max_pH,
                             "st_dev": st_dev}
 
+    # Format the inputs for use in the parallelizer.
     inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])
 
-    tmp = parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
+    # Run the parallelizer and collect the results.
+    results = parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
+    results = Parallelizer.flatten_list(results)
 
-    tmp = Parallelizer.flatten_list(tmp)
+    # Dimorphite-DL might not have generated ionization states for some
+    # molecules. Identify those that are missing.
+    contnr_idxs_prot_failed = Utils.fix_no_prot_generated(contnrs, results)
 
-    contnr_indx_no_touch = Utils.contnrs_no_touchd(contnrs, tmp)
-
-    for miss_indx in contnr_indx_no_touch:
+    # For those molecules, just use the original SMILES string.
+    for miss_indx in contnr_idxs_prot_failed:
         Utils.log(
             "\tWARNING: Gypsum produced no valid protonation states for " +
             contnrs[miss_indx].orig_smi + " (" +
@@ -41,49 +68,78 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants,
         amol = contnrs[miss_indx].mol_orig_smi
         amol.contnr_idx = miss_indx
 
+        # Save this failure to the genealogy record.
         amol.genealogy = [
             amol.orig_smi + " (source)",
             amol.orig_smi_deslt + " (desalted)",
             "(WARNING: Gypsum could not assign protonation states)"
         ]
 
-        tmp.append(amol)
+        # Save this one to the results too, even though not processed
+        # properly.
+        results.append(amol)
 
-    ChemUtils.bst_for_each_contnr_no_opt(contnrs, tmp, max_variants, thoroughness)
+    # Keep only the top few compound variants in each container, to prevent a
+    # combinatorial explosion.
+    ChemUtils.bst_for_each_contnr_no_opt(contnrs, results, max_variants, thoroughness)
 
-def parallel_addH(container, protonation_settings):
+def parallel_addH(contnr, protonation_settings):
+    """Creates alternate ionization variants for a given molecule container.
+       This is the function that gets fed into the parallelizer.
+
+    :param contnr: The molecule container.
+    :type contnr: MolContainer.MolContainer
+    :param protonation_settings: Protonation settings to pass to Dimorphite-DL.
+    :type protonation_settings: dict
+    :raises Exception: container.orig_smi_canonical is not a string.
+    :return: [description]
+    :rtype: [type]
+    """
+
     """
     We take a container and a list of substructures and return all the
     appropriate protonation variants.
 
     :params container container: A container for a
     """
-    return_value = []
 
-    if type(container.orig_smi_canonical) != str:
-        print("container.orig_smi_canonical: ", container.orig_smi_canonical)
-        print("type container.orig_smi_canonical: ", type(container.orig_smi_canonical))
-        raise Exception("container.orig_smi_canonical: ", container.orig_smi_canonical)
-    protonation_settings["smiles"] = container.orig_smi_canonical
+    # Make sure the canonical SMILES is actually a string.
+    if type(contnr.orig_smi_canonical) != str:
+        print("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
+        print("type container.orig_smi_canonical: ", type(contnr.orig_smi_canonical))
+        raise Exception("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
 
+    # Add the SMILES string to the protonation parameters.
+    protonation_settings["smiles"] = contnr.orig_smi_canonical
+
+    # Protonate the SMILESstring. This is Dimorphite-DL.
     smis = protonate(protonation_settings)
+
+    # Convert the protonated SMILES strings into a list of rdkit molecule
+    # objects.
     rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
 
-    # Convert from rdkit mols to MyMols and remove those with odd substructures
+    # Convert from rdkit mols to MyMol.MyMol.
     addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]
+
+    # Remove MyMols with odd substructures.
     addH_mols = [mol for mol in addH_mols if mol.remove_bizarre_substruc() is False]
 
-    # I once saw it add a C+ here. So do a sanity check at
-    # this point.
-    orig_mol = container.mol_orig_smi
+    # I once saw it add a "C+"" here. So do a secondary check at this point to
+    # make sure it's valid. Recreate the list, moving new MyMol.MyMol objects
+    # into the return_values list.
+
+    return_values = []
+
+    orig_mol = contnr.mol_orig_smi
     for Hm in addH_mols:
-        Hm.inherit_contnr_props(container)
+        Hm.inherit_contnr_props(contnr)
         Hm.genealogy = orig_mol.genealogy[:]
         Hm.name = orig_mol.name
 
         if Hm.smiles() != orig_mol.smiles():
             Hm.genealogy.append(Hm.smiles(True) + " (protonated)")
 
-        return_value.append(Hm)
+        return_values.append(Hm)
 
-    return return_value
+    return return_values

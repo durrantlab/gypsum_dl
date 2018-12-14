@@ -51,5 +51,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_proce
     params = tuple(params)
     tmp = parallelizer_obj.run(params, mk3d, num_processors, multithread_mode)
     clear = Parallelizer.strip_none(tmp)
-    #clear = tmp
+
+    # Keep only the top few compound variants in each container, to prevent a
+    # combinatorial explosion.
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, clear, max_variants_per_compound, thoroughness, False)

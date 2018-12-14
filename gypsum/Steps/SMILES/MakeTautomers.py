@@ -52,6 +52,8 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_processors,
         contnrs, taut_data, num_processors, multithread_mode, parallelizer_obj
     )
 
+    # Keep only the top few compound variants in each container, to prevent a
+    # combinatorial explosion.
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, taut_data,
                                 max_variants_per_compound, thoroughness)
 
