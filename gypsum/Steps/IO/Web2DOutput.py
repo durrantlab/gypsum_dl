@@ -1,3 +1,6 @@
+"""Saves the output to an HTML file (2D images only). This is mostly for
+debugging."""
+
 import webbrowser
 import os
 import gypsum.Utils as Utils
@@ -13,14 +16,13 @@ except:
     raise ImportError("You need to install rdkit and its dependencies.")
 
 def web_2d_output(contnrs, output_file):
-    """
-    Saves pictures of the models to an HTML file on disk. It can be viewed in
-    a browser. Then opens a browser automatically to view them.
-    """
+    """Saves pictures of the models to an HTML file on disk. It can be viewed in
+    a browser. Then opens a browser automatically to view them. This is mostly
+    for debugging."""
 
     Utils.log("Saving html image of molecules associated with...")
 
-    # Let's not parallelize it for now.
+    # Let's not parallelize it for now. This will rarely be used.
     f = open(output_file, 'w')
     for contnr in contnrs:
         Utils.log("\t" + contnr.orig_smi)
@@ -43,4 +45,5 @@ def web_2d_output(contnrs, output_file):
                 '</div>')
     f.close()
 
+    # Open the browser to show the file.
     webbrowser.open("file://" + os.path.abspath(output_file))
