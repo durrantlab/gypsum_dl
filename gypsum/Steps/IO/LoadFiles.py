@@ -1,3 +1,5 @@
+"""A module for loading in files."""
+
 import __future__
 
 try:
@@ -6,32 +8,32 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-
 def load_smiles_file(filename):
+    """Loads a smiles file.
+
+    :param filename: The filename.
+    :type filename: str
+    :return: A list of tuples, (SMILES, Name).
+    :rtype: list
     """
-    Loads a smiles file.
 
-    :param str filename: The filename.
-
-    :returns: A list of tuples, (SMILES, Name).
-    :rtype: :class:`list[(str, str)]`
-    """
-
-    # The smiles file is the smiles string, separated by white space, followed
-    # by the name.
-    data = []        
+    # A smiles file contains one molecule on each line. Each line is a string,
+    # separated by white space, followed by the molecule name.
+    data = []
     duplicate_names = {}
-    missing_name_counter = 0 
+    missing_name_counter = 0
     line_counter = 0
     name_list = []
     for line in open(filename):
+        # You've got the line.
         line = line.strip()
         if line != "":
+            # From that line, get the smiles string and name.
             chunks = line.split()
             smiles = chunks[0]
             name = " ".join(chunks[1:])
 
-            # Handle unnamed ligands
+            # Handle unnamed ligands.
             if name == "":
                 print("\tUntitled ligand on line {}".format(line_counter))
                 name = "untitled_lig_{}_line_{}".format(missing_name_counter,line_counter)
@@ -39,10 +41,10 @@ def load_smiles_file(filename):
                 print("\tAll associated files will be refered to with this name")
                 missing_name_counter += 1
 
-            # Handle duplicate ligands in same list
+            # Handle duplicate ligands in same list.
             if name in name_list:
-                # if multiple names 
-                if name in list(duplicate_names.keys()):
+                # If multiple names...
+                if name in duplicate_names.keys():
                     duplicate_names[name] = duplicate_names[name] + 1
 
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
@@ -57,27 +59,28 @@ def load_smiles_file(filename):
                     print("\tThe veresion of the ligand on line {} will be retitled {}".format(line_counter,new_name))
                     print("\tAll associated files will be refered to with this name")
                     name = new_name
-            
+
+            # Save the data for this line and advance.
             name_list.append(name)
             line_counter +=1
             data.append((smiles, name, {}))
+
+    # Return the data.
     return data
 
-
 def load_sdf_file(filename):
-    """
-    Loads an sdf file.
+    """Loads an sdf file.
 
-    :param str filename: The filename.
-
-    :returns: A list of tuples, (SMILES, Name).
-    :rtype: :class:`list[(str, str)]`
+    :param filename: The filename.
+    :type filename: str
+    :return: A list of tuples, (SMILES, Name).
+    :rtype: list
     """
-    
+
     suppl = Chem.SDMolSupplier(filename)
     data = []
     duplicate_names = {}
-    missing_name_counter = 0 
+    missing_name_counter = 0
     mol_obj_counter = 0
     name_list = []
     for mol in suppl:
@@ -100,9 +103,9 @@ def load_sdf_file(filename):
             print("\tAll associated files will be refered to with this name")
             missing_name_counter += 1
 
-            # Handle duplicate ligands in same list
+            # Handle duplicate ligands in same list.
             if name in name_list:
-                # if multiple names 
+                # If multiple names.
                 if name in list(duplicate_names.keys()):
                     duplicate_names[name] = duplicate_names[name] + 1
 
@@ -121,6 +124,8 @@ def load_sdf_file(filename):
 
             mol_obj_counter += 1
             name_list.append(name)
+
+        # SDF files may also contain properties. Get those as well.
         try:
             properties = mol.GetPropsAsDict()
         except:
@@ -128,7 +133,5 @@ def load_sdf_file(filename):
 
         if smiles != "":
             data.append((smiles, name, properties))
-        
-    return data
-        
 
+    return data
