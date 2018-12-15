@@ -146,7 +146,6 @@ class MyMol:
         else:
             return self.__hash__() == other.__hash__()
 
-
     def make_mol_frm_smiles_sanitze(self):
         """Construct a rdkit.mol for this object, in case you only received
         the smiles. Also, sanitize the molecule regardless.

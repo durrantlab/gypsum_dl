@@ -50,23 +50,23 @@ class MolContainer:
         self.mols = []
         self.name = name
         self.properties = properties
-        self.mol_orig_smi = MyMol.MyMol(smiles, name)
-        self.mol_orig_smi.contnr_idx = self.contnr_idx
+        self.mol_orig_frm_inp_smi = MyMol.MyMol(smiles, name)
+        self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx
         self.frgs = ""  # For caching.
 
         # Save the original canonical smiles
-        self.orig_smi_canonical = self.mol_orig_smi.smiles()
+        self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
 
         # Get the number of nonaromatic rings
-        self.num_nonaro_rngs = len(self.mol_orig_smi.m_num_nonaro_rngs())
+        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
 
         # Get the number of chiral centers, assigned or not
         self.num_specif_chiral_cntrs = len(
-            self.mol_orig_smi.chiral_cntrs_only_asignd()
+            self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
         )
 
         # Get the non-acidic carbon-hydrogen footprint.
-        self.carbon_hydrogen_count = self.mol_orig_smi.carb_hyd_cnt()
+        self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
 
     def mol_with_smiles_is_in_contnr(self, smiles):
         """Checks whether or not a given smiles string is already in this
@@ -158,7 +158,7 @@ class MolContainer:
         if self.frgs != "":
             return self.frgs
 
-        frags = self.mol_orig_smi.get_frags_of_orig_smi()
+        frags = self.mol_orig_frm_inp_smi.get_frags_of_orig_smi()
         self.frgs = frags
         return frags
 
@@ -173,12 +173,12 @@ class MolContainer:
         # Update the MolContainer object
         self.orig_smi = orig_smi
         self.orig_smi_deslt = orig_smi
-        self.mol_orig_smi = MyMol.MyMol(self.orig_smi, self.name)
+        self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
         self.frgs = ""
-        self.orig_smi_canonical = self.mol_orig_smi.smiles()
-        self.num_nonaro_rngs = len(self.mol_orig_smi.m_num_nonaro_rngs())
+        self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
+        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
         self.num_specif_chiral_cntrs = len(
-            self.mol_orig_smi.chiral_cntrs_only_asignd()
+            self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
         )
 
         # None of the mols derived to date, if present, are accurate.
@@ -190,7 +190,7 @@ class MolContainer:
 
         for mol in self.mols:
             mol.mol_props.update(self.properties)
-            mol.setAllRDKitMolProps()
+            mol.set_all_rdkit_mol_props()
 
     def remove_identical_mols_from_contnr(self):
         """Removes itentical molecules from this container."""
@@ -272,4 +272,4 @@ class MolContainer:
         if type(new_idx)!= int:
             raise Exception("New idx value must be an int.")
         self.contnr_idx = new_idx
-        self.mol_orig_smi.contnr_idx = self.contnr_idx
+        self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx
