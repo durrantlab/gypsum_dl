@@ -123,9 +123,8 @@ def parallel_add_H(contnr, protonation_settings):
     smis = protonate(protonation_settings)
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
-    # objects. Add hydrogens to the smis, now that the Dimorphite-DL valences
-    # are in place.
-    rdkit_mols = [Chem.AddHs(Chem.MolFromSmiles(smi.strip())) for smi in smis]
+    # objects.
+    rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
 
     # Convert from rdkit mols to MyMol.MyMol.
     addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]

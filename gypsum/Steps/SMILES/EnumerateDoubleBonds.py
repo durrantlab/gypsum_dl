@@ -99,6 +99,9 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
     :rtype: [type]
     """
 
+    # For this to work, you need to have explicit hydrogens in place.
+    mol.rdkit_mol = Chem.AddHs(mol.rdkit_mol)
+
     # Get all double bonds that don't have defined stereochemistry. Note that
     # these are the bond indexes, not the atom indexes.
     unasignd_dbl_bnd_idxs = mol.get_double_bonds_without_stereochemistry()

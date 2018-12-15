@@ -78,9 +78,9 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, mult
                                          multithread_mode, parallelizer_obj)
     taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_procs,
                                      multithread_mode, parallelizer_obj)
-    taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-        contnrs, taut_data, num_procs, multithread_mode, parallelizer_obj
-    )
+    # taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
+    #    contnrs, taut_data, num_procs, multithread_mode, parallelizer_obj
+    # )
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
@@ -110,6 +110,9 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     # Create a temporary RDKit mol object, since that's what MolVS works with.
     # TODO: There should be a copy function
     m = MyMol.MyMol(mol.smiles()).rdkit_mol
+
+    # For tautomers to work, you need to not have any explicit hydrogens.
+    m = Chem.RemoveHs(m)
 
     # Make sure it's not None.
     if m is None:
