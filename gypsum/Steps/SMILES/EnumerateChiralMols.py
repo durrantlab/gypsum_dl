@@ -66,6 +66,8 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     # Flatten the data into a single list.
     flat = Parallelizer.flatten_list(clean)
 
+    print [Chem.MolToSmiles(m.rdkit_mol) for m in flat]
+
     # Get the indexes of the ones that failed to generate.
     contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, flat)
 

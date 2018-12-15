@@ -122,7 +122,6 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
     # bond (terminal alkene).
     idx_of_othr_bnds_to_use = []
     bonds_already_used = set([])
-    print(Chem.MolToSmiles(mol.rdkit_mol))
     for dbl_bnd_idx in unasignd_dbl_bnd_idxs:
         bond = mol.rdkit_mol.GetBondWithIdx(dbl_bnd_idx)
 

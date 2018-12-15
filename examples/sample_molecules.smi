@@ -1,2 +1,1 @@
-CC(=O)O.[Na]   salt_and_ionization
-CC=O        tautomer
+ClC(C[C@@](Cl)(C)F)(F)C(C)=O  two_chiral_one_specified_and_tautomer

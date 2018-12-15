@@ -83,12 +83,13 @@ class MyParser(argparse.ArgumentParser):
         if file is None:
             file = sys.stdout
         self._print_message(self.format_help(), file)
-        print("""examples:
-        python dimorphite_dl.py --smiles_file sample_molecules.smi
-        python dimorphite_dl.py --smiles "CCC(=O)O" --min_ph -3.0 --max_ph -2.0
-        python dimorphite_dl.py --smiles "CCCN" --min_ph -3.0 --max_ph -2.0 --output_file output.smi
-        python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
-        python dimorphite_dl.py --test""")
+        print("""
+examples:
+  python dimorphite_dl.py --smiles_file sample_molecules.smi
+  python dimorphite_dl.py --smiles "CCC(=O)O" --min_ph -3.0 --max_ph -2.0
+  python dimorphite_dl.py --smiles "CCCN" --min_ph -3.0 --max_ph -2.0 --output_file output.smi
+  python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
+  python dimorphite_dl.py --test""")
         print("")
 
 def get_args():
@@ -216,7 +217,6 @@ def clean_args(args):
     elif "smiles_file" in args:
         args["smiles"], args["data"] = load_files(args["smiles_file"])
     else:
-        print("args is missing smiles or smiles_file. Your args is: ", args)
         msg = "Error: No SMILES in params. Use the -h parameter for help."
         print(msg)
         raise Exception(msg)
@@ -249,7 +249,7 @@ def clean_args(args):
             mol_str_list.append("NONE|" + smiles_str)
             continue
 
-        new_mol_string = Chem.MolToSmiles(mol)
+        new_mol_string = Chem.MolToSmiles(mol, isomericSmiles=True)
         mol_str_list.append(new_mol_string)
 
     args["smiles"] = [x for x in mol_str_list]

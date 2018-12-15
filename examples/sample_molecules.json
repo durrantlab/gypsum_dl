@@ -4,7 +4,7 @@
     "multithread_mode": "mpi",
     "output_folder": "./gypsum_test_output/",
     "output_pdb": true,
-    "max_variants_per_compound": 5,
+    "max_variants_per_compound": 10,
     "thoroughness": 2,
     "num_processors": 4,
     "min_ph": 4,
