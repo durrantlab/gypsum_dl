@@ -32,9 +32,9 @@ else:
 # parallelizer_obj MUST BE THREADED THROUGHOUT OR MPI WILL BREAK BADLY
 
 # parallelizer_obj contains information about the processor type and number of node/processors in self
-#   So its unnecessary to provide multithread_mode or num_processors again but it is possible
+#   So its unnecessary to provide multithread_mode or num_procs again but it is possible
 
 
-    tmp = parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
+    tmp = parallelizer_obj.run(inputs, parallel_add_H, num_procs, multithread_mode)
 
-    tmp = parallelizer_obj.run(inputs, parallel_addH)
+    tmp = parallelizer_obj.run(inputs, parallel_add_H)

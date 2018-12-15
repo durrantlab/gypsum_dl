@@ -14,14 +14,14 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def desalt_orig_smi(contnrs, num_processors, multithread_mode, parallelizer_obj):
+def desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj):
     """If an input molecule has multiple unconnected fragments, this removes
        all but the largest fragment.
 
-    :param contnrs: The molecule containers.
+    :param contnrs: A list of containers.
     :type contnrs: list
-    :param num_processors: Number of processors to use.
-    :type num_processors: int
+    :param num_procs: The number of processors to use.
+    :type num_procs: int
     :param multithread_mode: The multithread mode.
     :type multithread_mode: string
     :param parallelizer_obj: The Parallelizer object.
@@ -35,7 +35,7 @@ def desalt_orig_smi(contnrs, num_processors, multithread_mode, parallelizer_obj)
     # Desalt each of the molecule containers.
     # @@@@@@@@@@@ JAKE FIX LATER TO MULTI BELOW. JDD: Needs attention? Maybe
     # not. This is probably fast.
-    # tmp = mp.MultiThreading(contnrs, num_processors, desalter)
+    # tmp = mp.MultiThreading(contnrs, num_procs, desalter)
     tmp = [desalter(x) for x in contnrs]
 
     # Go through each contnr and update the orig_smi_deslt. If we update it,

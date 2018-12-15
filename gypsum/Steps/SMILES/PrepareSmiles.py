@@ -12,7 +12,7 @@ from gypsum.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 def prepare_smiles(contnrs, params):
     """Runs the appropriate steps for processing the SMILES strings.
 
-    :param contnrs: The molecule containers.
+    :param contnrs: A list of containers.
     :type contnrs: list
     :param params: The user parameters.
     :type params: dict
@@ -24,20 +24,20 @@ def prepare_smiles(contnrs, params):
     std_dev = params["ph_std_dev"]
     max_variants_per_compound = params["max_variants_per_compound"]
     thoroughness = params["thoroughness"]
-    num_processors = params["num_processors"]
+    num_procs = params["num_processors"]
     multithread_mode = params["multithread_mode"]
     parallelizer_obj = params["Parallelizer"]
 
     # Desalt the molecules.
     print("Begin Desaltings")
-    desalt_orig_smi(contnrs, num_processors, multithread_mode, parallelizer_obj)
+    desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj)
     print("Done with Desalting")
 
     # Add hydrogens for user-specified pH, if requested.
     if not params["skip_adding_hydrogen"]:
         print("Protonating Molecules")
         add_hydrogens(contnrs, min_ph, max_ph, std_dev, max_variants_per_compound,
-                      thoroughness, num_processors, multithread_mode,
+                      thoroughness, num_procs, multithread_mode,
                       parallelizer_obj)
         print("Done with Protonating")
     else:
@@ -48,7 +48,7 @@ def prepare_smiles(contnrs, params):
     if not params["skip_making_tautomers"]:
         print("Tautomerizing Molecules")
         make_tauts(contnrs, max_variants_per_compound, thoroughness,
-                   num_processors, multithread_mode, parallelizer_obj)
+                   num_procs, multithread_mode, parallelizer_obj)
         print("Done with Tautomerization")
     else:
         print("Skipping Tautomerization")
@@ -57,7 +57,7 @@ def prepare_smiles(contnrs, params):
     if not params["skip_ennumerate_chiral_mol"]:
         print("Enumerating Chirality")
         enumerate_chiral_molecules(contnrs, max_variants_per_compound,
-                                   thoroughness, num_processors,
+                                   thoroughness, num_procs,
                                    multithread_mode, parallelizer_obj)
         print("Done with Chirality Enumeration")
     else:
@@ -67,7 +67,7 @@ def prepare_smiles(contnrs, params):
     if not params["skip_ennumerate_double_bonds"]:
         print("Enumerating Double Bonds")
         enumerate_double_bonds(contnrs, max_variants_per_compound,
-                               thoroughness, num_processors,
+                               thoroughness, num_procs,
                                multithread_mode, parallelizer_obj)
         print("Done with Double Bond Enumeration")
     else:
@@ -87,7 +87,7 @@ def wrap_molecules(contnrs):
     this case, the one SMILES needs to be converted to a RDKit mol object for
     subsequent steps to work. Let's do that here.
 
-    :param contnrs: The molecule containers.
+    :param contnrs: A list of containers.
     :type contnrs: list
     """
 

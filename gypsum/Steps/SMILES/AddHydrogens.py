@@ -1,5 +1,6 @@
 """
-This module is made to identify and enumerate the possible protonation sites of molecules.
+This module identifies and enumerates the possible protonation sites of
+molecules.
 """
 
 from rdkit import Chem
@@ -12,12 +13,13 @@ import gypsum.MolContainer as MolCont
 
 from gypsum.Steps.SMILES.dimorphite.dimorphite_dl import protonate
 
-def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants, thoroughness,
-                  num_processors, multithread_mode, parallelizer_obj):
+def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
+                  thoroughness, num_procs, multithread_mode,
+                  parallelizer_obj):
     """Adds hydrogen atoms to molecule containers, as appropriate for a given
        pH.
 
-    :param contnrs: The molecule containers.
+    :param contnrs: A list of containers.
     :type contnrs: A list.
     :param min_pH: The minimum pH to consider.
     :type min_pH: float
@@ -25,12 +27,12 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants, thoroughness,
     :type max_pH: float
     :param st_dev: The standard deviation. See Dimorphite-DL paper.
     :type st_dev: float
-    :param max_variants: [description] JDD: Figure out.
-    :type max_variants: int
+    :param max_variants_per_compound: [description] JDD: Figure out.
+    :type max_variants_per_compound: int
     :param thoroughness: [description] JDD: Figure out.
     :type thoroughness: int
-    :param num_processors: The number of processors to use.
-    :type num_processors: int
+    :param num_procs: The number of processors to use.
+    :type num_procs: int
     :param multithread_mode: The multithred mode to use.
     :type multithread_mode: string
     :param parallelizer_obj: The Parallelizer object.
@@ -50,7 +52,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants, thoroughness,
     inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])
 
     # Run the parallelizer and collect the results.
-    results = parallelizer_obj.run(inputs, parallel_addH, num_processors, multithread_mode)
+    results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, multithread_mode)
     results = Parallelizer.flatten_list(results)
 
     # Dimorphite-DL might not have generated ionization states for some
@@ -81,9 +83,11 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants, thoroughness,
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(contnrs, results, max_variants, thoroughness)
+    ChemUtils.bst_for_each_contnr_no_opt(
+        contnrs, results, max_variants_per_compound, thoroughness
+    )
 
-def parallel_addH(contnr, protonation_settings):
+def parallel_add_H(contnr, protonation_settings):
     """Creates alternate ionization variants for a given molecule container.
        This is the function that gets fed into the parallelizer.
 

@@ -138,7 +138,7 @@ def conf_generator(args):
     # For Debugging
     # print("")
     # print("###########################")
-    # print("num_processors  :  ", params["num_processors"])
+    # print("num_procs  :  ", params["num_processors"])
     # print("chosen mode  :  ", params["multithread_mode"])
     # print("Parallel style:  ", params["Parallelizer"].return_mode())
     # print("Number Nodes:  ", params["Parallelizer"].return_node())

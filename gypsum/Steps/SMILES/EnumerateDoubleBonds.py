@@ -128,7 +128,7 @@ def GetDoubleBonded(mol, max_variants_per_compound):
             return new_mol
 
 
-def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, parallelizer_obj):
+def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_procs, multithread_mode, parallelizer_obj):
     """
     Enumerates all possible cis-trans isomers. If the stereochemistry of a
     double bond is specified, it is not varied. All unspecified double bonds
@@ -147,7 +147,7 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
         for mol in contnr.mols:
             params.append(tuple([mol, max_variants_per_compound]))
     params = tuple(params)
-    tmp = parallelizer_obj.run(params, GetDoubleBonded, num_processors, multithread_mode)
+    tmp = parallelizer_obj.run(params, GetDoubleBonded, num_procs, multithread_mode)
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.

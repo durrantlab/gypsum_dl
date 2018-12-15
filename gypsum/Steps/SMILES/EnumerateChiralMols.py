@@ -77,7 +77,7 @@ def GetChiral(mol, max_variants_per_compound, thoroughness):
     return results
 
 
-def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, parallelizer_obj):
+def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_procs, multithread_mode, parallelizer_obj):
     """
     Enumerates all possible enantiomers of a molecule. If the chiral of an
     atom is given, that chiral is not varied. Only the chiral of
@@ -94,7 +94,7 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
         for mol in contnr.mols:
             params.append(tuple([mol, thoroughness, max_variants_per_compound]))
     params = tuple(params)
-    tmp = parallelizer_obj.run(params, GetChiral, num_processors, multithread_mode)
+    tmp = parallelizer_obj.run(params, GetChiral, num_procs, multithread_mode)
 
     clean = Parallelizer.strip_none(tmp)
     flat = Parallelizer.flatten_list(clean)

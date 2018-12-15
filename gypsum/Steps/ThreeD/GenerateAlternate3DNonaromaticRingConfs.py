@@ -140,7 +140,7 @@ def GetRingConfs(mol, thoroughness, max_variants_per_compound, second_embed):
 
 
 
-def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_variants_per_compound, num_processors, second_embed, multithread_mode, parallelizer_obj):
+def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_variants_per_compound, num_procs, second_embed, multithread_mode, parallelizer_obj):
     """
     Docking programs like Vina rotate chemical moieties around their rotatable
     bonds, so it's not necessary to generate a larger rotomer library for each
@@ -175,7 +175,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
 
     #Utils.log("\tApplies to molecule derived from " + orig_smi)
     tmp = parallelizer_obj.run(
-        params, GetRingConfs, num_processors, multithread_mode)
+        params, GetRingConfs, num_procs, multithread_mode)
 
 
     results = Parallelizer.flatten_list(tmp)

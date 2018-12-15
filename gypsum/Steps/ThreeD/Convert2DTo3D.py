@@ -37,7 +37,7 @@ def mk3d(mol):
             "discarded."
         )
 
-def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_processors, multithread_mode, parallelizer_obj):
+def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, multithread_mode, parallelizer_obj):
     """
     Converts the 1D smiles strings into 3D small-molecule models.
     """
@@ -49,7 +49,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_proce
         for mol in contnr.mols:
             params.append(tuple([mol]))
     params = tuple(params)
-    tmp = parallelizer_obj.run(params, mk3d, num_processors, multithread_mode)
+    tmp = parallelizer_obj.run(params, mk3d, num_procs, multithread_mode)
     clear = Parallelizer.strip_none(tmp)
 
     # Keep only the top few compound variants in each container, to prevent a

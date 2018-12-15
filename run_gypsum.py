@@ -16,11 +16,11 @@ PARSER.add_argument('--json', '-j', metavar='param.json',
                     Overrides other arguments.')
 PARSER.add_argument('--source', '-s', metavar='input.smi',
                     help='Name of the source file.')
-PARSER.add_argument('--output_folder_pdbs', '-f', 
+PARSER.add_argument('--output_folder_pdbs', '-f',
                     help='The directory that output files will be placed.')
-PARSER.add_argument('--output_file', '-o', 
+PARSER.add_argument('--output_file', '-o',
                     help='The file name of the output .sdf file(s).')
-PARSER.add_argument('--num_processors', '-p', metavar='N', default=1,
+PARSER.add_argument('--num_procs', '-p', metavar='N', default=1,
                     help='Number of processors to use in parallel.')
 PARSER.add_argument('--min_ph', metavar='MIN', type=float,
                     help='Minimum pH to consider.')
@@ -53,7 +53,7 @@ PARSER.add_argument('--2d_output_only', action='store_true',
 PARSER.add_argument('--multithread_mode', default='multithreading', choices = ["mpi","multithreading","serial"],
                     help='Determine what style multithreading: mpi, multithreading, or serial.\
                     If this program is being used by a program in MPI mode we recommend setting this to serial.\
-                    serial will override num_processors and force it to be on a single processor.')
+                    serial will override num_procs and force it to be on a single processor.')
 PARSER.add_argument('--cache_prerun', '-c', action='store_true',
                     help='Run this before running gypsum in mpi-mode.')
 
@@ -70,5 +70,3 @@ if ARGS_DICT["cache_prerun"]==False:
     print("Finished Gypsum")
 else:
     pass
-
-
