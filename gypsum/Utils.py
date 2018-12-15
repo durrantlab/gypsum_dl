@@ -1,3 +1,5 @@
+"""Some helpful utility definitions used throughout the code."""
+
 import __future__
 
 import subprocess
@@ -5,22 +7,23 @@ import textwrap
 import random
 
 def group_mols_by_container_index(mol_lst):
-    """
-    Take a list of MyMol.MyMol objects, and place them in lists according to
+    """Take a list of MyMol.MyMol objects, and place them in lists according to
     their associated contnr_idx values. These lists are accessed via
     a dictionary, where they keys are the contnr_idx values
     themselves.
 
-    :param [MyMol.MyMol] mol_list: The list of MyMol.MyMol objects.
-
-    :returns: a dictionary, where keys are contnr_idx values and
-              values are lists of MyMol.MyMol objects.
-    :rtype: :class:`str` ???
+    :param mol_lst: The list of MyMol.MyMol objects.
+    :type mol_lst: list
+    :return: A dictionary, where keys are contnr_idx values and values are
+       lists of MyMol.MyMol objects
+    :rtype: dict
     """
 
+    # Make the dictionary.
     grouped_results = {}
     for mol in mol_lst:
         if mol is None:
+            # Ignore molecules that are None.
             continue
 
         idx = mol.contnr_idx
@@ -29,44 +32,47 @@ def group_mols_by_container_index(mol_lst):
             grouped_results[idx] = []
         grouped_results[idx].append(mol)
 
+    # Remove redundant entries.
     for key in grouped_results.keys():
         grouped_results[key] = list(set(grouped_results[key]))
 
     return grouped_results
 
 def random_sample(lst, num, msg_if_cut=""):
-    """
-    Randomly selets elements from a list.
+    """Randomly selects elements from a list.
 
-    :param [any] lst: The list of elements.
-
-    :param int num: The number to randomly select.
-
-    :param str msg_if_cut: The message to display if some elements must be
-               ignored to construct the list.
-
-    :returns: a list that contains at most num elements.
-    :rtype: :class:`str` ???
+    :param lst: The list of elements.
+    :type lst: list
+    :param num: The number to randomly select.
+    :type num: int
+    :param msg_if_cut: The message to display if some elements must be ignored
+       to construct the list. Defaults to "".
+    :param msg_if_cut: str, optional
+    :return: A list that contains at most num elements.
+    :rtype: list
     """
 
     try:
+        # Remove redundancies.
         lst = list(set(lst))
     except:
         # Because someitems lst element may be unhashable.
         pass
 
+    # Shuffle the list.
     random.shuffle(lst)
     if num < len(lst):
+        # Keep the top ones.
         lst = lst[:num]
         if msg_if_cut != "":
             log(msg_if_cut)
     return lst
 
 def log(txt):
-    """
-    Prints a message to the screen.
+    """Prints a message to the screen.
 
-    :param str txt: The message to print.
+    :param txt: The message to print.
+    :type txt: str
     """
 
     whitespace_before = txt[:len(txt) - len(txt.lstrip())].replace("\t", "    ")
@@ -75,21 +81,22 @@ def log(txt):
         subsequent_indent = whitespace_before + "    "
     ))
 
-def find_missing_mol_idxs(contnrs, results):
-    """Identify contnrs that have no representative elements in results.
+def fnd_contnrs_not_represntd(contnrs, results):
+    """Identify containers that have no representative elements in results.
 
-    :param ConfGenerator self: The associated ConfGenerator object.
-
-    :param [MyMol.MyMol] results: A list of MyMol.MyMol objects.
-
-    :returns: a list of integers, the indecies of the contnrs that have
-              no associated elements in results.
-    :rtype: :class:`str` ???
+    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :type contnrs: list
+    :param results: A list of MyMol.MyMol objects.
+    :type results: list
+    :return: A list of integers, the indecies of the contnrs that have no
+       associated elements in the results.
+    :rtype: list
     """
 
-    # Find ones that don't have any generated. This is because sometimes
-    # Dimorphite-DL failes to producce valid smiles. In this case, just use the
-    # original smiles. Couldn't find a good solution to work around.
+    # Find ones that don't have any generated. In the context of protonation,
+    # for example, this is because sometimes Dimorphite-DL failes to producce
+    # valid smiles. In this case, just use the original smiles. Couldn't find
+    # a good solution to work around.
 
     # Get a dictionary of all the input smiles. Keys are indexes, values are
     # smiles.
@@ -104,10 +111,11 @@ def find_missing_mol_idxs(contnrs, results):
         if m.contnr_idx in idx_to_smi:
             del idx_to_smi[m.contnr_idx]
 
+    # Return just the container indexes (the keys).
     return idx_to_smi.keys()
 
 def print_current_smiles(contnrs):
-    """Prints the smiles of the current containers.
+    """Prints the smiles of the current containers. Helpful for debugging.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list

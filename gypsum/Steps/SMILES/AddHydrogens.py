@@ -57,7 +57,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
 
     # Dimorphite-DL might not have generated ionization states for some
     # molecules. Identify those that are missing.
-    contnr_idxs_of_failed = Utils.find_missing_mol_idxs(contnrs, results)
+    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, results)
 
     # For those molecules, just use the original SMILES string, with hydrogen
     # atoms added using RDKit.

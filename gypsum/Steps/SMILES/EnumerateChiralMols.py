@@ -59,7 +59,7 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     flat = Parallelizer.flatten_list(clean)
 
     # Get the indexes of the ones that failed to generate.
-    contnr_idxs_of_failed = Utils.find_missing_mol_idxs(contnrs, flat)
+    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, flat)
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
