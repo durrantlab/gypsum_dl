@@ -20,7 +20,13 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     :type mol_lst: list
     :param num: The number of the lowest-energy ones to keep.
     :type num: int
-    :param thoroughness: How many extra conformers to generate to pick num from. It's a factor.
+    :param thoroughness: How many molecules to generate per variant (molecule)
+       retained, for evaluation. For example, perhaps you want to advance five
+       molecules (max_variants_per_compound = 5). You could just generate five
+       and advance them all. Or you could generate ten and advance the best
+       five (so thoroughness = 2). Using thoroughness > 1 increases the
+       computational expense, but it also increases the chances of finding good
+       molecules.
     :type thoroughness: int
     :return: Returns a list of MyMol.MyMol, the best ones.
     :rtype: list
@@ -68,9 +74,17 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
     :type contnrs: list
     :param mol_lst: The list of MyMol.MyMol objects.
     :type mol_lst: list
-    :param max_variants_per_compound: [description] JDD: Figure out.
+    :param max_variants_per_compound: To control the combinatorial explosion,
+       only this number of variants (molecules) will be advanced to the next
+       step.
     :type max_variants_per_compound: int
-    :param thoroughness: [description] JDD: Figure out.
+    :param thoroughness: How many molecules to generate per variant (molecule)
+       retained, for evaluation. For example, perhaps you want to advance five
+       molecules (max_variants_per_compound = 5). You could just generate five
+       and advance them all. Or you could generate ten and advance the best
+       five (so thoroughness = 2). Using thoroughness > 1 increases the
+       computational expense, but it also increases the chances of finding good
+       molecules.
     :type thoroughness: int
     :param crry_ovr_frm_lst_step_if_no_fnd: If it can't find any low-energy
        conformers, determines whether to just keep the old ones. Defaults to

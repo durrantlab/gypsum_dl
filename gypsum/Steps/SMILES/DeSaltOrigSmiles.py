@@ -32,10 +32,8 @@ def desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj):
         "Desalting all molecules (i.e., keeping only largest fragment)."
     )
 
-    # Desalt each of the molecule containers.
-    # @@@@@@@@@@@ JAKE FIX LATER TO MULTI BELOW. JDD: Needs attention? Maybe
-    # not. This is probably fast.
-    # tmp = mp.MultiThreading(contnrs, num_procs, desalter)
+    # Desalt each of the molecule containers. This step is very fast, so let's
+    # just run it on a single processor always.
     tmp = [desalter(x) for x in contnrs]
 
     # Go through each contnr and update the orig_smi_deslt. If we update it,

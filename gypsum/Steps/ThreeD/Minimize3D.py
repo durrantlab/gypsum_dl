@@ -16,9 +16,17 @@ def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, sec
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
-    :param max_variants_per_compound: [description] JDD: Figure out.
+    :param max_variants_per_compound: To control the combinatorial explosion,
+       only this number of variants (molecules) will be advanced to the next
+       step.
     :type max_variants_per_compound: int
-    :param thoroughness: [description] JDD: Figure out.
+    :param thoroughness: How many molecules to generate per variant (molecule)
+       retained, for evaluation. For example, perhaps you want to advance five
+       molecules (max_variants_per_compound = 5). You could just generate five
+       and advance them all. Or you could generate ten and advance the best
+       five (so thoroughness = 2). Using thoroughness > 1 increases the
+       computational expense, but it also increases the chances of finding good
+       molecules.
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -88,9 +96,17 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
 
     :param mol: The molecule to minimize.
     :type mol: MyMol.MyMol
-    :param max_variants_per_compound: [description] JDD: Figure out.
+    :param max_variants_per_compound: To control the combinatorial explosion,
+       only this number of variants (molecules) will be advanced to the next
+       step.
     :type max_variants_per_compound: int
-    :param thoroughness: [description] JDD: Figure out.
+    :param thoroughness: How many molecules to generate per variant (molecule)
+       retained, for evaluation. For example, perhaps you want to advance five
+       molecules (max_variants_per_compound = 5). You could just generate five
+       and advance them all. Or you could generate ten and advance the best
+       five (so thoroughness = 2). Using thoroughness > 1 increases the
+       computational expense, but it also increases the chances of finding good
+       molecules.
     :type thoroughness: int
     :param second_embed: Whether to try to generate 3D coordinates using an
         older algorithm if the better (default) algorithm fails. This can add
