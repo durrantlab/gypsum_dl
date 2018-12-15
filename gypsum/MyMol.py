@@ -173,8 +173,10 @@ class MyMol:
         return m
 
     def make_first_3d_conf_no_min(self):
-        """Makes the associated rdkit.mol object 3D by adding the first conformer. This
-        also adds hydrogen atoms to the associated rdkit.mol object."""
+        """Makes the associated rdkit.mol object 3D by adding the first
+           conformer. This also adds hydrogen atoms to the associated rdkit.mol
+           object. Note that it does not perform a minimization, so it is not
+           too expensive."""
 
         # Set the first 3D conformer
         if len(self.conformers) > 0:
