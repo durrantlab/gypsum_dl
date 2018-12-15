@@ -176,7 +176,7 @@ def prepare_molecules(args):
     # Convert the processed SMILES strings to 3D.
     prepare_3d(contnrs, params)
 
-    # JDD: What?
+    # Add in name and unique id to each molecule.
     add_mol_id_props(contnrs)
 
     # Output the current SMILES.

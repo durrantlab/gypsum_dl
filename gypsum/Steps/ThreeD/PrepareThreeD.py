@@ -35,5 +35,6 @@ def prepare_3d(contnrs, params):
             second_embed, multithread_mode, parallelizer_obj
         )
 
+    # Minimize the molecules, if requested.
     if not params["skip_optimize_geometry"]:
         minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, multithread_mode, parallelizer_obj)
