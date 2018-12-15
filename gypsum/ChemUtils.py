@@ -64,7 +64,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
 
     # Remove duplicate ligands from cluster.
     for mol_cont in contnrs:
-        mol_cont.remove_identical_mols_from_container()
+        mol_cont.remove_identical_mols_from_contnr()
 
     # Group the smiles by contnr_idx
     data = Utils.group_mols_by_container_index(mol_lst)

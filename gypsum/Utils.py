@@ -125,5 +125,5 @@ def print_current_smiles(contnrs):
     print("    Contents of MolContainers")
     for i, mol_cont in enumerate(contnrs):
         log("\t\tMolContainer #" + str(i))
-        for i, s in enumerate(mol_cont.all_smiles()):
+        for i, s in enumerate(mol_cont.all_can_noh_smiles()):
             log("\t\t\tMol" + str(i) + ": " + s)
