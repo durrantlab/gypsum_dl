@@ -88,5 +88,5 @@ def desalter(contnr):
         new_mol.contnr_idx = contnr.contnr_idx
         new_mol.name = contnr.name
         new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy
-        new_mol.makeMolFromSmiles() # Need to update the mol.
+        new_mol.make_mol_frm_smiles_sanitze() # Need to update the mol.
         return new_mol

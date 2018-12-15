@@ -53,7 +53,7 @@ class MolContainer:
         self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
 
         # Get the number of nonaromatic rings
-        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.m_num_nonaro_rngs())
+        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
 
         # Get the number of chiral centers, assigned or not
         self.num_specif_chiral_cntrs = len(
@@ -61,7 +61,7 @@ class MolContainer:
         )
 
         # Get the non-acidic carbon-hydrogen footprint.
-        self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.carb_hyd_cnt()
+        self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
 
     def mol_with_smiles_is_in_container(self, smiles):
         """
@@ -168,7 +168,7 @@ class MolContainer:
         self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
         self.frgs = ""
         self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
-        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.m_num_nonaro_rngs())
+        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
         self.num_specif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
         )
@@ -183,7 +183,7 @@ class MolContainer:
         """
         for mol in self.mols:
             mol.mol_props.update(self.properties)
-            mol.setAllRDKitMolProps()
+            mol.set_all_rdkit_mol_props()
 
     def remove_identical_mols_from_container(self):
         # For reasons I don't understand, the following doesn't give unique

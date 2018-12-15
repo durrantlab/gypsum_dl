@@ -274,8 +274,8 @@ def parallel_check_nonarom_rings(taut, contnr):
     num_nonaro_rngs_orig = contnr.num_nonaro_rngs
 
     # Check if it breaks aromaticity.
-    m_num_nonaro_rngs = len(taut.m_num_nonaro_rngs())
-    if m_num_nonaro_rngs == num_nonaro_rngs_orig:
+    get_idxs_of_nonaro_rng_atms = len(taut.get_idxs_of_nonaro_rng_atms())
+    if get_idxs_of_nonaro_rng_atms == num_nonaro_rngs_orig:
         # Same number of nonaromatic rings as original molecule. Saves the
         # good ones.
         return taut
@@ -335,7 +335,7 @@ def parallel_check_carbon_hydrogens(taut, contnr):
     orig_carbon_hydrogen_count = contnr.carbon_hydrogen_count
 
     # How about this tautomer?
-    this_carbon_hydrogen_count = taut.carb_hyd_cnt()
+    this_carbon_hydrogen_count = taut.count_hyd_bnd_to_carb()
 
     # Only keep if they are the same.
     if orig_carbon_hydrogen_count == this_carbon_hydrogen_count:

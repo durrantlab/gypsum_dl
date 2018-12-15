@@ -1,5 +1,5 @@
 """A module to so the 2D to 3D conversion, though the actual code for that
-conversion is in MyMol.MyMolk.make_mol_3d()"""
+conversion is in MyMol.MyMol.make_first_3d_conf_no_min()"""
 
 import __future__
 import copy
@@ -72,9 +72,9 @@ def parallel_make_3d(mol):
         # Check if it has strange substructures.
         if mol.remove_bizarre_substruc() == False:
             # Perform the conversion.
-            mol.make_mol_3d()
+            mol.make_first_3d_conf_no_min()
 
-            # If there are some conformations, make not of that in the
+            # If there are some conformations, make note of that in the
             # genealogy record.
             if len(mol.conformers) > 0:
                 mol.genealogy.append(

@@ -155,7 +155,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
     # mols list.
 
     # Get the ring atom indecies
-    rings = mol.m_num_nonaro_rngs()
+    rings = mol.get_idxs_of_nonaro_rng_atms()
 
     # Convert that into the bond indecies.
     rings_by_bond_indexes = []  # A list of lists, where each inner list has
@@ -193,7 +193,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         # So don't save this one anyway.
 
         # Get the scores (lowest energy) of these minimized conformers.
-        mol.load_conformations_into_mol_3d()
+        mol.load_conformers_into_rdkit_mol()
 
         # Extract just the rings.
         ring_mols = [Chem.PathToSubmol(mol.rdkit_mol, bi)

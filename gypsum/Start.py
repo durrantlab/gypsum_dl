@@ -436,8 +436,8 @@ def add_mol_id_props(contnrs):
     for contnr in contnrs:
         for mol in contnr.mols:
             cont_id = cont_id + 1
-            mol.setRDKitMolProp("UniqueID", str(cont_id))
-            mol.setAllRDKitMolProps()
+            mol.set_rdkit_mol_prop("UniqueID", str(cont_id))
+            mol.set_all_rdkit_mol_props()
 
 def deal_with_failed_molecules(contnrs, params):
     """Removes and logs failed molecules.

@@ -38,7 +38,7 @@ def save_to_sdf(contnrs, params, separate_output_files, output_file):
             w = Chem.SDWriter(output_file + "." + str(i + 1) + ".sdf")
 
         for m in contnr.mols:
-            m.load_conformations_into_mol_3d()
+            m.load_conformers_into_rdkit_mol()
             w.write(m.rdkit_mol)
 
         if separate_output_files == True:
@@ -48,4 +48,3 @@ def save_to_sdf(contnrs, params, separate_output_files, output_file):
     if separate_output_files == False:
         w.flush()
         w.close()
-
