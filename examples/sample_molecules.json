@@ -2,6 +2,12 @@
     "source": "sample_molecules.smi",
     "separate_output_files": true,
     "multithread_mode": "mpi",
-    "output_folder": "/home/jacob/Desktop/Output_Gypsum/",
-    "output_pdb": true
+    "output_folder": "./gypsum_test_output/",
+    "output_pdb": true,
+    "max_variants_per_compound": 5,
+    "thoroughness": 2,
+    "num_processors": 4,
+    "min_ph": 4,
+    "max_ph": 10,
+    "ph_std_dev": 1
 }

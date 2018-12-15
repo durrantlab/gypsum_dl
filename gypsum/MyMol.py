@@ -538,10 +538,7 @@ class MyMol:
         total_hydrogens_counted = 0
         for atom in self.rdkit_mol.GetAtoms():
             if atom.GetSymbol() == "C":
-                # atom_idx = atom.GetIdx()
-                # if atom_idx not in carbons_alpha:
-                num_Hs = atom.GetNumImplicitHs() + atom.GetNumExplicitHs()
-                total_hydrogens_counted = total_hydrogens_counted + num_Hs
+                total_hydrogens_counted = total_hydrogens_counted + atom.GetTotalNumHs(includeNeighbors=True)
 
         return total_hydrogens_counted
 

@@ -143,7 +143,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
     # Go through the chirality combinations and make a molecule with that
     # chirality.
     for option in options:
-        # Copy the initial rdkit molecule≥
+        # Copy the initial rdkit molecule.
         a_rd_mol = copy.copy(mol.rdkit_mol)
 
         # Set its chirality.

@@ -17,7 +17,7 @@ def load_smiles_file(filename):
     :rtype: list
     """
 
-    # A smiles file contains one molecule on each line. Each line is a string,
+    # A smiles file contains one molecule on each line. Each line is a string,
     # separated by white space, followed by the molecule name.
     data = []
     duplicate_names = {}

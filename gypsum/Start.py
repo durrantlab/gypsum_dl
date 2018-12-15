@@ -303,17 +303,23 @@ def merge_parameters(default, params):
             )
             Utils.log("Here are the options:")
             Utils.log(str(default.keys()))
-            raise KeyError("Unrecognized parameter.")
+            raise KeyError("Unrecognized parameter: " + str(param))
 
         # Throw an error if the input parameter has a different type than
         # the default one.
         if not isinstance(params[param], type_dict[param]):
-            Utils.log(
-                "ERROR! The parameter \"" + param + "\" must be of " +
-                "type" + str(type_dict[param]) + ", but it is of type " +
-                str(type(params[param])) + "."
-            )
-            raise TypeError("Input parameter has a different type than the default.")
+            # Cast int to float if necessary
+            if type(params[param]) is int and type_dict[param] is float:
+                params[param] = float(params[param])
+            else:
+                # Seems to be a type mismatch.
+
+                Utils.log(
+                    "ERROR! The parameter \"" + param + "\" must be of " +
+                    "type" + str(type_dict[param]) + ", but it is of type " +
+                    str(type(params[param])) + "."
+                )
+                raise TypeError("Input parameter (" + param + ") has a different type than the default.")
 
         # Update the parameter value with the user-defined one.
         default[param] = params[param]
