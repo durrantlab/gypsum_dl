@@ -119,12 +119,8 @@ def parallel_add_H(contnr, protonation_settings):
     # Add the SMILES string to the protonation parameters.
     protonation_settings["smiles"] = contnr.orig_smi_canonical
 
-    print protonation_settings
-
     # Protonate the SMILESstring. This is Dimorphite-DL.
     smis = protonate(protonation_settings)
-    print smis
-    import pdb; pdb.set_trace()
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
     # objects.
