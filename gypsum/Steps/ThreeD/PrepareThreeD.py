@@ -23,16 +23,17 @@ def prepare_3d(contnrs, params):
     multithread_mode = params["multithread_mode"]
     parallelizer_obj = params["Parallelizer"]
 
-    # Do the 2d to 3d conversionl if requested.
+    # Do the 2d to 3d conversionl, if requested.
     if not params["2d_output_only"]:
         convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness,
                          num_procs, multithread_mode, parallelizer_obj)
 
+    # Generate alternate non-aromatic ring conformations, if requested.
     if not params["skip_alternate_ring_conformations"]:
-        generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness,
-                                                     max_variants_per_compound,
-                                                     num_procs,
-                                                     second_embed, multithread_mode, parallelizer_obj)
+        generate_alternate_3d_nonaromatic_ring_confs(
+            contnrs, max_variants_per_compound, thoroughness, num_procs,
+            second_embed, multithread_mode, parallelizer_obj
+        )
 
     if not params["skip_optimize_geometry"]:
-        minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_procs, second_embed, multithread_mode, parallelizer_obj)
+        minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, multithread_mode, parallelizer_obj)

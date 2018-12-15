@@ -66,8 +66,6 @@ class MyConformer:
                 # This may be resolved in next RDKit update so we encased this in a try statement
                 params = AllChem.ETKDG()
 
-
-            #print(self.mol.conformers)
             # The default, but just a sanity check.
             params.enforcechiral = True
             #print(self.mol.conformers)
