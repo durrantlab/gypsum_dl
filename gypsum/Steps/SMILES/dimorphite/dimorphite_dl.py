@@ -126,7 +126,7 @@ def protonate(args):
     :param dict args: A dictionary containing the arguments.
     :return: A list of the protonated smiles strings.
     """
-    
+
     args = clean_args(args)
     subs = load_protonation_substructs_calc_state_for_ph(
         args["min_ph"], args["max_ph"], args["pka_precision"]

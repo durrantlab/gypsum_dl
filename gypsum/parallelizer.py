@@ -592,7 +592,6 @@ def MultiThreading(inputs, num_procs, task_name):
     if len(inputs) == 0:
         return results
 
-
     inputs = check_and_format_inputs_to_list_of_tuples(inputs)
 
     num_procs = count_processors(len(inputs), num_procs)

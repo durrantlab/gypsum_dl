@@ -3,6 +3,7 @@ tautomeric, chiral forms, etc."""
 
 import __future__
 
+from gypsum import Utils
 from gypsum.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum.Steps.SMILES.AddHydrogens import add_hydrogens
 from gypsum.Steps.SMILES.MakeTautomers import make_tauts
@@ -28,10 +29,14 @@ def prepare_smiles(contnrs, params):
     multithread_mode = params["multithread_mode"]
     parallelizer_obj = params["Parallelizer"]
 
+    debug = False
+
     # Desalt the molecules.
     print("Begin Desaltings")
     desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj)
     print("Done with Desalting")
+
+    if debug: Utils.print_current_smiles(contnrs)
 
     # Add hydrogens for user-specified pH, if requested.
     if not params["skip_adding_hydrogen"]:
@@ -44,6 +49,8 @@ def prepare_smiles(contnrs, params):
         print("Skipping Protonation")
         wrap_molecules(contnrs)
 
+    if debug: Utils.print_current_smiles(contnrs)
+
     # Make alternate tautomeric forms, if requested.
     if not params["skip_making_tautomers"]:
         print("Tautomerizing Molecules")
@@ -52,6 +59,8 @@ def prepare_smiles(contnrs, params):
         print("Done with Tautomerization")
     else:
         print("Skipping Tautomerization")
+
+    if debug: Utils.print_current_smiles(contnrs)
 
     # Make alternate chiral forms, if requested.
     if not params["skip_ennumerate_chiral_mol"]:
@@ -63,6 +72,8 @@ def prepare_smiles(contnrs, params):
     else:
         print("Skipping Chirality Enumeration")
 
+    if debug: Utils.print_current_smiles(contnrs)
+
     # Make alternate double-bond isomers, if requested.
     if not params["skip_ennumerate_double_bonds"]:
         print("Enumerating Double Bonds")
@@ -72,6 +83,8 @@ def prepare_smiles(contnrs, params):
         print("Done with Double Bond Enumeration")
     else:
         print("Skipping Double Bond Enumeration")
+
+    if debug: Utils.print_current_smiles(contnrs)
 
 def wrap_molecules(contnrs):
     """Each molecule container holds only one SMILES string

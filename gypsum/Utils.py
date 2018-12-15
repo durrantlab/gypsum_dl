@@ -105,3 +105,17 @@ def find_missing_mol_idxs(contnrs, results):
             del idx_to_smi[m.contnr_idx]
 
     return idx_to_smi.keys()
+
+def print_current_smiles(contnrs):
+    """Prints the smiles of the current containers.
+
+    :param contnrs: A list of containers.
+    :type contnrs: list
+    """
+
+    # For debugging.
+    print("    Contents of MolContainers")
+    for i, mol_cont in enumerate(contnrs):
+        log("\t\tMolContainer #" + str(i))
+        for i, s in enumerate(mol_cont.all_smiles()):
+            log("\t\t\tMol" + str(i) + ": " + s)

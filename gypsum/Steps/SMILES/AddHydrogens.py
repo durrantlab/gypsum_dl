@@ -57,17 +57,19 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
 
     # Dimorphite-DL might not have generated ionization states for some
     # molecules. Identify those that are missing.
-    contnr_idxs_prot_failed = Utils.find_missing_mol_idxs(contnrs, results)
+    contnr_idxs_of_failed = Utils.find_missing_mol_idxs(contnrs, results)
 
-    # For those molecules, just use the original SMILES string.
-    for miss_indx in contnr_idxs_prot_failed:
+    # For those molecules, just use the original SMILES string, with hydrogen
+    # atoms added using RDKit.
+    for miss_indx in contnr_idxs_of_failed:
         Utils.log(
             "\tWARNING: Gypsum produced no valid protonation states for " +
             contnrs[miss_indx].orig_smi + " (" +
             contnrs[miss_indx].name + "), so using the original " +
             "smiles."
         )
-        amol = contnrs[miss_indx].mol_orig_smi
+
+        amol = contnrs[miss_indx].mol_orig_frm_inp_smi
         amol.contnr_idx = miss_indx
 
         # Save this failure to the genealogy record.
@@ -100,13 +102,6 @@ def parallel_add_H(contnr, protonation_settings):
     :rtype: [type]
     """
 
-    """
-    We take a container and a list of substructures and return all the
-    appropriate protonation variants.
-
-    :params container container: A container for a
-    """
-
     # Make sure the canonical SMILES is actually a string.
     if type(contnr.orig_smi_canonical) != str:
         print("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
@@ -120,8 +115,9 @@ def parallel_add_H(contnr, protonation_settings):
     smis = protonate(protonation_settings)
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
-    # objects.
-    rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
+    # objects. Add hydrogens to the smis, now that the Dimorphite-DL valences
+    # are in place.
+    rdkit_mols = [Chem.AddHs(Chem.MolFromSmiles(smi.strip())) for smi in smis]
 
     # Convert from rdkit mols to MyMol.MyMol.
     addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]
@@ -135,7 +131,7 @@ def parallel_add_H(contnr, protonation_settings):
 
     return_values = []
 
-    orig_mol = contnr.mol_orig_smi
+    orig_mol = contnr.mol_orig_frm_inp_smi
     for Hm in addH_mols:
         Hm.inherit_contnr_props(contnr)
         Hm.genealogy = orig_mol.genealogy[:]

@@ -180,7 +180,7 @@ def conf_generator(args):
     add_mol_id_props(contnrs)
 
     # Output the current SMILES.
-    print_current_smiles(contnrs)
+    Utils.print_current_smiles(contnrs)
 
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)
@@ -423,18 +423,6 @@ def finalize_params(params):
     params["multithread_mode"] = params["multithread_mode"].lower()
 
     return params
-
-def print_current_smiles(contnrs):
-    """Prints the smiles of the current containers.
-
-    :param contnrs: A list of containers.
-    :type contnrs: list
-    """
-
-    # For debugging.
-    print("    Contents of MolContainers")
-    for i, mol_cont in enumerate(contnrs):
-        Utils.log("\t\t" + str(i) + " " + str(mol_cont.all_smiles()))
 
 def add_mol_id_props(contnrs):
     """Once all molecules have been generated, go through each and add the

@@ -64,7 +64,7 @@ def desalter(contnr):
     if len(frags) == 1:
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
-        return contnr.mol_orig_smi
+        return contnr.mol_orig_frm_inp_smi
     else:
         Utils.log(
             "\tMultiple fragments found in " + contnr.orig_smi +
@@ -87,6 +87,6 @@ def desalter(contnr):
         new_mol = MyMol.MyMol(biggest_frag)
         new_mol.contnr_idx = contnr.contnr_idx
         new_mol.name = contnr.name
-        new_mol.genealogy = contnr.mol_orig_smi.genealogy
+        new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy
         new_mol.makeMolFromSmiles() # Need to update the mol.
         return new_mol

@@ -25,7 +25,7 @@ def pick_best_mols(mol_lst, num, thoroughness):
     :returns: A list of MyMol.MyMol objects, the lowest energy ones generated.
     :rtype: :class:`str` ???
     """
-    
+
     # Remove identical entries
     mol_lst = list(set(mol_lst))
 
@@ -35,9 +35,9 @@ def pick_best_mols(mol_lst, num, thoroughness):
 
     # First, generate 3D structures.
     # How many? num * thoroughness
-    # mols_3d is a list of gypsum My.Mol instances 
+    # mols_3d is a list of gypsum My.Mol instances
     mols_3d = Utils.random_sample(mol_lst, num * thoroughness, "")
-    
+
     # Now get the energies
     data = []
     for i, mol in enumerate(mols_3d):
@@ -45,7 +45,7 @@ def pick_best_mols(mol_lst, num, thoroughness):
         if len(mol.conformers) > 0:
             energy = mol.conformers[0].energy
             data.append((energy, i))
-    
+
     data.sort()
 
     # Now keep only best top few.
@@ -58,7 +58,7 @@ def pick_best_mols(mol_lst, num, thoroughness):
     return new_mols_list
 
 def bst_for_each_contnr_no_opt(contnrs, mol_lst,
-                                max_variants_per_compound, thoroughness,
+                               max_variants_per_compound, thoroughness,
                                crry_ovr_frm_lst_step_if_no_fnd=True):
     # smiles_tuple_data is (contnr_idx, MyMols)
 
@@ -68,7 +68,8 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
 
     # Group the smiles by contnr_idx
     data = Utils.group_mols_by_container_index(mol_lst)
-    # Go through each contnr
+
+    # Go through each container
     for contnr_idx, contnr in enumerate(contnrs):
         none_generated = False
 
@@ -91,7 +92,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
                 none_generated = True
         else:
             none_generated = True
-        
+
         if none_generated:
             if crry_ovr_frm_lst_step_if_no_fnd:
                 Utils.log(
@@ -107,4 +108,3 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
                     contnr.name + "). Discarding conformer."
                 )
                 contnr.mols = []
-    

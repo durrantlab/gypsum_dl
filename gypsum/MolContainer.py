@@ -44,25 +44,25 @@ class MolContainer:
         self.name = name
         self.properties = properties
 
-        self.mol_orig_smi = MyMol.MyMol(smiles, name)
-        self.mol_orig_smi.contnr_idx = self.contnr_idx
+        self.mol_orig_frm_inp_smi = MyMol.MyMol(smiles, name)
+        self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx
 
         self.frgs = ""  # For caching.
 
         # Save the original canonical smiles
-        self.orig_smi_canonical = self.mol_orig_smi.smiles()
+        self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
 
         # Get the number of nonaromatic rings
-        self.num_nonaro_rngs = len(self.mol_orig_smi.m_num_nonaro_rngs())
+        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.m_num_nonaro_rngs())
 
         # Get the number of chiral centers, assigned or not
         self.num_specif_chiral_cntrs = len(
-            self.mol_orig_smi.chiral_cntrs_only_asignd()
+            self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
         )
 
         # Get the non-acidic carbon-hydrogen footprint.
-        self.carbon_hydrogen_count = self.mol_orig_smi.carb_hyd_cnt()
-        
+        self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.carb_hyd_cnt()
+
     def mol_with_smiles_is_in_container(self, smiles):
         """
         Checks whether or not a given smiles string is already in this
@@ -74,7 +74,7 @@ class MolContainer:
                   corresponding to that smiles.
         :rtype: :class:`str` ???
         """
-        
+
         # Checks all the mols in this container to see if a given smiles is
         # already present. Returns a new MyMol object if it isn't, True
         # otherwise.
@@ -99,7 +99,7 @@ class MolContainer:
         :param str|[str] smiles: A list of SMILES strings. If it's a string,
                          it is converted into a list.
         """
-        
+
         if isinstance(smiles, str):  # smiles must be array of strs
             smiles = [smiles]
 
@@ -116,8 +116,8 @@ class MolContainer:
                 result.contnr_idx = self.contnr_idx
 
                 self.mols.append(result)
-        
-    def add_mol(self, mol):    
+
+    def add_mol(self, mol):
         """Adds a molecule to this container. Does NOT check for uniqueness.
 
         :param MyMol.MyMol mol: The MyMol.MyMol object to add.
@@ -135,7 +135,7 @@ class MolContainer:
         smiles = []
         for m in self.mols:
             if m.rdkit_mol is not None:
-                smiles.append(m.smiles(True))
+                smiles.append(m.smiles())  # Pass true as a parameter to skip hydrogens.
 
         return smiles
 
@@ -151,13 +151,13 @@ class MolContainer:
         if self.frgs != "":
             return self.frgs
 
-        frags = self.mol_orig_smi.get_frags_of_orig_smi()
+        frags = self.mol_orig_frm_inp_smi.get_frags_of_orig_smi()
         self.frgs = frags
         return frags
 
     def update_orig_smi(self, orig_smi):
         """
-        Updates the orig_smi string. 
+        Updates the orig_smi string.
 
         :param str orig_smi: The replacement smiles string.
         """
@@ -165,17 +165,17 @@ class MolContainer:
         # Update the MolContainer object
         self.orig_smi = orig_smi
         self.orig_smi_deslt = orig_smi
-        self.mol_orig_smi = MyMol.MyMol(self.orig_smi, self.name)
+        self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
         self.frgs = ""
-        self.orig_smi_canonical = self.mol_orig_smi.smiles()
-        self.num_nonaro_rngs = len(self.mol_orig_smi.m_num_nonaro_rngs())
+        self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
+        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.m_num_nonaro_rngs())
         self.num_specif_chiral_cntrs = len(
-            self.mol_orig_smi.chiral_cntrs_only_asignd()
+            self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
         )
 
         # None of the mols derived to date, if present, are accurate.
         self.mols = []
-        
+
     def add_container_properties(self):
         """
         Adds all properties from the container, which is currently populated
@@ -239,7 +239,7 @@ class MolContainer:
         new_smiles = [m.smiles() for m in self.mols]
         new_mols = [Chem.MolFromSmiles(smi) for smi in new_smiles]
         new_can_smiles = [Chem.MolToSmiles(new_mol, isomericSmiles=True, canonical=True) for new_mol in new_mols]
-        
+
         can_smiles_already_set = set([])
         for i, new_can_smile in enumerate(new_can_smiles):
             if not new_can_smile in can_smiles_already_set:
@@ -248,7 +248,7 @@ class MolContainer:
             else:
                 # See before. Delete!
                 self.mols[i] = None
-        
+
         while None in self.mols:
             self.mols.remove(None)
 
@@ -256,4 +256,4 @@ class MolContainer:
         if type(new_idx)!= int:
             raise Exception("new idx value must be an int")
         self.contnr_idx = new_idx
-        self.mol_orig_smi.contnr_idx = self.contnr_idx
+        self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx

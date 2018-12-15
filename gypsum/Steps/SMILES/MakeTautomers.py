@@ -343,7 +343,7 @@ def parallel_check_carbon_hydrogens(taut, contnr):
     else:
         Utils.log(
             "\t" + contnr.orig_smi + " ==> " + taut.smiles(True) +
-            " (taut transformation on " + taut.name + ") " +
+            " (tautomer transformation on " + taut.name + ") " +
             "changed the number of hydrogen atoms bound to a " +
             "carbon, so I'm deleting it."
         )
