@@ -5,7 +5,7 @@ into 3D models.
 """
 import argparse
 import copy
-from gypsum.Start import conf_generator
+from gypsum.Start import prepare_molecules
 
 
 PARSER = argparse.ArgumentParser()
@@ -66,7 +66,7 @@ if ARGS_DICT["cache_prerun"]==False:
         if v is None:
             del INPUTS[k]
 
-    conf_generator(INPUTS)
+    prepare_molecules(INPUTS)
     print("Finished Gypsum")
 else:
     pass

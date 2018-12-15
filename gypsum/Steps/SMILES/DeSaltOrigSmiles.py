@@ -18,7 +18,7 @@ def desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj):
     """If an input molecule has multiple unconnected fragments, this removes
        all but the largest fragment.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     :param num_procs: The number of processors to use.
     :type num_procs: int

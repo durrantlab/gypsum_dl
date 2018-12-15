@@ -22,7 +22,7 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
        an atom is given, that chiral center is not varied. Only the chirality
        of unspecified chiral centers is varied.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     :param max_variants_per_compound: [description] JDD: Figure out.
     :type max_variants_per_compound: int

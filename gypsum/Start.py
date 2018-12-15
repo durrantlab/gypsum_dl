@@ -1,5 +1,5 @@
 """
-Contains the ConfGenerator object which reads, converts, and writes
+Contains the prepare_molecules definition which reads, prepares, and writes
 small molecules.
 """
 
@@ -35,13 +35,13 @@ except:
 
 from gypsum.MolContainer import MolContainer
 from gypsum.Steps.SMILES.PrepareSmiles import prepare_smiles
-from gypsum.Steps.ThreeD.PrepareThreeD import prepare_three_d
+from gypsum.Steps.ThreeD.PrepareThreeD import prepare_3d
 from gypsum.Steps.IO.ProcessOutput import proccess_output
 from gypsum.Steps.IO.LoadFiles import load_smiles_file
 from gypsum.Steps.IO.LoadFiles import load_sdf_file
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
-def conf_generator(args):
+def prepare_molecules(args):
     """A function for preparing small-molecule models for docking. To work, it
     requires the python modules rdkit and molvs installed on the system.
 
@@ -174,7 +174,7 @@ def conf_generator(args):
     prepare_smiles(contnrs, params)
 
     # Convert the processed SMILES strings to 3D.
-    prepare_three_d(contnrs, params)
+    prepare_3d(contnrs, params)
 
     # JDD: What?
     add_mol_id_props(contnrs)
@@ -428,7 +428,7 @@ def add_mol_id_props(contnrs):
     """Once all molecules have been generated, go through each and add the
        name and a unique id (for writing to the SDF file, for example).
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     """
 
@@ -442,7 +442,7 @@ def add_mol_id_props(contnrs):
 def deal_with_failed_molecules(contnrs, params):
     """Removes and logs failed molecules.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     :param params: The parameters, used to determine the filename that will
        contain the failed molecules.

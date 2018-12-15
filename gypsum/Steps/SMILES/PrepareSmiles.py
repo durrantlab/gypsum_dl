@@ -13,7 +13,7 @@ from gypsum.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 def prepare_smiles(contnrs, params):
     """Runs the appropriate steps for processing the SMILES strings.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     :param params: The user parameters.
     :type params: dict
@@ -100,7 +100,7 @@ def wrap_molecules(contnrs):
     this case, the one SMILES needs to be converted to a RDKit mol object for
     subsequent steps to work. Let's do that here.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     """
 

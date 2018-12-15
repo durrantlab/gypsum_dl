@@ -19,7 +19,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     """Adds hydrogen atoms to molecule containers, as appropriate for a given
        pH.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: A list.
     :param min_pH: The minimum pH to consider.
     :type min_pH: float

@@ -31,7 +31,7 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, mult
     `prohibited_substructures` definition found with MyMol.py, in the function
     remove_bizarre_substruc().
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: A list.
     :param max_variants_per_compound: [description] JDD: Figure out.
     :type max_variants_per_compound: int
@@ -155,7 +155,7 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, multithread_mode, pa
        regardless of tautization, ionization, etc. Any taut that breaks
        aromaticity is unlikely to be worth pursuing. So remove it.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: A list.
     :param taut_data: A list of MyMol.MyMol objects.
     :type taut_data: list
@@ -193,7 +193,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, multithread_mode, parall
        for the error in other folk's code, let's just require that the number
        of chiral centers remain unchanged with isomerization.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     :param taut_data: A list of MyMol.MyMol objects.
     :type taut_data: list
@@ -229,7 +229,7 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
        tautomer-generating code you use makes these inappropriate tautomers.
        Remove them here.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     :param taut_data: A list of MyMol.MyMol objects.
     :type taut_data: list

@@ -87,7 +87,7 @@ def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_procs, sec
     for mol in results:
         contnrs[mol.contnr_idx].add_mol(mol)
 
-    # Set the makeMol3D() flags that aren't set.
+    # Set the  make_mol_3d() flags that aren't set.
     for contnr in contnrs:
         for mol in contnr.mols:
             if mol.rdkit_mol == "":

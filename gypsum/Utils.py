@@ -109,7 +109,7 @@ def find_missing_mol_idxs(contnrs, results):
 def print_current_smiles(contnrs):
     """Prints the smiles of the current containers.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     """
 

@@ -22,7 +22,7 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
        double bond is specified, it is not varied. All unspecified double bonds
        are varied.
 
-    :param contnrs: A list of containers.
+    :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: A list.
     :param max_variants_per_compound: [description] JDD: Figure out.
     :type max_variants_per_compound: int
