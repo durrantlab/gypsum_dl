@@ -15,7 +15,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def GetDoubleBonded(mol, max_variants_per_compound):
+def parallel_get_double_bonded(mol, max_variants_per_compound):
 
     # Get all double bonds that don't have defined stereochemistry
     unasignd = mol.get_double_bonds_without_stereochemistry()
@@ -147,7 +147,7 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
         for mol in contnr.mols:
             params.append(tuple([mol, max_variants_per_compound]))
     params = tuple(params)
-    tmp = parallelizer_obj.run(params, GetDoubleBonded, num_procs, multithread_mode)
+    tmp = parallelizer_obj.run(params, parallel_get_double_bonded, num_procs, multithread_mode)
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.

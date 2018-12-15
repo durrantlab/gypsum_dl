@@ -29,7 +29,7 @@ except:
     raise ImportError("You need to install scipy and its dependencies.")
 
 
-def GetRingConfs(mol, thoroughness, max_variants_per_compound, second_embed):
+def parallel_get_ring_confs(mol, thoroughness, max_variants_per_compound, second_embed):
     contnr_idx = mol.contnr_idx
 
     # All the ones in this contnr must have nonatomatic rings.
@@ -175,7 +175,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, thoroughness, max_vari
 
     #Utils.log("\tApplies to molecule derived from " + orig_smi)
     tmp = parallelizer_obj.run(
-        params, GetRingConfs, num_procs, multithread_mode)
+        params, parallel_get_ring_confs, num_procs, multithread_mode)
 
 
     results = Parallelizer.flatten_list(tmp)

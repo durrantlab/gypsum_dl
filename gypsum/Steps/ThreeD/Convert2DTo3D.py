@@ -14,7 +14,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def mk3d(mol):
+def parallel_make_3d(mol):
     show_error_msg = False
 
     if mol.rdkit_mol is None:
@@ -49,7 +49,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs
         for mol in contnr.mols:
             params.append(tuple([mol]))
     params = tuple(params)
-    tmp = parallelizer_obj.run(params, mk3d, num_procs, multithread_mode)
+    tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, multithread_mode)
     clear = Parallelizer.strip_none(tmp)
 
     # Keep only the top few compound variants in each container, to prevent a

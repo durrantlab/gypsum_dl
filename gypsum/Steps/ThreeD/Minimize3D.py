@@ -8,7 +8,7 @@ import gypsum.ChemUtils as ChemUtils
 from gypsum.MyMol import MyConformer
 
 
-def minit(mol, thoroughness, max_variants_per_compound, second_embed):
+def parallel_minit(mol, thoroughness, max_variants_per_compound, second_embed):
 
     # Not minimizing
     mol.add_conformers(
@@ -69,7 +69,7 @@ def minimize_3d(contnrs, thoroughness, max_variants_per_compound, num_procs, sec
                 params.append(tuple([mol, thoroughness, max_variants_per_compound, second_embed]))
     params = tuple(params)
 
-    tmp = parallelizer_obj.run(params, minit, num_procs, multithread_mode)
+    tmp = parallelizer_obj.run(params, parallel_minit, num_procs, multithread_mode)
 
     results = []
     # Save energy into MyMol object, and get a list of just those objects.

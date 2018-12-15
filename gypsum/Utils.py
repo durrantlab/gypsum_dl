@@ -75,9 +75,8 @@ def log(txt):
         subsequent_indent = whitespace_before + "    "
     ))
 
-def fix_no_prot_generated(contnrs, results):
-    """
-    Identify contnrs that have no representative elements in results.
+def find_missing_mol_idxs(contnrs, results):
+    """Identify contnrs that have no representative elements in results.
 
     :param ConfGenerator self: The associated ConfGenerator object.
 
