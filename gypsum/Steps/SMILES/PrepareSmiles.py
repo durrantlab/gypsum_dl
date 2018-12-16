@@ -29,7 +29,7 @@ def prepare_smiles(contnrs, params):
     multithread_mode = params["multithread_mode"]
     parallelizer_obj = params["Parallelizer"]
 
-    debug = False
+    debug = True
 
     # Desalt the molecules.
     print("Begin Desaltings")

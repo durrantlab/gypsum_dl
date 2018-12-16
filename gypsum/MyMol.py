@@ -30,7 +30,7 @@ except:
     raise ImportError("You need to install rdkit and its dependencies.")
 
 try:
-    from molvs import standardize_smiles as ssmiles
+    from gypsum.molvs import standardize_smiles as ssmiles
 except:
     Utils.log("You need to install molvs and its dependencies.")
     raise ImportError("You need to install molvs and its dependencies.")

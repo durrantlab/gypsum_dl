@@ -1,6 +1,6 @@
 # Gypsum
 
-Gypsum is a python program that takes SMILE representations of small molecules and generates 3D models as SDF files. It searches various states of protonation, tautomerization, chirality, and double bonds to find viable, low-energy conformations. 
+Gypsum is a python program that takes SMILE representations of small molecules and generates 3D models as SDF files. It searches various states of protonation, tautomerization, chirality, and double bonds to find viable, low-energy conformations.
 
 ## Getting Started
 
@@ -11,7 +11,7 @@ To run Gypsum, acquire a copy of this repository, either by git clone of this re
 There a few python libraries that gypsum depends on. We suggest using Anaconda to manage packages. The following command will install the necessary packages
 
 ```
-conda install -c rdkit rdkit molvs numpy scipy
+conda install -c rdkit rdkit numpy scipy
 ```
 
 ## Example

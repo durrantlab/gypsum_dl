@@ -18,10 +18,10 @@ def run_test():
     params = {
         "source": script_dir + os.sep + "sample_molecules.smi",
         "separate_output_files": True,
-        "multithread_mode": "multithreading",
+        "multithread_mode": "serial",  # multithreading
         "output_folder": output_folder,
         "output_pdb": False,
-        "max_variants_per_compound": 8,
+        "max_variants_per_compound": 25,  # 8
         "thoroughness": 1,
         "min_ph": 4,
         "max_ph": 10,
@@ -91,12 +91,12 @@ def run_test():
         "CC(C)(C)[C@H]1CC[C@@H](C(C)(C)C)CC1"
     ])
 
-    msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
-        str(len(all_smiles)) + "."
-    if len(all_smiles) != len(target_smiles):
-        raise Exception("FAILED. " + msg)
-    else:
-        print("PASSED. " + msg)
+    # msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
+    #     str(len(all_smiles)) + "."
+    # if len(all_smiles) != len(target_smiles):
+    #     raise Exception("FAILED. " + msg)
+    # else:
+    #     print("PASSED. " + msg)
 
     if len(all_smiles ^ target_smiles) > 0:
         raise Exception("FAILED. " + "Got some SMILES I didn't expect: " + \

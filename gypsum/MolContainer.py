@@ -13,12 +13,6 @@ import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
 
 try:
-    from molvs import standardize_smiles as ssmiles
-except:
-    Utils.log("You need to install molvs and its dependencies.")
-    raise ImportError("You need to install molvs and its dependencies.")
-
-try:
     from rdkit import Chem
 except:
     Utils.log("You need to install rdkit and its dependencies.")

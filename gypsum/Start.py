@@ -43,7 +43,7 @@ from gypsum.Steps.IO.LoadFiles import load_sdf_file
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def prepare_molecules(args):
     """A function for preparing small-molecule models for docking. To work, it
-    requires the python modules rdkit and molvs installed on the system.
+    requires that the python module rdkit be installed on the system.
 
     :param args: The arguments, from the commandline.
     :type args: dict

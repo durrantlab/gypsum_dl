@@ -19,7 +19,7 @@ except:
     raise ImportError("You need to install rdkit and its dependencies.")
 
 try:
-    from molvs import tautomer
+    from gypsum.molvs import tautomer
 except:
     Utils.log("You need to install molvs and its dependencies.")
     raise ImportError("You need to install molv and its dependencies.")
@@ -137,6 +137,9 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
         max_tautomers=max_variants_per_compound
     )
     tauts_rdkit_mols = enum.enumerate(m)
+
+    # print([Chem.MolToSmiles(s) for s in tauts_rdkit_mols])
+    # import pdb; pdb.set_trace()
 
     # Make all those tautomers into MyMol objects.
     tauts_mols = [MyMol.MyMol(m) for m in tauts_rdkit_mols]
