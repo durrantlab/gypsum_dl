@@ -480,7 +480,13 @@ class MyMol:
         # been added. Just add enough to meet the requested amount.
         num_new_confs = max(0, num - len(self.conformers))
         for i in range(num_new_confs):
-            new_conf = MyConformer(self)
+            if len(self.conformers) == 0:
+                # For the first one, don't start from random coordinates.
+                new_conf = MyConformer(self)
+            else:
+                # For all subsequent ones, do start from random coordinates.
+                new_conf = MyConformer(self, None, False, True)
+
             if new_conf.mol is not False:
                 self.conformers.append(new_conf)
 
@@ -556,19 +562,25 @@ class MyConformer:
     MyMol.MyMol object (different molecule conformations).
     """
 
-    def __init__(self, mol, conformer=None, second_embed=False):
+    def __init__(self, mol, conformer=None, second_embed=False, use_random_coordinates=False):
         """Create a MyConformer objects.
 
         :param mol: The MyMol.MyMol associated with this conformer.
         :type mol: MyMol.MyMol
         :param conformer: An optional variable specifying the conformer to use.
            If not specified, it will create a new conformer. Defaults to None.
-        :param conformer: rdkit.Conformer, optional
+        :type conformer: rdkit.Conformer, optional
         :param second_embed: Whether to try to generate 3D coordinates using an
             older algorithm if the better (default) algorithm fails. This can add
             run time, but sometimes converts certain molecules that would
             otherwise fail. Defaults to False.
         :type second_embed: bool, optional
+        :param use_random_coordinates: The first conformer should not start
+           from random coordinates, but rather the eigenvalues-based
+           coordinates rdkit defaults too. But subsequent conformers are being
+           generated to try to consider geometric diversity. So they should
+           start from random coordinates. Defaults to False.
+        :type use_random_coordinates: bool, optional
         """
 
         # Save some values to the object.
@@ -604,6 +616,9 @@ class MyConformer:
             params.maxIterations = 0   # This should be the default but lets
                                        # set it anyway
 
+            # Also set whether to start from random coordinatesw.
+            params.useRandomCoords = use_random_coordinates
+
             # AllChem.EmbedMolecule uses geometry to create inital molecule
             # coordinates. This sometimes takes a very long time
             AllChem.EmbedMolecule(self.mol, params)
@@ -614,7 +629,9 @@ class MyConformer:
             # assigned, try that one. Parameters must have second_embed set to
             # True for this to happen.
             if second_embed == True and self.mol.GetNumConformers() == 0:
-                AllChem.EmbedMolecule(self.mol)
+                AllChem.EmbedMolecule(
+                    self.mol, useRandomCoords=use_random_coordinates
+                )
 
             # On rare occasions, both methods fail. For example,
             # O=c1cccc2[C@H]3C[NH2+]C[C@@H](C3)Cn21 Another example:

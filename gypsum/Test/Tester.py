@@ -91,12 +91,12 @@ def run_test():
         "CC(C)(C)[C@H]1CC[C@@H](C(C)(C)C)CC1"
     ])
 
-    # msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
-    #     str(len(all_smiles)) + "."
-    # if len(all_smiles) != len(target_smiles):
-    #     raise Exception("FAILED. " + msg)
-    # else:
-    #     print("PASSED. " + msg)
+    msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
+        str(len(all_smiles)) + "."
+    if len(all_smiles) != len(target_smiles):
+        raise Exception("FAILED. " + msg)
+    else:
+        print("PASSED. " + msg)
 
     if len(all_smiles ^ target_smiles) > 0:
         raise Exception("FAILED. " + "Got some SMILES I didn't expect: " + \
