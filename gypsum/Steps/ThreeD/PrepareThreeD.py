@@ -25,16 +25,17 @@ def prepare_3d(contnrs, params):
 
     # Do the 2d to 3d conversionl, if requested.
     if not params["2d_output_only"]:
+        # Make the 3D model.
         convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness,
                          num_procs, multithread_mode, parallelizer_obj)
 
-    # Generate alternate non-aromatic ring conformations, if requested.
-    if not params["skip_alternate_ring_conformations"]:
-        generate_alternate_3d_nonaromatic_ring_confs(
-            contnrs, max_variants_per_compound, thoroughness, num_procs,
-            second_embed, multithread_mode, parallelizer_obj
-        )
+        # Generate alternate non-aromatic ring conformations, if requested.
+        if not params["skip_alternate_ring_conformations"]:
+            generate_alternate_3d_nonaromatic_ring_confs(
+                contnrs, max_variants_per_compound, thoroughness, num_procs,
+                second_embed, multithread_mode, parallelizer_obj
+            )
 
-    # Minimize the molecules, if requested.
-    if not params["skip_optimize_geometry"]:
-        minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, multithread_mode, parallelizer_obj)
+        # Minimize the molecules, if requested.
+        if not params["skip_optimize_geometry"]:
+            minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, multithread_mode, parallelizer_obj)

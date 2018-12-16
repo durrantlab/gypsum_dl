@@ -1,0 +1,7 @@
+{
+    "source": "sample_molecules.smi",
+    "separate_output_files": true,
+    "multithread_mode": "mpi",
+    "output_folder": "./gypsum_output/",
+    "output_pdb": true
+}
