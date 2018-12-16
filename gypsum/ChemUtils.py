@@ -105,7 +105,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
 
         # Pick just the lowest-energy conformers from the new candidates.
         # Possible a compound was eliminated early on, so doesn't exist.
-        if contnr_idx in data.keys():
+        if contnr_idx in list(data.keys()):
             mols = data[contnr_idx]
 
             # Pick the lowest-energy molecules. Note that this creates a

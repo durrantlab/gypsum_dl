@@ -44,7 +44,7 @@ def load_smiles_file(filename):
             # Handle duplicate ligands in same list.
             if name in name_list:
                 # If multiple names...
-                if name in duplicate_names.keys():
+                if name in list(duplicate_names.keys()):
                     duplicate_names[name] = duplicate_names[name] + 1
 
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])

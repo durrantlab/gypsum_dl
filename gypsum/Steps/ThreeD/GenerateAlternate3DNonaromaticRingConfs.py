@@ -251,7 +251,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
                         # MyMol.MyConformers objects.
         conformers = mol.rdkit_mol.GetConformers()
         for k, grp in enumerate(groups):
-            if not grp in best_ones.keys():
+            if not grp in list(best_ones.keys()):
                 best_ones[grp] = mol.conformers[k]
         best_confs = best_ones.values()  # best_confs has the
                                          # MyMol.MyConformers objects.
