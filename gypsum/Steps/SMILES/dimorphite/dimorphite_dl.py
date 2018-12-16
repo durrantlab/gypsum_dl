@@ -40,7 +40,7 @@ def main():
     # If being run from the command line, print out all parameters.
     if __name__ == "__main__":
         print("\nPARAMETERS:\n")
-        for k in sorted(args.keys()):
+        for k in sorted(list(args.keys())):
             print(k.rjust(13) + ": " + str(args[k]))
         print("")
 

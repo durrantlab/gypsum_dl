@@ -71,7 +71,7 @@ def prepare_molecules(args):
         # "json" is one of the parameters, so we'll be ignoring the rest.
         params = json.load(open(args['json']))
         params = set_parameters(params)
-        if [i for i in json_warning_list if i in args.keys()]:
+        if [i for i in json_warning_list if i in list(args.keys())]:
             need_to_print_override_warning = True
     else:
         # We're actually going to use all the command-line parameters. No
@@ -302,7 +302,7 @@ def merge_parameters(default, params):
                 "ERROR! Parameter \"" + str(param) + "\" not recognized!"
             )
             Utils.log("Here are the options:")
-            Utils.log(str(default.keys()))
+            Utils.log(str(list(default.keys())))
             raise KeyError("Unrecognized parameter: " + str(param))
 
         # Throw an error if the input parameter has a different type than

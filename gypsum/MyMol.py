@@ -456,7 +456,7 @@ class MyMol:
 
         self.set_rdkit_mol_prop("SMILES", self.smiles(True))
         #self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
-        for prop in self.mol_props.keys():
+        for prop in list(self.mol_props.keys()):
             self.set_rdkit_mol_prop(prop, self.mol_props[prop])
         genealogy = "\n".join(self.genealogy)
         self.set_rdkit_mol_prop("Genealogy", genealogy)

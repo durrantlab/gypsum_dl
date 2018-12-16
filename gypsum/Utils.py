@@ -33,7 +33,7 @@ def group_mols_by_container_index(mol_lst):
         grouped_results[idx].append(mol)
 
     # Remove redundant entries.
-    for key in grouped_results.keys():
+    for key in list(grouped_results.keys()):
         grouped_results[key] = list(set(grouped_results[key]))
 
     return grouped_results
@@ -112,7 +112,7 @@ def fnd_contnrs_not_represntd(contnrs, results):
             del idx_to_smi[m.contnr_idx]
 
     # Return just the container indexes (the keys).
-    return idx_to_smi.keys()
+    return list(idx_to_smi.keys())
 
 def print_current_smiles(contnrs):
     """Prints the smiles of the current containers. Helpful for debugging.
