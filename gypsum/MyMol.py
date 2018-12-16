@@ -577,8 +577,8 @@ class MyConformer:
         :type second_embed: bool, optional
         :param use_random_coordinates: The first conformer should not start
            from random coordinates, but rather the eigenvalues-based
-           coordinates rdkit defaults too. But subsequent conformers are being
-           generated to try to consider geometric diversity. So they should
+           coordinates rdkit defaults to. But Gypsum generates subsequent
+           conformers to try to consider alternate geometries. So they should
            start from random coordinates. Defaults to False.
         :type use_random_coordinates: bool, optional
         """
