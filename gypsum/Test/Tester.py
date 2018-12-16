@@ -21,7 +21,7 @@ def run_test():
         "multithread_mode": "serial",  # multithreading
         "output_folder": output_folder,
         "output_pdb": False,
-        "max_variants_per_compound": 25,  # 8
+        "max_variants_per_compound": 8,
         "thoroughness": 1,
         "min_ph": 4,
         "max_ph": 10,
