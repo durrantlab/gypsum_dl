@@ -188,10 +188,15 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
         Chem.AssignStereochemistry(a_rd_mol, force=True)
 
         # Add to list of ones to consider
-        smiles_to_consider.add(
-            Chem.MolToSmiles(a_rd_mol, isomericSmiles=True, canonical=True)
-        )
-
+        try:
+            smiles_to_consider.add(
+                Chem.MolToSmiles(a_rd_mol, isomericSmiles=True, canonical=True)
+            )
+        except:
+            # Some molecules still give troubles. Unfortunate, but these are
+            # rare cases. Let's just skip these. Example:
+            # CN1C2=C(C=CC=C2)C(C)(C)[C]1=[C]=[CH]C3=CC(=C(O)C(=C3)I)I
+            continue
 
     # Remove ones that don't have "/" or "\". These are not real enumerated ones.
     smiles_to_consider = [s for s in smiles_to_consider if "/" in s or "\\" in s]

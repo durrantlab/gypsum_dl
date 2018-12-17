@@ -248,7 +248,9 @@ def set_parameters(params_unicode):
         "skip_making_tautomers" : False,
         "skip_ennumerate_chiral_mol" : False,
         "skip_ennumerate_double_bonds" : False,
-        "multithread_mode" : "multithreading"
+        "multithread_mode" : "multithreading",
+        "cache_prerun": False,
+        "test": False
     })
 
     # Modify params so that they keys are always lower case.
