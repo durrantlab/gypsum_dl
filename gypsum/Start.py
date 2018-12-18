@@ -13,6 +13,7 @@ from collections import OrderedDict
 
 import gypsum.Utils as Utils
 from gypsum.Parallelizer import Parallelizer
+from gypsum.Parallelizer import flatten_list
 
 try:
     from rdkit.Chem import AllChem
@@ -164,12 +165,12 @@ def prepare_molecules(args):
 
     # Remove None types from failed conversion
     contnrs = [x for x in contnrs if x.orig_smi_canonical!=None]
-    if len(contnrs)!= idx_counter:
+    if len(contnrs) != idx_counter:
         raise Exception("There is a corrupted container")
 
 
-    if parallelizer_obj.return_mode()!="mpi":
-        containers = execute_gypsum(contnrs, params)
+    if params["Parallelizer"].return_mode() != "mpi":
+        contnrs = execute_gypsum(contnrs, params)
     else:
         # For MPI mode, run 1 ligand in full rather than embarassingly style for non-mpi mode
         # This should reduce the data transfer overhead.
@@ -178,16 +179,18 @@ def prepare_molecules(args):
         temp_param = {}
         for key in list(params.keys()):
             if key == "Parallelizer":
-                continue
+                temp_param["Parallelizer"] = None
             else:
                 temp_param[key] = params[key]
         for contnr in contnrs:
-            job_input.append(tuple([contnr], temp_param]))
+            job_input.append(tuple([[contnr], temp_param]))
         job_input = tuple(job_input)
     
-        containers_list = parallelizer_obj.run(params, parallel_make_taut, num_procs, multithread_mode)
+        containers_list = params["Parallelizer"].run(job_input, execute_gypsum)
+        
 
-    print(containers_list)
+        contnrs = flatten_list(containers_list)
+
 
     # Calculate the total run time.
     end_time = datetime.now()

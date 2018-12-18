@@ -59,11 +59,11 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
 
     # Run it through the parallelizer.
     tmp = []
-    if parallelizer_obj.return_mode()!="mpi":
+    if parallelizer_obj !=  None:
         tmp = parallelizer_obj.run(params, parallel_get_chiral, num_procs, multithread_mode)
     else:
         for i in params:
-            tmp.append(parallel_get_chiral(i))
+            tmp.append(parallel_get_chiral(i[0],i[1],i[2]))
 
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)

@@ -51,11 +51,11 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs
 
     # Run the parallelizer
     tmp = []
-    if parallelizer_obj.return_mode()!="mpi":
+    if parallelizer_obj !=  None:
         tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, multithread_mode)
     else:
         for i in params:
-            tmp.append(parallel_make_3d(i))
+            tmp.append(parallel_make_3d(i[0]))
        
     # Remove and Nones from the output, which represent failed molecules.
     clear = Parallelizer.strip_none(tmp)

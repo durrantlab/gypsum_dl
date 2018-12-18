@@ -61,11 +61,11 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
 
     # Run the parallelizer and collect the results.
     results = []
-    if parallelizer_obj.return_mode()!="mpi":
+    if parallelizer_obj !=  None:
         results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, multithread_mode)
     else:
         for i in inputs:
-            results.append(parallel_add_H(i))
+            results.append(parallel_add_H(i[0],i[1]))
             
     results = Parallelizer.flatten_list(results)
 

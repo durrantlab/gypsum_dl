@@ -101,9 +101,10 @@ def fnd_contnrs_not_represntd(contnrs, results):
     # Get a dictionary of all the input smiles. Keys are indexes, values are
     # smiles.
     idx_to_smi = {}
-    for contnr in contnrs:
-        if not contnr.contnr_idx in idx_to_smi:
-            idx_to_smi[contnr.contnr_idx] = contnrs[contnr.contnr_idx].orig_smi_deslt
+    for idx in range(0,len(contnrs)):
+        contnr = contnrs[idx]
+        if not idx in idx_to_smi:
+            idx_to_smi[idx] = contnrs[idx].orig_smi_deslt
 
     # Now remove from those any that have associated protonated smiles
     # strings.
