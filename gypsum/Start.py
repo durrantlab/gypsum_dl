@@ -47,6 +47,7 @@ def prepare_molecules(args):
 
     :param args: The arguments, from the commandline.
     :type args: dict
+    :raises Exception: Is your input json file properly formed?
     :raises ImportError: mpi4py not installed, but --multithread_mode is set
        to mpi.
     :raises Exception: Output folder directory couldn't be found or created.
@@ -69,7 +70,11 @@ def prepare_molecules(args):
 
     if "json" in args:
         # "json" is one of the parameters, so we'll be ignoring the rest.
-        params = json.load(open(args['json']))
+        try:
+            params = json.load(open(args['json']))
+        except:
+            raise Exception("Is your input json file properly formed?")
+
         params = set_parameters(params)
         if [i for i in json_warning_list if i in list(args.keys())]:
             need_to_print_override_warning = True
