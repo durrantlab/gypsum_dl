@@ -246,7 +246,7 @@ class Parallelizer(object):
         else:
             if self.mode != mode:
                 if mode != "mpi" and  mode != "serial" and  mode != "multithreading":
-                    printout = "Overriding function with a multiprocess mode which doesn't match: {mode}"
+                    printout = "Overriding function with a multiprocess mode which doesn't match: " + mode
                     raise Exception(printout)
                 if mode == "mpi":
                     printout = "Overriding multiprocess can't go from non-mpi to mpi mode"
