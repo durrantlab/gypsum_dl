@@ -173,7 +173,7 @@ def prepare_molecules(args):
     # To Optimize the speed of the parallization, we will run multithread mode as embarrassingly parallel
     # But due to data transfer speeds we will run parallelize MPI mode differently. 
     if params["Parallelizer"].return_mode() != "mpi":
-        contnrs = execute_gypsum(contnrs, params)
+        execute_gypsum(contnrs, params)
     else:
         # For MPI mode, run 1 ligand in full rather than embarassingly style for non-mpi mode
         # This should reduce the data transfer overhead.
@@ -189,12 +189,8 @@ def prepare_molecules(args):
             job_input.append(tuple([[contnr], temp_param]))
         job_input = tuple(job_input)
     
-        containers_list = params["Parallelizer"].run(job_input, execute_gypsum)
-        
-
-        contnrs = flatten_list(containers_list)
-
-
+        params["Parallelizer"].run(job_input, execute_gypsum)
+    
     # Calculate the total run time.
     end_time = datetime.now()
     run_time = end_time - start_time
@@ -212,8 +208,6 @@ def execute_gypsum(contnrs, params):
     :type contnrs: list
     :param params: A dictionary containing all of the parameters.
     :type params: dict
-    :returns contnrs: A list of all molecules with modified 3D structures.
-    :type contnrs: list
     """
     # Start creating the models.
 
@@ -235,8 +229,6 @@ def execute_gypsum(contnrs, params):
 
     # Process the output.
     proccess_output(contnrs, params)
-    
-    return contnrs
 
 def detect_unassigned_bonds(smiles):
     """Detects whether a give smiles string has unassigned bonds.
