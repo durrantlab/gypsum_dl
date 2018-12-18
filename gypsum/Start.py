@@ -169,6 +169,9 @@ def prepare_molecules(args):
         raise Exception("There is a corrupted container")
 
 
+
+    # To Optimize the speed of the parallization, we will run multithread mode as embarrassingly parallel
+    # But due to data transfer speeds we will run parallelize MPI mode differently. 
     if params["Parallelizer"].return_mode() != "mpi":
         contnrs = execute_gypsum(contnrs, params)
     else:
@@ -205,8 +208,16 @@ def prepare_molecules(args):
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["multithread_mode"])
 
+def execute_gypsum(contnrs, params):   
+    """A function for doing all of the manipulations to each molecule.
 
-def execute_gypsum(contnrs, params):
+    :param contnrs: A list of all molecules.
+    :type contnrs: list
+    :param params: A dictionary containing all of the parameters.
+    :type params: dict
+    :returns contnrs: A list of all molecules with modified 3D structures.
+    :type contnrs: list
+    """
     # Start creating the models.
 
     # Prepare the smiles. Desalt, consider alternate ionization, tautometeric,
