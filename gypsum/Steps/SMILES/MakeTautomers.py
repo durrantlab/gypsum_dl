@@ -67,8 +67,13 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, mult
     params = tuple(params)
 
     # Run the tautomizer through the parallel object.
-    tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, multithread_mode)
-
+    tmp = []
+    if parallelizer_obj.return_mode()!="mpi":
+        tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, multithread_mode)
+    else:
+        for i in params:
+            tmp.append(parallel_make_taut(i))
+       
     # Flatten the resulting list of lists.
     none_data = tmp
     taut_data = Parallelizer.flatten_list(none_data)  # JDD: Why this? JOS: this is necessary because of some examples with MPI. please leave this one alone.  
@@ -193,9 +198,15 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, multithread_mode, pa
     params = tuple(params)
 
     # Run it through the parallelizer to remove non-aromatic rings.
-    tmp = parallelizer_obj.run(
-        params, parallel_check_nonarom_rings, num_procs, multithread_mode
-    )
+
+    tmp = []
+    if parallelizer_obj.return_mode()!="mpi":
+        tmp = parallelizer_obj.run(
+            params, parallel_check_nonarom_rings, num_procs, multithread_mode
+        )
+    else:
+        for i in params:
+            tmp.append(parallel_check_nonarom_rings(i))
 
     # Stripping out None values (failed).
     results = Parallelizer.strip_none(tmp)
@@ -231,8 +242,14 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, multithread_mode, parall
     params = tuple(params)
 
     # Run it through the parallelizer.
-    tmp = parallelizer_obj.run(params, parallel_check_chiral_centers,
-                               num_procs, multithread_mode)
+    tmp = []
+    if parallelizer_obj.return_mode()!="mpi":
+        tmp = parallelizer_obj.run(
+            params, parallel_check_chiral_centers, num_procs, multithread_mode
+        )
+    else:
+        for i in params:
+            tmp.append(parallel_check_chiral_centers(i))
 
     # Stripping out None values
     results = [x for x in tmp if x != None]
@@ -266,8 +283,14 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
     params = tuple(params)
 
     # Run it through the parallelizer.
-    tmp = parallelizer_obj.run(params, parallel_check_carbon_hydrogens,
-                            num_procs, multithread_mode)
+    tmp = []
+    if parallelizer_obj.return_mode()!="mpi":
+        tmp = parallelizer_obj.run(
+            params, parallel_check_carbon_hydrogens, num_procs, multithread_mode
+        )
+    else:
+        for i in params:
+            tmp.append(parallel_check_carbon_hydrogens(i))
 
     # Strip out the None values.
     results = [x for x in tmp if x != None]

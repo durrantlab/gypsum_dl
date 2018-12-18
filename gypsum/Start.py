@@ -167,6 +167,43 @@ def prepare_molecules(args):
     if len(contnrs)!= idx_counter:
         raise Exception("There is a corrupted container")
 
+
+    if parallelizer_obj.return_mode()!="mpi":
+        containers = execute_gypsum(contnrs, params)
+    else:
+        # For MPI mode, run 1 ligand in full rather than embarassingly style for non-mpi mode
+        # This should reduce the data transfer overhead.
+            # Group the molecule containers so they can be passed to the parallelizer.
+        job_input = []
+        temp_param = {}
+        for key in list(params.keys()):
+            if key == "Parallelizer":
+                continue
+            else:
+                temp_param[key] = params[key]
+        for contnr in contnrs:
+            job_input.append(tuple([contnr], temp_param]))
+        job_input = tuple(job_input)
+    
+        containers_list = parallelizer_obj.run(params, parallel_make_taut, num_procs, multithread_mode)
+
+    print(containers_list)
+
+    # Calculate the total run time.
+    end_time = datetime.now()
+    run_time = end_time - start_time
+    params["start_time"] = str(start_time)
+    params["end_time"] = str(end_time)
+    params["run_time"] = str(run_time)
+
+    # Process the output.
+    proccess_output(contnrs, params)
+
+    # Kill mpi workers if necessary.
+    params["Parallelizer"].end(params["multithread_mode"])
+
+
+def execute_gypsum(contnrs, params):
     # Start creating the models.
 
     # Prepare the smiles. Desalt, consider alternate ionization, tautometeric,
@@ -184,19 +221,7 @@ def prepare_molecules(args):
 
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)
-
-    # Calculate the total run time.
-    end_time = datetime.now()
-    run_time = end_time - start_time
-    params["start_time"] = str(start_time)
-    params["end_time"] = str(end_time)
-    params["run_time"] = str(run_time)
-
-    # Process the output.
-    proccess_output(contnrs, params)
-
-    # Kill mpi workers if necessary.
-    params["Parallelizer"].end(params["multithread_mode"])
+    return contnrs
 
 def detect_unassigned_bonds(smiles):
     """Detects whether a give smiles string has unassigned bonds.

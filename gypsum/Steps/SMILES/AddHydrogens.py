@@ -60,7 +60,13 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])
 
     # Run the parallelizer and collect the results.
-    results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, multithread_mode)
+    results = []
+    if parallelizer_obj.return_mode()!="mpi":
+        results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, multithread_mode)
+    else:
+        for i in inputs:
+            results.append(parallel_add_H(i))
+            
     results = Parallelizer.flatten_list(results)
 
     # Dimorphite-DL might not have generated ionization states for some

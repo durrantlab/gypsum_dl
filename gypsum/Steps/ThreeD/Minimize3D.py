@@ -57,7 +57,13 @@ def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, sec
     params = tuple(params)
 
     # Run the inputs through the parallelizer.
-    tmp = parallelizer_obj.run(params, parallel_minit, num_procs, multithread_mode)
+    tmp = []
+    if parallelizer_obj.return_mode()!="mpi":
+        tmp = parallelizer_obj.run(params, parallel_minit, num_procs, multithread_mode)
+    else:
+        for i in params:
+            tmp.append(parallel_minit(i))
+       
 
     # Save energy into MyMol object, and get a list of just those objects.
     contnr_list_not_empty = set([])  # To keep track of which container lists
