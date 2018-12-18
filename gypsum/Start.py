@@ -198,6 +198,10 @@ def prepare_molecules(args):
     params["end_time"] = str(end_time)
     params["run_time"] = str(run_time)
 
+    print("Start time at: ", start_time)
+    print("End time at:   ", end_time)
+    print("Total time at: ", run_time)
+
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["multithread_mode"])
 
