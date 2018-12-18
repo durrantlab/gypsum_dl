@@ -1,6 +1,7 @@
 """A module for loading in files."""
 
 import __future__
+from gypsum import Utils
 
 try:
     from rdkit import Chem
@@ -35,10 +36,10 @@ def load_smiles_file(filename):
 
             # Handle unnamed ligands.
             if name == "":
-                print("\tUntitled ligand on line {}".format(line_counter))
+                Utils.log("\tUntitled ligand on line {}".format(line_counter))
                 name = "untitled_lig_{}_line_{}".format(missing_name_counter,line_counter)
-                print("\tNaming that ligand {}".format(name))
-                print("\tAll associated files will be refered to with this name")
+                Utils.log("\tNaming that ligand {}".format(name))
+                Utils.log("\tAll associated files will be refered to with this name")
                 missing_name_counter += 1
 
             # Handle duplicate ligands in same list.
@@ -48,16 +49,16 @@ def load_smiles_file(filename):
                     duplicate_names[name] = duplicate_names[name] + 1
 
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    print("\nMultiple entries with the ligand name: {}".format(name))
-                    print("\tThe veresion of the ligand on line {} will be retitled {}".format(line_counter,new_name))
-                    print("\tAll associated files will be refered to with this name")
+                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
+                    Utils.log("\tThe veresion of the ligand on line {} will be retitled {}".format(line_counter,new_name))
+                    Utils.log("\tAll associated files will be refered to with this name")
                     name = new_name
                 else:
                     duplicate_names[name] = 2
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    print("\nMultiple entries with the ligand name: {}".format(name))
-                    print("\tThe veresion of the ligand on line {} will be retitled {}".format(line_counter,new_name))
-                    print("\tAll associated files will be refered to with this name")
+                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
+                    Utils.log("\tThe veresion of the ligand on line {} will be retitled {}".format(line_counter,new_name))
+                    Utils.log("\tAll associated files will be refered to with this name")
                     name = new_name
 
             # Save the data for this line and advance.
@@ -97,10 +98,10 @@ def load_sdf_file(filename):
 
         # Handle unnamed ligands
         if name == "":
-            print("\tUntitled ligand for the {} molecule in the input SDF".format(mol_obj_counter))
+            Utils.log("\tUntitled ligand for the {} molecule in the input SDF".format(mol_obj_counter))
             name = "untitled_lig_{}_molnum_{}".format(missing_name_counter,mol_obj_counter)
-            print("\tNaming that ligand {}".format(name))
-            print("\tAll associated files will be refered to with this name")
+            Utils.log("\tNaming that ligand {}".format(name))
+            Utils.log("\tAll associated files will be refered to with this name")
             missing_name_counter += 1
 
             # Handle duplicate ligands in same list.
@@ -110,16 +111,16 @@ def load_sdf_file(filename):
                     duplicate_names[name] = duplicate_names[name] + 1
 
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    print("\nMultiple entries with the ligand name: {}".format(name))
-                    print("\tThe veresion of the ligand for the {} molecule in the SDF file will be retitled {}".format(mol_obj_counter,new_name))
-                    print("\tAll associated files will be refered to with this name")
+                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
+                    Utils.log("\tThe veresion of the ligand for the {} molecule in the SDF file will be retitled {}".format(mol_obj_counter,new_name))
+                    Utils.log("\tAll associated files will be refered to with this name")
                     name = new_name
                 else:
                     duplicate_names[name] = 2
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    print("\nMultiple entries with the ligand name: {}".format(name))
-                    print("\tThe veresion of the ligand for the {} molecule in the SDF file will be retitled {}".format(mol_obj_counter,new_name))
-                    print("\tAll associated files will be refered to with this name")
+                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
+                    Utils.log("\tThe veresion of the ligand for the {} molecule in the SDF file will be retitled {}".format(mol_obj_counter,new_name))
+                    Utils.log("\tAll associated files will be refered to with this name")
                     name = new_name
 
             mol_obj_counter += 1

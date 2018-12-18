@@ -7,6 +7,7 @@ import argparse
 import copy
 from gypsum.Start import prepare_molecules
 from gypsum.Test.Tester import run_test
+from gypsum import Utils
 
 PARSER = argparse.ArgumentParser()
 
@@ -83,6 +84,6 @@ elif ARGS_DICT["cache_prerun"] == False:
             del INPUTS[k]
 
     prepare_molecules(INPUTS)
-    print("Finished Gypsum")
+    Utils.log("Finished Gypsum")
 else:
     pass

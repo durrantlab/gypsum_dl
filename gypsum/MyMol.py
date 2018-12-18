@@ -714,7 +714,7 @@ class MyConformer:
         mol_copy = copy.deepcopy(self.mol_copy)  # Use it as a template.
         mol_copy.RemoveAllConformers()
         mol_copy.AddConformer(self.conformer)
-        print(Chem.MolToMolBlock(mol_copy)[:500])
+        Utils.log(Chem.MolToMolBlock(mol_copy)[:500])
 
     def rmsd_to_me(self, other_conf):
         """Calculate the rms distance between this conformer and another one.

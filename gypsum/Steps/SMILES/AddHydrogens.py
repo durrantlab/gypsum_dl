@@ -112,8 +112,8 @@ def parallel_add_H(contnr, protonation_settings):
 
     # Make sure the canonical SMILES is actually a string.
     if type(contnr.orig_smi_canonical) != str:
-        print("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
-        print("type container.orig_smi_canonical: ", type(contnr.orig_smi_canonical))
+        Utils.log("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
+        Utils.log("type container.orig_smi_canonical: ", type(contnr.orig_smi_canonical))
         raise Exception("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
 
     # Add the SMILES string to the protonation parameters.

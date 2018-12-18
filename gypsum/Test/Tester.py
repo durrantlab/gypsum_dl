@@ -4,6 +4,7 @@ for now."""
 import os
 import shutil
 import glob
+from gypsum import Utils
 from gypsum.Start import prepare_molecules
 
 def run_test():
@@ -30,9 +31,9 @@ def run_test():
 
     # Prepare the molecules.
     prepare_molecules(params)
-    print("")
-    print("TEST RESULTS")
-    print("============")
+    Utils.log("")
+    Utils.log("TEST RESULTS")
+    Utils.log("============")
 
     # Get the output sdf files.
     sdf_files = glob.glob(output_folder + "*")
@@ -42,7 +43,7 @@ def run_test():
     if len(sdf_files) != 7:
         raise Exception("FAILED. " + msg)
     else:
-        print("PASSED. " + msg)
+        Utils.log("PASSED. " + msg)
 
     # Get all the smiles from the files.
     all_smiles = set([])
@@ -96,15 +97,15 @@ def run_test():
     if len(all_smiles) != len(target_smiles):
         raise Exception("FAILED. " + msg)
     else:
-        print("PASSED. " + msg)
+        Utils.log("PASSED. " + msg)
 
     if len(all_smiles ^ target_smiles) > 0:
         raise Exception("FAILED. " + "Got some SMILES I didn't expect: " + \
             " ".join(list(all_smiles ^ target_smiles)))
     else:
-        print("PASSED. Gypsum output the very SMILES strings I was expecting.")
+        Utils.log("PASSED. Gypsum output the very SMILES strings I was expecting.")
 
-    print("")
+    Utils.log("")
 
     # Delete test output directory if it exists.
     if os.path.exists(output_folder):

@@ -6,6 +6,7 @@ import __future__
 from gypsum.Steps.IO.SaveToSDF import save_to_sdf
 from gypsum.Steps.IO.SaveToPDB import convert_sdfs_to_PDBs
 from gypsum.Steps.IO.Web2DOutput import web_2d_output
+from gypsum import Utils
 
 def proccess_output(contnrs, params):
     """Proccess the molecular models in preparation for writing them to the
@@ -25,5 +26,5 @@ def proccess_output(contnrs, params):
 
     # Also write to PDB files, if requested.
     if params["output_pdb"] == True:
-        print("\nMaking PDB output files\n")
+        Utils.log("\nMaking PDB output files\n")
         convert_sdfs_to_PDBs(contnrs, output_folder)

@@ -32,57 +32,57 @@ def prepare_smiles(contnrs, params):
     debug = False
 
     # Desalt the molecules.
-    print("Begin Desaltings")
+    Utils.log("Begin Desaltings")
     desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj)
-    print("Done with Desalting")
+    Utils.log("Done with Desalting")
 
     if debug: Utils.print_current_smiles(contnrs)
 
     # Add hydrogens for user-specified pH, if requested.
     if not params["skip_adding_hydrogen"]:
-        print("Protonating Molecules")
+        Utils.log("Protonating Molecules")
         add_hydrogens(contnrs, min_ph, max_ph, std_dev, max_variants_per_compound,
                       thoroughness, num_procs, multithread_mode,
                       parallelizer_obj)
-        print("Done with Protonating")
+        Utils.log("Done with Protonating")
     else:
-        print("Skipping Protonation")
+        Utils.log("Skipping Protonation")
         wrap_molecules(contnrs)
 
     if debug: Utils.print_current_smiles(contnrs)
 
     # Make alternate tautomeric forms, if requested.
     if not params["skip_making_tautomers"]:
-        print("Tautomerizing Molecules")
+        Utils.log("Tautomerizing Molecules")
         make_tauts(contnrs, max_variants_per_compound, thoroughness,
                    num_procs, multithread_mode, parallelizer_obj)
-        print("Done with Tautomerization")
+        Utils.log("Done with Tautomerization")
     else:
-        print("Skipping Tautomerization")
+        Utils.log("Skipping Tautomerization")
 
     if debug: Utils.print_current_smiles(contnrs)
 
     # Make alternate chiral forms, if requested.
     if not params["skip_ennumerate_chiral_mol"]:
-        print("Enumerating Chirality")
+        Utils.log("Enumerating Chirality")
         enumerate_chiral_molecules(contnrs, max_variants_per_compound,
                                    thoroughness, num_procs,
                                    multithread_mode, parallelizer_obj)
-        print("Done with Chirality Enumeration")
+        Utils.log("Done with Chirality Enumeration")
     else:
-        print("Skipping Chirality Enumeration")
+        Utils.log("Skipping Chirality Enumeration")
 
     if debug: Utils.print_current_smiles(contnrs)
 
     # Make alternate double-bond isomers, if requested.
     if not params["skip_ennumerate_double_bonds"]:
-        print("Enumerating Double Bonds")
+        Utils.log("Enumerating Double Bonds")
         enumerate_double_bonds(contnrs, max_variants_per_compound,
                                thoroughness, num_procs,
                                multithread_mode, parallelizer_obj)
-        print("Done with Double Bond Enumeration")
+        Utils.log("Done with Double Bond Enumeration")
     else:
-        print("Skipping Double Bond Enumeration")
+        Utils.log("Skipping Double Bond Enumeration")
 
     if debug: Utils.print_current_smiles(contnrs)
 
