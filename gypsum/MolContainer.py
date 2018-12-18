@@ -1,4 +1,19 @@
-"""This module describes the MolContainer, which contains different MyMol.MyMol
+# Copyright 2018 Jacob D. Durrant
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+This module describes the MolContainer, which contains different MyMol.MyMol
 objects. Each object in this container is derived from the same input molecule
 (so they are variants). Note that conformers (3D coordinate sets) live inside
 MyMol.MyMol. So, just to clarify:
