@@ -202,9 +202,6 @@ def prepare_molecules(args):
     params["end_time"] = str(end_time)
     params["run_time"] = str(run_time)
 
-    # Process the output.
-    proccess_output(contnrs, params)
-
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["multithread_mode"])
 
@@ -235,6 +232,10 @@ def execute_gypsum(contnrs, params):
 
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)
+
+    # Process the output.
+    proccess_output(contnrs, params)
+    
     return contnrs
 
 def detect_unassigned_bonds(smiles):
