@@ -18,7 +18,7 @@ PARSER.add_argument('--json', '-j', metavar='param.json',
 PARSER.add_argument('--source', '-s', metavar='input.smi',
                     help='Name of the source file (e.g., input.smi).')
 PARSER.add_argument('--output_file', '-o',
-                    help='The file name of the output .sdf file(s).')
+                    help='The file name of the output .sdf or .html file(s).')
 PARSER.add_argument('--num_processors', '-p', metavar='N', default=1,
                     help='Number of processors to use for parallel \
                     calculations.')
