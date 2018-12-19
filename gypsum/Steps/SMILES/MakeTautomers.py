@@ -87,10 +87,10 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, mult
     else:
         for i in params:
             tmp.append(parallel_make_taut(i[0],i[1],i[2]))
-       
+
     # Flatten the resulting list of lists.
     none_data = tmp
-    taut_data = Parallelizer.flatten_list(none_data)  # JDD: Why this? JOS: this is necessary because of some examples with MPI. please leave this one alone.
+    taut_data = Parallelizer.flatten_list(none_data)
 
     # Remove bad tautomers.
     taut_data = tauts_no_break_arom_rngs(contnrs, taut_data, num_procs,

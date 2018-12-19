@@ -112,7 +112,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compo
     else:
         for i in params:
             tmp.append(parallel_get_ring_confs(i[0],i[1],i[2],i[3]))
-       
+
     # Flatten the results.
     results = Parallelizer.flatten_list(tmp)
 
@@ -139,12 +139,8 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compo
         if len(lst_enrgy_mol_pairs) != 0:
             contnrs[contnr_idx].mols = []  # Note that only affects ones that
                                            # had non-aromatic rings.
-            try:
-                lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
+            lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
                                         # pair).
-            except:
-                # For debugging
-                import pdb; pdb.set_trace()
 
             # Keep only the top ones.
             lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:max_variants_per_compound]

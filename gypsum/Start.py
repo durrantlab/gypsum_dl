@@ -115,7 +115,7 @@ def prepare_molecules(args):
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":
-        Utils.log("Our Multiprocessing is not supportive of Windows. We will run tasks in Serial")
+        Utils.log("Multiprocessing is not supported on Windows. Tasks will be run in Serial mode.")
         params["num_processors"] = 1
         params["multithread_mode"] = "serial"
 
@@ -187,16 +187,17 @@ def prepare_molecules(args):
     if len(contnrs) != idx_counter:
         raise Exception("There is a corrupted container")
 
-
-
-    # To Optimize the speed of the parallization, we will run multithread mode as embarrassingly parallel
-    # But due to data transfer speeds we will run parallelize MPI mode differently. 
+    # In multiprocessing mode, Gypsum parallelizes each small-molecule
+    # preparation step separately. But this scheme is inefficient in MPI mode
+    # because it increases the amount of communication required between nodes.
+    # So for MPI mode, we will run all the preparation steps for a given
+    # molecule container on a single thread.
     if params["Parallelizer"].return_mode() != "mpi":
+        # Non-MPI (e.g., multithreading)
         execute_gypsum(contnrs, params)
     else:
-        # For MPI mode, run 1 ligand in full rather than embarassingly style for non-mpi mode
-        # This should reduce the data transfer overhead.
-            # Group the molecule containers so they can be passed to the parallelizer.
+        # MPI mode. Group the molecule containers so they can be passed to the
+        # parallelizer.
         job_input = []
         temp_param = {}
         for key in list(params.keys()):
@@ -207,9 +208,9 @@ def prepare_molecules(args):
         for contnr in contnrs:
             job_input.append(tuple([[contnr], temp_param]))
         job_input = tuple(job_input)
-    
+
         params["Parallelizer"].run(job_input, execute_gypsum)
-    
+
     # Calculate the total run time.
     end_time = datetime.now()
     run_time = end_time - start_time
@@ -217,14 +218,14 @@ def prepare_molecules(args):
     params["end_time"] = str(end_time)
     params["run_time"] = str(run_time)
 
-    print("Start time at: ", start_time)
-    print("End time at:   ", end_time)
-    print("Total time at: ", run_time)
+    Utils.log("Start time at: ", start_time)
+    Utils.log("End time at:   ", end_time)
+    Utils.log("Total time at: ", run_time)
 
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["multithread_mode"])
 
-def execute_gypsum(contnrs, params):   
+def execute_gypsum(contnrs, params):
     """A function for doing all of the manipulations to each molecule.
 
     :param contnrs: A list of all molecules.
