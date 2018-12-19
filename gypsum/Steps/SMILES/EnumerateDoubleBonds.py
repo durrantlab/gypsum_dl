@@ -76,8 +76,13 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     params = tuple(params)
 
     # Ruin it through the parallelizer.
-    tmp = parallelizer_obj.run(params, parallel_get_double_bonded, num_procs, multithread_mode)
-
+    tmp = []
+    if parallelizer_obj !=  None:
+        tmp = parallelizer_obj.run(params, parallel_get_double_bonded, num_procs, multithread_mode)
+    else:
+        for i in params:
+            tmp.append(parallel_get_double_bonded(i[0],i[1]))
+            
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)
 

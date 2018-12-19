@@ -52,13 +52,16 @@ def desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj):
     # just run it on a single processor always.
     tmp = [desalter(x) for x in contnrs]
 
+
     # Go through each contnr and update the orig_smi_deslt. If we update it,
     # also add a note in the genealogy record.
     tmp = Parallelizer.strip_none(tmp)
-    for desalt_mol in tmp:
-        idx = desalt_mol.contnr_idx
+    for idx in range(0,len(tmp)):
+        desalt_mol = tmp[idx]
+        # idx = desalt_mol.contnr_idx
         cont = contnrs[idx]
-        if contnrs[desalt_mol.contnr_idx].orig_smi != desalt_mol.orig_smi:
+
+        if contnrs[idx].orig_smi != desalt_mol.orig_smi:
             desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)
         cont.add_mol(desalt_mol)

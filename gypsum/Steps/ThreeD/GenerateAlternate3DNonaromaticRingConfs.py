@@ -106,10 +106,13 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compo
         return  # There are no such ligands to process.
 
     # Run it through the parallelizer
-    tmp = parallelizer_obj.run(
-        params, parallel_get_ring_confs, num_procs, multithread_mode
-    )
-
+    tmp = []
+    if parallelizer_obj !=  None:
+        tmp = parallelizer_obj.run(params, parallel_get_ring_confs, num_procs, multithread_mode)
+    else:
+        for i in params:
+            tmp.append(parallel_get_ring_confs(i[0],i[1],i[2],i[3]))
+       
     # Flatten the results.
     results = Parallelizer.flatten_list(tmp)
 

@@ -27,6 +27,7 @@ from collections import OrderedDict
 
 import gypsum.Utils as Utils
 from gypsum.Parallelizer import Parallelizer
+from gypsum.Parallelizer import flatten_list
 
 try:
     from rdkit.Chem import AllChem
@@ -183,9 +184,54 @@ def prepare_molecules(args):
 
     # Remove None types from failed conversion
     contnrs = [x for x in contnrs if x.orig_smi_canonical!=None]
-    if len(contnrs)!= idx_counter:
+    if len(contnrs) != idx_counter:
         raise Exception("There is a corrupted container")
 
+
+
+    # To Optimize the speed of the parallization, we will run multithread mode as embarrassingly parallel
+    # But due to data transfer speeds we will run parallelize MPI mode differently. 
+    if params["Parallelizer"].return_mode() != "mpi":
+        execute_gypsum(contnrs, params)
+    else:
+        # For MPI mode, run 1 ligand in full rather than embarassingly style for non-mpi mode
+        # This should reduce the data transfer overhead.
+            # Group the molecule containers so they can be passed to the parallelizer.
+        job_input = []
+        temp_param = {}
+        for key in list(params.keys()):
+            if key == "Parallelizer":
+                temp_param["Parallelizer"] = None
+            else:
+                temp_param[key] = params[key]
+        for contnr in contnrs:
+            job_input.append(tuple([[contnr], temp_param]))
+        job_input = tuple(job_input)
+    
+        params["Parallelizer"].run(job_input, execute_gypsum)
+    
+    # Calculate the total run time.
+    end_time = datetime.now()
+    run_time = end_time - start_time
+    params["start_time"] = str(start_time)
+    params["end_time"] = str(end_time)
+    params["run_time"] = str(run_time)
+
+    print("Start time at: ", start_time)
+    print("End time at:   ", end_time)
+    print("Total time at: ", run_time)
+
+    # Kill mpi workers if necessary.
+    params["Parallelizer"].end(params["multithread_mode"])
+
+def execute_gypsum(contnrs, params):   
+    """A function for doing all of the manipulations to each molecule.
+
+    :param contnrs: A list of all molecules.
+    :type contnrs: list
+    :param params: A dictionary containing all of the parameters.
+    :type params: dict
+    """
     # Start creating the models.
 
     # Prepare the smiles. Desalt, consider alternate ionization, tautometeric,
@@ -204,18 +250,8 @@ def prepare_molecules(args):
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)
 
-    # Calculate the total run time.
-    end_time = datetime.now()
-    run_time = end_time - start_time
-    params["start_time"] = str(start_time)
-    params["end_time"] = str(end_time)
-    params["run_time"] = str(run_time)
-
     # Process the output.
     proccess_output(contnrs, params)
-
-    # Kill mpi workers if necessary.
-    params["Parallelizer"].end(params["multithread_mode"])
 
 def detect_unassigned_bonds(smiles):
     """Detects whether a give smiles string has unassigned bonds.
