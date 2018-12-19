@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 Parallelizer.py
 
 Abstract parallel computation utility.
-'''
+
+The "parallelizer" object exposes a simple map interface that takes a function
+and a list of arguments and returns the result of applying the function to
+each argument. Internally, the parallelizer class can determine what parallel
+capabilities are present on a system and automatically pick between "mpi",
+"multithreading" or "serial" in order to speed up the map operation. This
+approach simplifies development and allows the same program to run on a laptop
+or a high-performance computer cluster, utilizing the full resources of each
+system. (Description provided by Harrison Green.)
+"""
 
 import __future__
 import multiprocessing

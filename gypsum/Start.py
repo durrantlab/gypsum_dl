@@ -282,9 +282,9 @@ def set_parameters(params_unicode):
 
     # Set the default values.
     default = OrderedDict({
-        "source" : '',
-        "output_folder": '',
-        "output_file" : '',
+        "source" : "",
+        "output_folder": "",
+        "output_file" : "",
         "separate_output_files" : False,
         "output_pdb": False,
         "num_processors" : -1,
