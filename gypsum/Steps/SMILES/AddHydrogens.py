@@ -80,7 +80,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     else:
         for i in inputs:
             results.append(parallel_add_H(i[0],i[1]))
-            
+
     results = Parallelizer.flatten_list(results)
 
     # Dimorphite-DL might not have generated ionization states for some
@@ -132,9 +132,9 @@ def parallel_add_H(contnr, protonation_settings):
 
     # Make sure the canonical SMILES is actually a string.
     if type(contnr.orig_smi_canonical) != str:
-        Utils.log("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
-        Utils.log("type container.orig_smi_canonical: ", type(contnr.orig_smi_canonical))
-        raise Exception("container.orig_smi_canonical: ", contnr.orig_smi_canonical)
+        Utils.log("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
+        Utils.log("type container.orig_smi_canonical: " + str(type(contnr.orig_smi_canonical)))
+        raise Exception("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
 
     # Add the SMILES string to the protonation parameters.
     protonation_settings["smiles"] = contnr.orig_smi_canonical
