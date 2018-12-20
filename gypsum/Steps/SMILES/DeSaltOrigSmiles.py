@@ -30,7 +30,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj):
+def desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj):
     """If an input molecule has multiple unconnected fragments, this removes
        all but the largest fragment.
 
@@ -38,8 +38,8 @@ def desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj):
     :type contnrs: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithread mode.
-    :type multithread_mode: string
+    :param job_manager: The multithread mode.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """

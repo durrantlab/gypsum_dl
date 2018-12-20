@@ -42,14 +42,14 @@ def prepare_smiles(contnrs, params):
     max_variants_per_compound = params["max_variants_per_compound"]
     thoroughness = params["thoroughness"]
     num_procs = params["num_processors"]
-    multithread_mode = params["multithread_mode"]
+    job_manager = params["job_manager"]
     parallelizer_obj = params["Parallelizer"]
 
     debug = False
 
     # Desalt the molecules.
     Utils.log("Begin Desaltings")
-    desalt_orig_smi(contnrs, num_procs, multithread_mode, parallelizer_obj)
+    desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj)
     Utils.log("Done with Desalting")
 
     if debug: Utils.print_current_smiles(contnrs)
@@ -58,7 +58,7 @@ def prepare_smiles(contnrs, params):
     if not params["skip_adding_hydrogen"]:
         Utils.log("Protonating Molecules")
         add_hydrogens(contnrs, min_ph, max_ph, std_dev, max_variants_per_compound,
-                      thoroughness, num_procs, multithread_mode,
+                      thoroughness, num_procs, job_manager,
                       parallelizer_obj)
         Utils.log("Done with Protonating")
     else:
@@ -71,7 +71,7 @@ def prepare_smiles(contnrs, params):
     if not params["skip_making_tautomers"]:
         Utils.log("Tautomerizing Molecules")
         make_tauts(contnrs, max_variants_per_compound, thoroughness,
-                   num_procs, multithread_mode, parallelizer_obj)
+                   num_procs, job_manager, parallelizer_obj)
         Utils.log("Done with Tautomerization")
     else:
         Utils.log("Skipping Tautomerization")
@@ -83,7 +83,7 @@ def prepare_smiles(contnrs, params):
         Utils.log("Enumerating Chirality")
         enumerate_chiral_molecules(contnrs, max_variants_per_compound,
                                    thoroughness, num_procs,
-                                   multithread_mode, parallelizer_obj)
+                                   job_manager, parallelizer_obj)
         Utils.log("Done with Chirality Enumeration")
     else:
         Utils.log("Skipping Chirality Enumeration")
@@ -95,7 +95,7 @@ def prepare_smiles(contnrs, params):
         Utils.log("Enumerating Double Bonds")
         enumerate_double_bonds(contnrs, max_variants_per_compound,
                                thoroughness, num_procs,
-                               multithread_mode, parallelizer_obj)
+                               job_manager, parallelizer_obj)
         Utils.log("Done with Double Bond Enumeration")
     else:
         Utils.log("Skipping Double Bond Enumeration")

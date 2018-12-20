@@ -33,9 +33,7 @@ sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)),'gypsum'
 
 def convert_sdfs_to_PDBs(contnrs, output_folder):
     """This will convert every conformer into a PDB file, which is saved in
-       the output_folder. The .pdb files are named using the ID in the source
-       file (or a modified name in the case of untitled or duplicate names)
-       plus "__{}".format(i), where i is the conformer number
+       the output_folder.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list

@@ -31,7 +31,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, multithread_mode, parallelizer_obj):
+def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
     """Converts the 1D smiles strings into 3D small-molecule models.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
@@ -50,8 +50,8 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
@@ -68,11 +68,11 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs
     # Run the parallelizer
     tmp = []
     if parallelizer_obj !=  None:
-        tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, multithread_mode)
+        tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, job_manager)
     else:
         for i in params:
             tmp.append(parallel_make_3d(i[0]))
-       
+
     # Remove and Nones from the output, which represent failed molecules.
     clear = Parallelizer.strip_none(tmp)
 

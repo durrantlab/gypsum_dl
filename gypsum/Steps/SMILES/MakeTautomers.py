@@ -38,7 +38,7 @@ except:
     Utils.log("You need to install molvs and its dependencies.")
     raise ImportError("You need to install molv and its dependencies.")
 
-def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, multithread_mode, parallelizer_obj):
+def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
     """Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
     substructure keeps popping up, add it to the list in the
@@ -61,8 +61,8 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, mult
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
@@ -83,7 +83,7 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, mult
     # Run the tautomizer through the parallel object.
     tmp = []
     if parallelizer_obj !=  None:
-        tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, multithread_mode)
+        tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, job_manager)
     else:
         for i in params:
             tmp.append(parallel_make_taut(i[0],i[1],i[2]))
@@ -94,11 +94,11 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, mult
 
     # Remove bad tautomers.
     taut_data = tauts_no_break_arom_rngs(contnrs, taut_data, num_procs,
-                                         multithread_mode, parallelizer_obj)
+                                         job_manager, parallelizer_obj)
     taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_procs,
-                                     multithread_mode, parallelizer_obj)
+                                     job_manager, parallelizer_obj)
     # taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-    #    contnrs, taut_data, num_procs, multithread_mode, parallelizer_obj
+    #    contnrs, taut_data, num_procs, job_manager, parallelizer_obj
     # )
 
     # Keep only the top few compound variants in each container, to prevent a
@@ -185,7 +185,7 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
 
     return results
 
-def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, multithread_mode, parallelizer_obj):
+def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, job_manager, parallelizer_obj):
     """For a given molecule, the number of atomatic rings should never change
        regardless of tautization, ionization, etc. Any taut that breaks
        aromaticity is unlikely to be worth pursuing. So remove it.
@@ -196,8 +196,8 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, multithread_mode, pa
     :type taut_data: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     :return: A list of MyMol.MyMol objects, with certain bad ones removed.
@@ -220,7 +220,7 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, multithread_mode, pa
     tmp = []
     if parallelizer_obj !=  None:
         tmp = parallelizer_obj.run(
-            params, parallel_check_nonarom_rings, num_procs, multithread_mode
+            params, parallel_check_nonarom_rings, num_procs, job_manager
         )
     else:
         for i in params:
@@ -231,7 +231,7 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, multithread_mode, pa
 
     return results
 
-def tauts_no_elim_chiral(contnrs, taut_data, num_procs, multithread_mode, parallelizer_obj):
+def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelizer_obj):
     """Unfortunately, molvs sees removing chiral specifications as being a
        distinct taut. I imagine there are cases where tautization could
        remove a chiral center, but I think these cases are rare. To compensate
@@ -244,8 +244,8 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, multithread_mode, parall
     :type taut_data: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     :return: A list of MyMol.MyMol objects, with certain bad ones removed.
@@ -268,7 +268,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, multithread_mode, parall
     tmp = []
     if parallelizer_obj !=  None:
         tmp = parallelizer_obj.run(
-            params, parallel_check_chiral_centers, num_procs, multithread_mode
+            params, parallel_check_chiral_centers, num_procs, job_manager
         )
     else:
         for i in params:
@@ -279,7 +279,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, multithread_mode, parall
 
     return results
 
-def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_procs, multithread_mode, parallelizer_obj):
+def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_procs, job_manager, parallelizer_obj):
     """Generally speaking, only carbons that are alpha to a carbonyl are
        sufficiently acidic to participate in tautomer formation. The
        tautomer-generating code you use makes these inappropriate tautomers.
@@ -291,8 +291,8 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
     :type taut_data: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     :return: A list of MyMol.MyMol objects, with certain bad ones removed.
@@ -309,7 +309,7 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
     tmp = []
     if parallelizer_obj !=  None:
         tmp = parallelizer_obj.run(
-            params, parallel_check_carbon_hydrogens, num_procs, multithread_mode
+            params, parallel_check_carbon_hydrogens, num_procs, job_manager
         )
     else:
         for i in params:

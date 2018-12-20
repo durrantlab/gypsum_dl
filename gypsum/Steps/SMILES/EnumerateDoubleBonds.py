@@ -33,7 +33,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_procs, multithread_mode, parallelizer_obj):
+def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
     """Enumerates all possible cis-trans isomers. If the stereochemistry of a
        double bond is specified, it is not varied. All unspecified double bonds
        are varied.
@@ -54,8 +54,8 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
@@ -78,11 +78,11 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     # Ruin it through the parallelizer.
     tmp = []
     if parallelizer_obj !=  None:
-        tmp = parallelizer_obj.run(params, parallel_get_double_bonded, num_procs, multithread_mode)
+        tmp = parallelizer_obj.run(params, parallel_get_double_bonded, num_procs, job_manager)
     else:
         for i in params:
             tmp.append(parallel_get_double_bonded(i[0],i[1]))
-            
+
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)
 

@@ -82,7 +82,7 @@ PARSER.add_argument('--skip_ennumerate_double_bonds', action='store_true',
                     help='Skips the ennumeration of double bonds.')
 PARSER.add_argument('--2d_output_only', action='store_true',
                     help='Skips the generate-3D-models step.')
-PARSER.add_argument('--multithread_mode', default='multithreading',
+PARSER.add_argument('--job_manager', default='multithreading',
                     choices = ["mpi", "multithreading", "serial"],
                     help='Determine what style of multithreading to use: mpi, \
                     multithreading, or serial. If this program is being used \

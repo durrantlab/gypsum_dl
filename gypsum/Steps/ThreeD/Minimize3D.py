@@ -25,7 +25,7 @@ import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
 from gypsum.MyMol import MyConformer
 
-def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, multithread_mode, parallelizer_obj):
+def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, job_manager, parallelizer_obj):
     """This function minimizes a 3D molecular conformation. In an attempt to
        not get trapped in a local minimum, it actually generates a number of
        conformers, minimizes the best ones, and then saves the best of the
@@ -52,8 +52,8 @@ def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, sec
         run time, but sometimes converts certain molecules that would
         otherwise fail.
     :type second_embed: bool
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
@@ -76,11 +76,11 @@ def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, sec
     # Run the inputs through the parallelizer.
     tmp = []
     if parallelizer_obj !=  None:
-        tmp = parallelizer_obj.run(params, parallel_minit, num_procs, multithread_mode)
+        tmp = parallelizer_obj.run(params, parallel_minit, num_procs, job_manager)
     else:
         for i in params:
             tmp.append(parallel_minit(i[0],i[1],i[2],i[3]))
-       
+
 
     # Save energy into MyMol object, and get a list of just those objects.
     contnr_list_not_empty = set([])  # To keep track of which container lists

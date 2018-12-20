@@ -28,7 +28,7 @@ import gypsum.MolContainer as MolCont
 from gypsum.Steps.SMILES.dimorphite.dimorphite_dl import protonate
 
 def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
-                  thoroughness, num_procs, multithread_mode,
+                  thoroughness, num_procs, job_manager,
                   parallelizer_obj):
     """Adds hydrogen atoms to molecule containers, as appropriate for a given
        pH.
@@ -55,8 +55,8 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithred mode to use.
-    :type multithread_mode: string
+    :param job_manager: The multithred mode to use.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
@@ -72,7 +72,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     # Run the parallelizer and collect the results.
     results = []
     if parallelizer_obj !=  None:
-        results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, multithread_mode)
+        results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, job_manager)
     else:
         for i in inputs:
             results.append(parallel_add_H(i[0],i[1]))

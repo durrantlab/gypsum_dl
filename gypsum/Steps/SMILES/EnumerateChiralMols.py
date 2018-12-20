@@ -33,7 +33,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_procs, multithread_mode, parallelizer_obj):
+def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
     """Enumerates all possible enantiomers of a molecule. If the chirality of
        an atom is given, that chiral center is not varied. Only the chirality
        of unspecified chiral centers is varied.
@@ -54,8 +54,8 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param multithread_mode: The multithread mode.
-    :type multithread_mode: string
+    :param job_manager: The multithread mode.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
@@ -76,7 +76,7 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     # Run it through the parallelizer.
     tmp = []
     if parallelizer_obj !=  None:
-        tmp = parallelizer_obj.run(params, parallel_get_chiral, num_procs, multithread_mode)
+        tmp = parallelizer_obj.run(params, parallel_get_chiral, num_procs, job_manager)
     else:
         for i in params:
             tmp.append(parallel_get_chiral(i[0],i[1],i[2]))

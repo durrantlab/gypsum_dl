@@ -47,7 +47,7 @@ except:
     Utils.log("You need to install scipy and its dependencies.")
     raise ImportError("You need to install scipy and its dependencies.")
 
-def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, multithread_mode, parallelizer_obj):
+def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, job_manager, parallelizer_obj):
     """Docking programs like Vina rotate chemical moieties around their
        rotatable bonds, so it's not necessary to generate a larger rotomer
        library for each molecule. The one exception to this rule is
@@ -76,8 +76,8 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compo
         run time, but sometimes converts certain molecules that would
         otherwise fail.
     :type second_embed: bool
-    :param multithread_mode: The multithread mode.
-    :type multithread_mode: string
+    :param job_manager: The multithread mode.
+    :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     :return: Returns None if no ring conformers are generated
@@ -108,7 +108,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compo
     # Run it through the parallelizer
     tmp = []
     if parallelizer_obj !=  None:
-        tmp = parallelizer_obj.run(params, parallel_get_ring_confs, num_procs, multithread_mode)
+        tmp = parallelizer_obj.run(params, parallel_get_ring_confs, num_procs, job_manager)
     else:
         for i in params:
             tmp.append(parallel_get_ring_confs(i[0],i[1],i[2],i[3]))

@@ -94,17 +94,17 @@ def prepare_molecules(args):
         params = set_parameters(args)
 
     # If running in serial mode, make sure only one processor is used.
-    if params["multithread_mode"] == "serial":
+    if params["job_manager"] == "serial":
         if params["num_processors"] != 1:
-            Utils.log("Because --multithread_mode was set to serial, this will be run on a single processor.")
+            Utils.log("Because --job_manager was set to serial, this will be run on a single processor.")
         params["num_processors"] = 1
 
     # Handle mpi errors if mpi4py isn't installed
-    if params["multithread_mode"] == "mpi":
+    if params["job_manager"] == "mpi":
         try:
             import mpi4py
         except:
-            printout = "mpi4py not installed but --multithread_mode is set to mpi. \n Either install mpi4py or switch multithread_mode to multithreading or serial"
+            printout = "mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multithreading or serial"
             raise ImportError(printout)
 
     # Throw a message if running on windows. Windows doesn't deal with with
@@ -112,17 +112,17 @@ def prepare_molecules(args):
     if sys.platform == "win32":
         Utils.log("Multiprocessing is not supported on Windows. Tasks will be run in Serial mode.")
         params["num_processors"] = 1
-        params["multithread_mode"] = "serial"
+        params["job_manager"] = "serial"
 
     # Launch mpi workers if that's what's specified.
-    if params["multithread_mode"] == 'mpi':
-        params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"])
+    if params["job_manager"] == 'mpi':
+        params["Parallelizer"] = Parallelizer(params["job_manager"], params["num_processors"])
     else:
         # Lower-level mpi (i.e. making a new Parallelizer within an mpi) has
         # problems with importing the MPI environment and mpi4py. So we will
         # flag it to skip the MPI mode and just go to multithread/serial. This
         # is a saftey precaution
-        params["Parallelizer"] = Parallelizer(params["multithread_mode"], params["num_processors"], True)
+        params["Parallelizer"] = Parallelizer(params["job_manager"], params["num_processors"], True)
 
     # Let the user know that their command-line parameters will be ignored, if
     # they have specified a json file.
@@ -154,7 +154,7 @@ def prepare_molecules(args):
     # print("")
     # print("###########################")
     # print("num_procs  :  ", params["num_processors"])
-    # print("chosen mode  :  ", params["multithread_mode"])
+    # print("chosen mode  :  ", params["job_manager"])
     # print("Parallel style:  ", params["Parallelizer"].return_mode())
     # print("Number Nodes:  ", params["Parallelizer"].return_node())
     # print("###########################")
@@ -218,7 +218,7 @@ def prepare_molecules(args):
     Utils.log("Total time at: " + str(run_time))
 
     # Kill mpi workers if necessary.
-    params["Parallelizer"].end(params["multithread_mode"])
+    params["Parallelizer"].end(params["job_manager"])
 
 def execute_gypsum(contnrs, params):
     """A function for doing all of the manipulations to each molecule.
@@ -299,7 +299,7 @@ def set_parameters(params_unicode):
         "skip_making_tautomers" : False,
         "skip_ennumerate_chiral_mol" : False,
         "skip_ennumerate_double_bonds" : False,
-        "multithread_mode" : "multithreading",
+        "job_manager" : "multithreading",
         "cache_prerun": False,
         "test": False
     })
@@ -458,8 +458,8 @@ def finalize_params(params):
             "Please provide the path to an existing folder instead."
         )
 
-    # Make sure multithread_mode is always lower case.
-    params["multithread_mode"] = params["multithread_mode"].lower()
+    # Make sure job_manager is always lower case.
+    params["job_manager"] = params["job_manager"].lower()
 
     return params
 
