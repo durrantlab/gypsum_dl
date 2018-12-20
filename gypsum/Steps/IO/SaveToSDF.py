@@ -24,8 +24,7 @@ import gypsum.Utils as Utils
 try:
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 def save_to_sdf(contnrs, params, separate_output_files, output_folder):
     """Saves the 3D models to the disk as an SDF file.

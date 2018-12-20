@@ -33,20 +33,17 @@ try:
     from rdkit.Chem import AllChem
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     import numpy
 except:
-    Utils.log("You need to install numpy and its dependencies.")
-    raise ImportError("You need to install numpy and its dependencies.")
+    Utils.exception("You need to install numpy and its dependencies.")
 
 try:
     from scipy.cluster.vq import kmeans2
 except:
-    Utils.log("You need to install scipy and its dependencies.")
-    raise ImportError("You need to install scipy and its dependencies.")
+    Utils.exception("You need to install scipy and its dependencies.")
 
 from gypsum.MolContainer import MolContainer
 from gypsum.Steps.SMILES.PrepareSmiles import prepare_smiles
@@ -104,8 +101,7 @@ def prepare_molecules(args):
         try:
             import mpi4py
         except:
-            printout = "mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multithreading or serial"
-            raise ImportError(printout)
+            Utils.exception("mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multithreading or serial.")
 
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
@@ -356,7 +352,7 @@ def merge_parameters(default, params):
             )
             Utils.log("Here are the options:")
             Utils.log(str(list(default.keys())))
-            raise KeyError("Unrecognized parameter: " + str(param))
+            Utils.exception("Unrecognized parameter: " + str(param))
 
         # Throw an error if the input parameter has a different type than
         # the default one.
@@ -366,13 +362,11 @@ def merge_parameters(default, params):
                 params[param] = float(params[param])
             else:
                 # Seems to be a type mismatch.
-
-                Utils.log(
+                Utils.exception(
                     "The parameter \"" + param + "\" must be of " +
-                    "type" + str(type_dict[param]) + ", but it is of type " +
+                    "type " + str(type_dict[param]) + ", but it is of type " +
                     str(type(params[param])) + "."
                 )
-                raise TypeError("Input parameter (" + param + ") has a different type than the default.")
 
         # Update the parameter value with the user-defined one.
         default[param] = params[param]
@@ -400,12 +394,11 @@ def make_type_dict(dictionary):
 
         # The value ha san unacceptable type. Throw an error.
         if key not in type_dict:
-            Utils.log(
+            Utils.exception(
                 "ERROR: There appears to be an error in your parameter " +
                 "JSON file. No value can have type " + str(type(val)) +
                 "."
             )
-            Utils.exception("ERROR: There appears to be an error in your parameters.")
 
     return type_dict
 
@@ -421,12 +414,11 @@ def finalize_params(params):
 
     # Throw an error if there's a missing parameter.
     if params["source"] == "":
-        Utils.log(
+        Utils.exception(
             "Missing parameter \"source\". You need to specify " +
             "the source of the input molecules (probably a SMI or SDF " +
             "file)."
         )
-        raise NotImplementedError("Missing parameter.")
 
     # Note on parameter "source", the data source. If it's a string that
     # ends in ".smi", it's treated as a smiles file. If it's a string that

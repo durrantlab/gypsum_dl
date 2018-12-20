@@ -30,8 +30,7 @@ import gypsum.MyMol as MyMol
 try:
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
     """Enumerates all possible enantiomers of a molecule. If the chirality of

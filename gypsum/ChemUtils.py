@@ -24,8 +24,7 @@ try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     """Pick molecules with low energies. If necessary, the definition also

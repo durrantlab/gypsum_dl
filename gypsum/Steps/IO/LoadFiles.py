@@ -22,8 +22,7 @@ from gypsum import Utils
 try:
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 def load_smiles_file(filename):
     """Loads a smiles file.

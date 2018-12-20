@@ -32,20 +32,17 @@ try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     import numpy
 except:
-    Utils.log("You need to install numpy and its dependencies.")
-    raise ImportError("You need to install numpy and its dependencies.")
+    Utils.exception("You need to install numpy and its dependencies.")
 
 try:
     from scipy.cluster.vq import kmeans2
 except:
-    Utils.log("You need to install scipy and its dependencies.")
-    raise ImportError("You need to install scipy and its dependencies.")
+    Utils.exception("You need to install scipy and its dependencies.")
 
 def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, job_manager, parallelizer_obj):
     """Docking programs like Vina rotate chemical moieties around their

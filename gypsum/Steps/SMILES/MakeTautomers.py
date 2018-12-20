@@ -29,14 +29,12 @@ import gypsum.MolObjectHandling as MOH
 try:
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     from gypsum.molvs import tautomer
 except:
-    Utils.log("You need to install molvs and its dependencies.")
-    raise ImportError("You need to install molv and its dependencies.")
+    Utils.exception("You need to install molvs and its dependencies.")
 
 def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
     """Generates tautomers of the molecules. Note that some of the generated

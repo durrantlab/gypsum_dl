@@ -30,8 +30,7 @@ import gypsum.MyMol as MyMol
 try:
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 class MolContainer:
     """The molecucle container class. It stores all the molecules (tautomers,

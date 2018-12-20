@@ -28,8 +28,7 @@ try:
     from rdkit.Chem.Draw import PrepareMolForDrawing
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 def web_2d_output(contnrs, output_folder):
     """Saves pictures of the models to an HTML file on disk. It can be viewed in

@@ -27,8 +27,7 @@ import gypsum.MyMol as MyMol
 try:
     from rdkit import Chem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 def desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj):
     """If an input molecule has multiple unconnected fragments, this removes

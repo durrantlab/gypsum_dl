@@ -155,8 +155,12 @@ def exception(msg):
     """
 
     log(msg)
+    log("\n" + "=" * 79)
+    log("For help with usage:")
+    log("\tpython run_gypsum.py --help")
+    log("=" * 79)
+    log("")
     raise Exception(msg)
-
 
 def slug(strng):
     """Converts a string to one that is appropriate for a filename.

@@ -28,8 +28,7 @@ try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except:
-    Utils.log("You need to install rdkit and its dependencies.")
-    raise ImportError("You need to install rdkit and its dependencies.")
+    Utils.exception("You need to install rdkit and its dependencies.")
 
 def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
     """Converts the 1D smiles strings into 3D small-molecule models.
