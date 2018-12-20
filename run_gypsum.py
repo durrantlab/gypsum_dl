@@ -33,8 +33,9 @@ PARSER.add_argument('--json', '-j', metavar='param.json',
                     Overrides all other arguments specified at the commandline.')
 PARSER.add_argument('--source', '-s', metavar='input.smi',
                     help='Name of the source file (e.g., input.smi).')
-PARSER.add_argument('--output_file', '-o',
-                    help='The file name of the output .sdf or .html file(s).')
+PARSER.add_argument('--output_folder', '-o',
+                    help='The path to an existing folder where the gypsum ' +
+                    'output file(s) will be saved.')
 PARSER.add_argument('--num_processors', '-p', metavar='N', default=1,
                     help='Number of processors to use for parallel \
                     calculations.')
@@ -57,9 +58,14 @@ PARSER.add_argument('--separate_output_files', action='store_true',
                     files. If true, each output .sdf file will correspond to a \
                     single input file, but different 3D conformers will still \
                     be stored in the same file.')
-PARSER.add_argument('--output_pdb', action='store_true',
+PARSER.add_argument('--add_pdb_output', action='store_true',
                     help='Indicates that the outputs should also be written in \
-                    the .pdb format.')
+                    the .pdb format. Creates one PDB file for each molecular \
+                    variant.')
+PARSER.add_argument('--add_html_output', action='store_true',
+                    help='Indicates that the outputs should also be written in \
+                    the .html format, for debugging. Attempts to open a \
+                    browser for viewing.')
 PARSER.add_argument('--skip_optimize_geometry', action='store_true',
                     help='Skips the optimization step.')
 PARSER.add_argument('--skip_alternate_ring_conformations', action='store_true',

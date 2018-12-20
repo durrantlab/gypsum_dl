@@ -30,17 +30,16 @@ def proccess_output(contnrs, params):
 
     # Unpack some variables.
     separate_output_files = params["separate_output_files"]
-    output_file = params["output_file"]
     output_folder = params["output_folder"]
 
-    if output_file.lower().endswith(".html"):
+    if params["add_html_output"] == True:
         # Write to an HTML file.
-        web_2d_output(contnrs, output_file)
-    else:
-        # Write to an SDF file.
-        save_to_sdf(contnrs, params, separate_output_files, output_file)
+        web_2d_output(contnrs, output_folder)
+
+    # Write to an SDF file.
+    save_to_sdf(contnrs, params, separate_output_files, output_folder)
 
     # Also write to PDB files, if requested.
-    if params["output_pdb"] == True:
+    if params["add_pdb_output"] == True:
         Utils.log("\nMaking PDB output files\n")
         convert_sdfs_to_PDBs(contnrs, output_folder)

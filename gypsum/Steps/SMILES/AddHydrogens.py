@@ -61,10 +61,6 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    """
-    JDD: What is this? This is a stub that is used to keep track of what I need to still do.
-    """
-
     # Make a simple directory with the ionization parameters.
     protonation_settings = {"min_ph": min_pH,
                             "max_ph": max_pH,

@@ -31,7 +31,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def web_2d_output(contnrs, output_file):
+def web_2d_output(contnrs, output_folder):
     """Saves pictures of the models to an HTML file on disk. It can be viewed in
     a browser. Then opens a browser automatically to view them. This is mostly
     for debugging."""
@@ -39,7 +39,8 @@ def web_2d_output(contnrs, output_file):
     Utils.log("Saving html image of molecules associated with...")
 
     # Let's not parallelize it for now. This will rarely be used.
-    f = open(output_file, 'w')
+    html_file = output_folder + os.sep + "gypsum_success.html"
+    f = open(html_file, 'w')
     for contnr in contnrs:
         Utils.log("\t" + contnr.orig_smi)
         for mol in contnr.mols:
@@ -62,4 +63,4 @@ def web_2d_output(contnrs, output_file):
     f.close()
 
     # Open the browser to show the file.
-    webbrowser.open("file://" + os.path.abspath(output_file))
+    webbrowser.open("file://" + os.path.abspath(html_file))

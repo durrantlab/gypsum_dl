@@ -37,7 +37,7 @@ def run_test():
         "separate_output_files": True,
         "multithread_mode": "serial",  # multithreading
         "output_folder": output_folder,
-        "output_pdb": False,
+        "add_pdb_output": False,
         "max_variants_per_compound": 8,
         "thoroughness": 1,
         "min_ph": 4,

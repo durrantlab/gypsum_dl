@@ -74,7 +74,7 @@ def prepare_molecules(args):
 
     # A list of command-line parameters that will be ignored if using a json
     # file.
-    json_warning_list = ['source', 'output_file', 'num_processors',
+    json_warning_list = ['source', 'output_folder', 'num_processors',
                          'min_ph', 'max_ph', 'delta_ph_increment',
                          'thoroughness', 'max_variants_per_compound',
                          'ph_std_dev']
@@ -283,10 +283,10 @@ def set_parameters(params_unicode):
     # Set the default values.
     default = OrderedDict({
         "source" : "",
-        "output_folder": "",
-        "output_file" : "",
+        "output_folder" : "./",
         "separate_output_files" : False,
-        "output_pdb": False,
+        "add_pdb_output": False,
+        "add_html_output": False,
         "num_processors" : -1,
         "start_time" : 0,
         "end_time" : 0,
@@ -458,7 +458,7 @@ def finalize_params(params):
     if params["output_folder"] == "" and params["source"] != "":
         params["output_folder"] = source_dir + "output" + str(os.sep)
 
-    if params["output_pdb"] == True and params["output_folder"] == "":
+    if params["add_pdb_output"] == True and params["output_folder"] == "":
         Utils.log(
             "ERROR! To output files as .pdbs one needs to specify the output_folder."
         )
@@ -470,18 +470,17 @@ def finalize_params(params):
         )
         raise Exception("For separate_output_files one needs to specify the output_folder.")
 
-    if params["output_file"] == "" and params["output_folder"] != "":
-        params["output_file"] = params["output_folder"] + "output.sdf"
-
-    if params["output_file"] == "" and params["output_folder"] == "":
+    if not os.path.exists(params["output_folder"]) or not os.path.isdir(params["output_folder"]):
         Utils.log(
-            "ERROR! Missing parameters \"output_folder\" and \"output_folder\". You need to " +
-            "specify where to write the output file(s). Can be an HTML or " +
-            "SDF file or a directory."
+            "ERROR! The specified \"output_folder\" either does not exist " +
+            "or is a file rather than a folder. Please provide the path to an " +
+            "existing folder instead."
         )
-        raise Exception("Missing parameter indicating where to write the" +
-                        "output(s). Can be an HTML or .SDF file, or a " +
-                        "directory.")
+        raise Exception(
+            "ERROR! The specified \"output_folder\", " + params["output_folder"] +
+            ", either does not exist or is a file rather than a folder. " +
+            "Please provide the path to an existing folder instead."
+        )
 
     # Make sure multithread_mode is always lower case.
     params["multithread_mode"] = params["multithread_mode"].lower()
@@ -528,6 +527,6 @@ def deal_with_failed_molecules(contnrs, params):
         Utils.log("\n")
 
         # Write the failures to an smi file.
-        outfile = open(params["output_file"] + ".failed.smi", 'w')
+        outfile = open(params["output_folder"] + os.sep + "gypsum_failed.smi", 'w')
         outfile.write("\n".join(failed_ones))
         outfile.close()

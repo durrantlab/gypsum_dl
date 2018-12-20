@@ -17,6 +17,7 @@ Saves output files to SDF.
 """
 
 import __future__
+import os
 
 import gypsum.Utils as Utils
 
@@ -26,7 +27,7 @@ except:
     Utils.log("You need to install rdkit and its dependencies.")
     raise ImportError("You need to install rdkit and its dependencies.")
 
-def save_to_sdf(contnrs, params, separate_output_files, output_file):
+def save_to_sdf(contnrs, params, separate_output_files, output_folder):
     """Saves the 3D models to the disk as an SDF file.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
@@ -36,16 +37,15 @@ def save_to_sdf(contnrs, params, separate_output_files, output_file):
     :param separate_output_files: Whether save each molecule to a different
        file.
     :type separate_output_files: bool
-    :param output_file: The output file (or partial file name if saving to
-       multiple files).
-    :type output_file: str
+    :param output_folder: The output folder.
+    :type output_folder: str
     """
 
     # Save an empty molecule with the parameters.
     if separate_output_files == False:
-        w = Chem.SDWriter(output_file)
+        w = Chem.SDWriter(output_folder + os.sep + "gypsum_success.sdf")
     else:
-        w = Chem.SDWriter(output_file + ".params.sdf")
+        w = Chem.SDWriter(output_folder + os.sep + "gypsum_params.sdf")
 
     m = Chem.Mol()
     m.SetProp("_Name", "EMPTY MOLECULE DESCRIBING GYPSUM PARAMETERS")
@@ -69,7 +69,8 @@ def save_to_sdf(contnrs, params, separate_output_files, output_file):
 
         # Save the file(s).
         if separate_output_files == True:
-            w = Chem.SDWriter(output_file + "." + str(i + 1) + ".sdf")
+            # JDD: GET BETTER FILENAME HERE
+            w = Chem.SDWriter(output_folder + os.sep + "output." + str(i + 1) + ".sdf")
 
         for m in contnr.mols:
             m.load_conformers_into_rdkit_mol()

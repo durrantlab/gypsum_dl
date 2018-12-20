@@ -53,7 +53,7 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
         conformer_counter = 0
         # Got through the variants.
         for m in mols:
-            pdb_file = "{}{}__{}.pdb".format(output_folder, name, conformer_counter)
+            pdb_file = "{}{}__{}.pdb".format(output_folder + os.sep, name, conformer_counter)
 
             # Get the conformers into the rdkit_mol object.
             m.load_conformers_into_rdkit_mol()
