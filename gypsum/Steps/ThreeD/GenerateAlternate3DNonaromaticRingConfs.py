@@ -136,8 +136,14 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compo
         if len(lst_enrgy_mol_pairs) != 0:
             contnrs[contnr_idx].mols = []  # Note that only affects ones that
                                            # had non-aromatic rings.
-            lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
-                                        # pair).
+            print("DEBUG", lst_enrgy_mol_pairs)
+            try:
+                lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
+                                            # pair).
+            except:
+                # JDD For debugging.
+                # What is in lst_enrgy_mol_pairs?
+                import pdb; pdb.set_trace()
 
             # Keep only the top ones.
             lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:max_variants_per_compound]
