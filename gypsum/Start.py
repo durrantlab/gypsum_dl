@@ -443,12 +443,12 @@ def finalize_params(params):
     if params["separate_output_files"] == True and params["output_folder"] == "":
         Utils.exception("For separate_output_files, specify the output_folder.")
 
-    if not os.path.exists(params["output_folder"]) or not os.path.isdir(params["output_folder"]):
-        Utils.exception(
-            "The specified \"output_folder\", " + params["output_folder"] +
-            ", either does not exist or is a file rather than a folder. " +
-            "Please provide the path to an existing folder instead."
-        )
+    # if not os.path.exists(params["output_folder"]) or not os.path.isdir(params["output_folder"]):
+    #     Utils.exception(
+    #         "The specified \"output_folder\", " + params["output_folder"] +
+    #         ", either does not exist or is a file rather than a folder. " +
+    #         "Please provide the path to an existing folder instead."
+    #     )
 
     # Make sure job_manager is always lower case.
     params["job_manager"] = params["job_manager"].lower()
