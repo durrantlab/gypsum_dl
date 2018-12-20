@@ -121,7 +121,6 @@ def parallel_add_H(contnr, protonation_settings):
     :type contnr: MolContainer.MolContainer
     :param protonation_settings: Protonation settings to pass to Dimorphite-DL.
     :type protonation_settings: dict
-    :raises Exception: container.orig_smi_canonical is not a string.
     :return: [description]
     :rtype: [type]
     """
@@ -130,7 +129,7 @@ def parallel_add_H(contnr, protonation_settings):
     if type(contnr.orig_smi_canonical) != str:
         Utils.log("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
         Utils.log("type container.orig_smi_canonical: " + str(type(contnr.orig_smi_canonical)))
-        raise Exception("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
+        Utils.exception("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
 
     # Add the SMILES string to the protonation parameters.
     protonation_settings["smiles"] = contnr.orig_smi_canonical

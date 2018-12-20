@@ -31,6 +31,9 @@ def run_test():
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
+    # Make the directory
+    os.mkdir(output_folder)
+
     # Make the gypsum parameters.
     params = {
         "source": script_dir + os.sep + "sample_molecules.smi",
@@ -57,7 +60,7 @@ def run_test():
     # There should be seven sdf files.
     msg = "Expected 7 output files, got " + str(len(sdf_files)) + "."
     if len(sdf_files) != 7:
-        raise Exception("FAILED. " + msg)
+        Utils.exception("FAILED. " + msg)
     else:
         Utils.log("PASSED. " + msg)
 
@@ -111,12 +114,12 @@ def run_test():
     msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
         str(len(all_smiles)) + "."
     if len(all_smiles) != len(target_smiles):
-        raise Exception("FAILED. " + msg)
+        Utils.exception("FAILED. " + msg)
     else:
         Utils.log("PASSED. " + msg)
 
     if len(all_smiles ^ target_smiles) > 0:
-        raise Exception("FAILED. " + "Got some SMILES I didn't expect: " + \
+        Utils.exception("FAILED. " + "Got some SMILES I didn't expect: " + \
             " ".join(list(all_smiles ^ target_smiles)))
     else:
         Utils.log("PASSED. Gypsum output the very SMILES strings I was expecting.")

@@ -144,3 +144,14 @@ def print_current_smiles(contnrs):
         log("\t\tMolContainer #" + str(i) + " (" + mol_cont.name + ")")
         for i, s in enumerate(mol_cont.all_can_noh_smiles()):
             log("\t\t\tMol #" + str(i) + ": " + s)
+
+def exception(msg):
+    """Prints an error to the screen and raises an exception.
+
+    :param msg: The error message.
+    :type msg: str
+    :raises Exception: The error.
+    """
+
+    log(msg)
+    raise Exception(msg)

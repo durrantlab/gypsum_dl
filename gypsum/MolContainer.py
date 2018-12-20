@@ -275,10 +275,9 @@ class MolContainer:
 
         :param new_idx: The new index.
         :type new_idx: int
-        :raises Exception: New idx value must be an int.
         """
 
         if type(new_idx)!= int:
-            raise Exception("New idx value must be an int.")
+            Utils.exception("New idx value must be an int.")
         self.contnr_idx = new_idx
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx

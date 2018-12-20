@@ -62,11 +62,6 @@ def prepare_molecules(args):
 
     :param args: The arguments, from the commandline.
     :type args: dict
-    :raises Exception: Is your input json file properly formed?
-    :raises ImportError: mpi4py not installed, but --multithread_mode is set
-       to mpi.
-    :raises Exception: Output folder directory couldn't be found or created.
-    :raises Exception: There is a corrupted container.
     """
 
     # Keep track of the tim the program starts.
@@ -88,7 +83,7 @@ def prepare_molecules(args):
         try:
             params = json.load(open(args['json']))
         except:
-            raise Exception("Is your input json file properly formed?")
+            Utils.exception("Is your input json file properly formed?")
 
         params = set_parameters(params)
         if [i for i in json_warning_list if i in list(args.keys())]:
@@ -153,7 +148,7 @@ def prepare_molecules(args):
     if os.path.exists(params["output_folder"]) == False:
         os.mkdir(params["output_folder"])
         if os.path.exists(params["output_folder"]) == False:
-            raise Exception("Output folder directory couldn't be found or created.")
+            Utils.exception("Output folder directory couldn't be found or created.")
 
     # For Debugging
     # print("")
@@ -185,7 +180,7 @@ def prepare_molecules(args):
     # Remove None types from failed conversion
     contnrs = [x for x in contnrs if x.orig_smi_canonical!=None]
     if len(contnrs) != idx_counter:
-        raise Exception("There is a corrupted container")
+        Utils.exception("There is a corrupted container")
 
     # In multiprocessing mode, Gypsum parallelizes each small-molecule
     # preparation step separately. But this scheme is inefficient in MPI mode
@@ -357,7 +352,7 @@ def merge_parameters(default, params):
         # Throw an error if there's an unrecognized parameter.
         if param not in default:
             Utils.log(
-                "ERROR! Parameter \"" + str(param) + "\" not recognized!"
+                "Parameter \"" + str(param) + "\" not recognized!"
             )
             Utils.log("Here are the options:")
             Utils.log(str(list(default.keys())))
@@ -373,7 +368,7 @@ def merge_parameters(default, params):
                 # Seems to be a type mismatch.
 
                 Utils.log(
-                    "ERROR! The parameter \"" + param + "\" must be of " +
+                    "The parameter \"" + param + "\" must be of " +
                     "type" + str(type_dict[param]) + ", but it is of type " +
                     str(type(params[param])) + "."
                 )
@@ -388,7 +383,6 @@ def make_type_dict(dictionary):
 
     :param dictionary: A dictionary, with keys are values.
     :type dictionary: dict
-    :raises Exception: There appears to be an error in your parameters.
     :return: A dictionary with the same keys, but the values are the types.
     :rtype: dict
     """
@@ -411,7 +405,7 @@ def make_type_dict(dictionary):
                 "JSON file. No value can have type " + str(type(val)) +
                 "."
             )
-            raise Exception("ERROR: There appears to be an error in your parameters.")
+            Utils.exception("ERROR: There appears to be an error in your parameters.")
 
     return type_dict
 
@@ -421,13 +415,6 @@ def finalize_params(params):
     :param params: The parameters.
     :type params: dict
     :raises NotImplementedError: Missing parameter.
-    :raises Exception: Source file doesn't exist.
-    :raises Exception: To output files as .pdbs one needs to specify the
-        output_folder.
-    :raises Exception: For separate_output_files, one needs to specify the
-       output_folder.
-    :raises Exception: Missing parameter indicating where to write the
-       output(s). Can be an HTML or .SDF file, or a directory.
     :return: The parameters, corrected/updated where needed.
     :rtype: dict
     """
@@ -435,7 +422,7 @@ def finalize_params(params):
     # Throw an error if there's a missing parameter.
     if params["source"] == "":
         Utils.log(
-            "ERROR! Missing parameter \"source\". You need to specify " +
+            "Missing parameter \"source\". You need to specify " +
             "the source of the input molecules (probably a SMI or SDF " +
             "file)."
         )
@@ -452,32 +439,21 @@ def finalize_params(params):
     try:
         params["source"] = os.path.abspath(params["source"])
     except:
-        raise Exception("Source file doesn't exist.")
+        Utils.exception("Source file doesn't exist.")
     source_dir = params["source"].strip(os.path.basename(params["source"]))
 
     if params["output_folder"] == "" and params["source"] != "":
         params["output_folder"] = source_dir + "output" + str(os.sep)
 
     if params["add_pdb_output"] == True and params["output_folder"] == "":
-        Utils.log(
-            "ERROR! To output files as .pdbs one needs to specify the output_folder."
-        )
-        raise Exception("To output files as .pdbs one needs to specify the output_folder.")
+        Utils.exception("To output files as .pdbs, specify the output_folder.")
 
     if params["separate_output_files"] == True and params["output_folder"] == "":
-        Utils.log(
-            "ERROR! For separate_output_files one needs to specify the output_folder."
-        )
-        raise Exception("For separate_output_files one needs to specify the output_folder.")
+        Utils.exception("For separate_output_files, specify the output_folder.")
 
     if not os.path.exists(params["output_folder"]) or not os.path.isdir(params["output_folder"]):
-        Utils.log(
-            "ERROR! The specified \"output_folder\" either does not exist " +
-            "or is a file rather than a folder. Please provide the path to an " +
-            "existing folder instead."
-        )
-        raise Exception(
-            "ERROR! The specified \"output_folder\", " + params["output_folder"] +
+        Utils.exception(
+            "The specified \"output_folder\", " + params["output_folder"] +
             ", either does not exist or is a file rather than a folder. " +
             "Please provide the path to an existing folder instead."
         )
