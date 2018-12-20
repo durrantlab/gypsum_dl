@@ -23,6 +23,7 @@ import sys
 import os
 from os.path import basename
 
+from gypsum import Utils
 import rdkit
 import rdkit.Chem as Chem
 #Disable the unnecessary RDKit warnings
@@ -50,10 +51,14 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
         name = contnr.name
         mols = contnr.mols
 
-        conformer_counter = 0
         # Got through the variants.
-        for m in mols:
-            pdb_file = "{}{}__{}.pdb".format(output_folder + os.sep, name, conformer_counter)
+        for i, m in enumerate(mols):
+            pdb_file = "{}{}__input{}__variant{}.pdb".format(
+                output_folder + os.sep,
+                Utils.slug(name),
+                contnr.contnr_idx + 1,
+                i + 1
+            )
 
             # Get the conformers into the rdkit_mol object.
             m.load_conformers_into_rdkit_mol()
@@ -63,4 +68,3 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
             else:
                 # Write conformers to a PDB file.
                 Chem.MolToPDBFile(mol, pdb_file, flavor = 4)
-            conformer_counter += 1

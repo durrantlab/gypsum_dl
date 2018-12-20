@@ -21,6 +21,7 @@ import __future__
 import subprocess
 import textwrap
 import random
+import string
 
 def group_mols_by_container_index(mol_lst):
     """Take a list of MyMol.MyMol objects, and place them in lists according to
@@ -155,3 +156,21 @@ def exception(msg):
 
     log(msg)
     raise Exception(msg)
+
+
+def slug(strng):
+    """Converts a string to one that is appropriate for a filename.
+
+    :param strng: The input string.
+    :type strng: str
+    :return: The filename appropriate string.
+    :rtype: str
+    """
+
+    # See
+    # https://stackoverflow.com/questions/295135/turn-a-string-into-a-valid-filename
+    valid_chars = "-_.%s%s" % (string.ascii_letters, string.digits)
+    if strng == "":
+        return "untitled"
+    else:
+        return "".join([c if c in valid_chars else "_" for c in strng])

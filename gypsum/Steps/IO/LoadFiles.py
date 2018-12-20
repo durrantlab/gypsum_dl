@@ -38,7 +38,6 @@ def load_smiles_file(filename):
     # separated by white space, followed by the molecule name.
     data = []
     duplicate_names = {}
-    missing_name_counter = 0
     line_counter = 0
     name_list = []
     for line in open(filename):
@@ -52,11 +51,10 @@ def load_smiles_file(filename):
 
             # Handle unnamed ligands.
             if name == "":
-                Utils.log("\tUntitled ligand on line {}".format(line_counter))
-                name = "untitled_lig_{}_line_{}".format(missing_name_counter,line_counter)
+                Utils.log("\tUntitled ligand on line {}".format(line_counter + 1))
+                name = "untitled_line_{}".format(line_counter + 1)
                 Utils.log("\tNaming that ligand {}".format(name))
                 Utils.log("\tAll associated files will be refered to with this name")
-                missing_name_counter += 1
 
             # Handle duplicate ligands in same list.
             if name in name_list:
@@ -115,7 +113,7 @@ def load_sdf_file(filename):
         # Handle unnamed ligands
         if name == "":
             Utils.log("\tUntitled ligand for the {} molecule in the input SDF".format(mol_obj_counter))
-            name = "untitled_lig_{}_molnum_{}".format(missing_name_counter,mol_obj_counter)
+            name = "untitled_{}_molnum_{}".format(missing_name_counter,mol_obj_counter)
             Utils.log("\tNaming that ligand {}".format(name))
             Utils.log("\tAll associated files will be refered to with this name")
             missing_name_counter += 1
