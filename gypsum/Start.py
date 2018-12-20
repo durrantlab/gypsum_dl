@@ -351,7 +351,7 @@ def merge_parameters(default, params):
                 "Parameter \"" + str(param) + "\" not recognized!"
             )
             Utils.log("Here are the options:")
-            Utils.log(str(list(default.keys())))
+            Utils.log(" ".join(sorted(list(default.keys()))))
             Utils.exception("Unrecognized parameter: " + str(param))
 
         # Throw an error if the input parameter has a different type than

@@ -81,6 +81,22 @@ python run_gypsum.py --source ./examples/sample_molecules.smi \\
 
 python run_gypsum.py --source ./examples/sample_molecules.smi \\
     --job_manager mpi --num_processors -1
+
+10. Gypsum can also take parameters from a JSON file:
+
+python run_gypsum.py --json myparams.json
+
+Where myparams.json might look like:
+
+{
+    "source": "./examples/sample_molecules.smi",
+    "separate_output_files": true,
+    "job_manager": "multithreading",
+    "output_folder": "/my/folder/",
+    "add_pdb_output": true,
+    "add_html_output": true,
+    "num_processors": -1
+}
 """)
 
 PARSER.add_argument('--json', '-j', type=str, metavar='param.json',
