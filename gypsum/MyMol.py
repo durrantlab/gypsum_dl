@@ -146,7 +146,7 @@ class MyMol:
         return hash(can_smi)
 
     def __eq__(self, other):
-        """Allows you to9 compare MyMol.MyMol objects.
+        """Allows you to compare MyMol.MyMol objects.
 
         :param other: The other molecule.
         :type other: MyMol.MyMol
@@ -158,6 +158,73 @@ class MyMol:
             return False
         else:
             return self.__hash__() == other.__hash__()
+
+    def __ne__(self, other):
+        """Allows you to compare MyMol.MyMol objects.
+
+        :param other: The other molecule.
+        :type other: MyMol.MyMol
+        :return: Whether the other molecule is different from this one.
+        :rtype: bool
+        """
+
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        """Is this MyMol less than another one? Gypsum often sorts
+        molecules by sorting tuples of the form (energy, MyMol). On rare
+        occasions, the energies are identical, and the sorting algorithm
+        attempts to compare MyMol directly.
+
+        :param other: The other molecule.
+        :type other: MyMol.MyMol
+        :return: True or False, if less than or not.
+        :rtype: boolean
+        """
+
+        return self.__hash__() < other.__hash__()
+
+    def __le__(self, other):
+        """Is this MyMol less than or equal to another one? Gypsum often sorts
+        molecules by sorting tuples of the form (energy, MyMol). On rare
+        occasions, the energies are identical, and the sorting algorithm
+        attempts to compare MyMol directly.
+
+        :param other: The other molecule.
+        :type other: MyMol.MyMol
+        :return: True or False, if less than or equal to, or not.
+        :rtype: boolean
+        """
+
+        return self.__hash__() <= other.__hash__()
+
+    def __gt__(self, other):
+        """Is this MyMol greater than another one? Gypsum often sorts
+        molecules by sorting tuples of the form (energy, MyMol). On rare
+        occasions, the energies are identical, and the sorting algorithm
+        attempts to compare MyMol directly.
+
+        :param other: The other molecule.
+        :type other: MyMol.MyMol
+        :return: True or False, if greater than or not.
+        :rtype: boolean
+        """
+
+        return self.__hash__() > other.__hash__()
+
+    def __ge__(self, other):
+        """Is this MyMol greater than or equal to another one? Gypsum often
+        sorts molecules by sorting tuples of the form (energy, MyMol). On rare
+        occasions, the energies are identical, and the sorting algorithm
+        attempts to compare MyMol directly.
+
+        :param other: The other molecule.
+        :type other: MyMol.MyMol
+        :return: True or False, if greater than or equal to, or not.
+        :rtype: boolean
+        """
+
+        return self.__hash__() >= other.__hash__()
 
     def make_mol_frm_smiles_sanitze(self):
         """Construct a rdkit.mol for this object, in case you only received

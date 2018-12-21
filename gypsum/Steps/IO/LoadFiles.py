@@ -50,10 +50,10 @@ def load_smiles_file(filename):
 
             # Handle unnamed ligands.
             if name == "":
-                Utils.log("\tUntitled ligand on line {}".format(line_counter + 1))
                 name = "untitled_line_{}".format(line_counter + 1)
-                Utils.log("\tNaming that ligand {}".format(name))
-                Utils.log("\tAll associated files will be refered to with this name")
+                Utils.log(("\tUntitled ligand on line {}. Naming that ligand " +
+                           "{}. All associated files will be refered to with " +
+                           "this name.").format(line_counter + 1, name))
 
             # Handle duplicate ligands in same list.
             if name in name_list:
