@@ -17,7 +17,7 @@ Saves the output to an HTML file (2D images only). This is mostly for
 debugging.
 """
 
-import webbrowser
+# import webbrowser
 import os
 import gypsum.Utils as Utils
 import gypsum.ChemUtils as ChemUtils
@@ -62,4 +62,4 @@ def web_2d_output(contnrs, output_folder):
     f.close()
 
     # Open the browser to show the file.
-    webbrowser.open("file://" + os.path.abspath(html_file))
+    # webbrowser.open("file://" + os.path.abspath(html_file))

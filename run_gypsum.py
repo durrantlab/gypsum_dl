@@ -52,7 +52,7 @@ python run_gypsum.py --source ./examples/sample_molecules.smi \\
     --output_folder /my/folder/ --separate_output_files
 
 4. In addition to saving a 3D SDF file, also save 3D PDB files and an HTML file
-   with 2D structures (for debugging). This will attempt to open a browser:
+   with 2D structures (for debugging).
 
 python run_gypsum.py --source ./examples/sample_molecules.smi \\
     --output_folder /my/folder/ --add_pdb_output --add_html_output
