@@ -209,65 +209,67 @@ class MolContainer:
         # Chem.MolToSmiles(self.mols[0].rdkit_mol, isomericSmiles=True,
         # canonical=True)
 
-        # This block for debugging. JDD: Needs attention?
-        all_can_noh_smiles = [m.smiles() for m in self.mols]  # Get all the smiles as stored.
+        # # This block for debugging. JDD: Needs attention?
+        # all_can_noh_smiles = [m.smiles() for m in self.mols]  # Get all the smiles as stored.
 
-        wrong_cannonical_smiles = [
-            Chem.MolToSmiles(
-                m.rdkit_mol,  # Using the RdKit mol stored in MyMol
-                isomericSmiles=True,
-                canonical=True
-            ) for m in self.mols
-        ]
+        # wrong_cannonical_smiles = [
+        #     Chem.MolToSmiles(
+        #         m.rdkit_mol,  # Using the RdKit mol stored in MyMol
+        #         isomericSmiles=True,
+        #         canonical=True
+        #     ) for m in self.mols
+        # ]
 
-        right_cannonical_smiles = [
-            Chem.MolToSmiles(
-                Chem.MolFromSmiles(  # Regenerating the RdKit mol from the smiles string stored in MyMol
-                    m.smiles()
-                ),
-                isomericSmiles=True,
-                canonical=True
-            ) for m in self.mols]
+        # right_cannonical_smiles = [
+        #     Chem.MolToSmiles(
+        #         Chem.MolFromSmiles(  # Regenerating the RdKit mol from the smiles string stored in MyMol
+        #             m.smiles()
+        #         ),
+        #         isomericSmiles=True,
+        #         canonical=True
+        #     ) for m in self.mols]
 
-        if len(set(wrong_cannonical_smiles)) != len(set(right_cannonical_smiles)):
-            Utils.log("ERROR!")
-            Utils.log("Stored smiles string in this container:")
-            Utils.log("\n".join(all_can_noh_smiles))
-            Utils.log("")
-            Utils.log("""Supposedly cannonical smiles strings generated from stored
-                RDKit Mols in this container:""")
-            Utils.log("\n".join(wrong_cannonical_smiles))
-            Utils.log("""But if you plop these into chemdraw, you'll see some of them
-                represent identical structures.""")
-            Utils.log("")
-            Utils.log("""Cannonical smiles strings generated from RDKit mols that
-                were generated from the stored smiles string in this container:""")
-            Utils.log("\n".join(right_cannonical_smiles))
-            Utils.log("""Now you see the identical molecules. But why didn't the previous
-                method catch them?""")
-            Utils.log("")
+        # if len(set(wrong_cannonical_smiles)) != len(set(right_cannonical_smiles)):
+        #     Utils.log("ERROR!")
+        #     Utils.log("Stored smiles string in this container:")
+        #     Utils.log("\n".join(all_can_noh_smiles))
+        #     Utils.log("")
+        #     Utils.log("""Supposedly cannonical smiles strings generated from stored
+        #         RDKit Mols in this container:""")
+        #     Utils.log("\n".join(wrong_cannonical_smiles))
+        #     Utils.log("""But if you plop these into chemdraw, you'll see some of them
+        #         represent identical structures.""")
+        #     Utils.log("")
+        #     Utils.log("""Cannonical smiles strings generated from RDKit mols that
+        #         were generated from the stored smiles string in this container:""")
+        #     Utils.log("\n".join(right_cannonical_smiles))
+        #     Utils.log("""Now you see the identical molecules. But why didn't the previous
+        #         method catch them?""")
+        #     Utils.log("")
 
-            Utils.log("""Note that the third method identifies duplicates that the second
-                method doesn't.""")
-            Utils.log("")
-            Utils.log("=" * 20)
+        #     Utils.log("""Note that the third method identifies duplicates that the second
+        #         method doesn't.""")
+        #     Utils.log("")
+        #     Utils.log("=" * 20)
 
-        # You need to make new molecules to get it to work.
-        new_smiles = [m.smiles() for m in self.mols]
-        new_mols = [Chem.MolFromSmiles(smi) for smi in new_smiles]
-        new_can_smiles = [Chem.MolToSmiles(new_mol, isomericSmiles=True, canonical=True) for new_mol in new_mols]
+        # # You need to make new molecules to get it to work.
+        # new_smiles = [m.smiles() for m in self.mols]
+        # new_mols = [Chem.MolFromSmiles(smi) for smi in new_smiles]
+        # new_can_smiles = [Chem.MolToSmiles(new_mol, isomericSmiles=True, canonical=True) for new_mol in new_mols]
 
-        can_smiles_already_set = set([])
-        for i, new_can_smile in enumerate(new_can_smiles):
-            if not new_can_smile in can_smiles_already_set:
-                # Never seen before
-                can_smiles_already_set.add(new_can_smile)
-            else:
-                # See before. Delete!
-                self.mols[i] = None
+        # can_smiles_already_set = set([])
+        # for i, new_can_smile in enumerate(new_can_smiles):
+        #     if not new_can_smile in can_smiles_already_set:
+        #         # Never seen before
+        #         can_smiles_already_set.add(new_can_smile)
+        #     else:
+        #         # Seen before. Delete!
+        #         self.mols[i] = None
 
-        while None in self.mols:
-            self.mols.remove(None)
+        # while None in self.mols:
+        #     self.mols.remove(None)
+
+        self.mols = ChemUtils.uniq_mols_in_list(self.mols)
 
     def update_idx(self, new_idx):
         """Updates the index of this container.

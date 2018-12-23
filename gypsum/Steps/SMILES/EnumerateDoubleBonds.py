@@ -102,6 +102,8 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
             mol.genealogy.append("(WARNING: Unable to generate double-bond variant)")
             clean.append(mol)
 
+    flat = ChemUtils.uniq_mols_in_list(flat)
+
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, flat, max_variants_per_compound, thoroughness)
@@ -144,6 +146,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
 
     # Get a list of all the single bonds that come of each double-bond atom.
     all_sngl_bnd_idxs = set([])
+    dbl_bnd_count = 0
     for dbl_bnd_idx in unasignd_dbl_bnd_idxs:
         bond = mol.rdkit_mol.GetBondWithIdx(dbl_bnd_idx)
 
@@ -159,6 +162,8 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
             # The only bond is the one you already know about. So don't save.
             continue
 
+        dbl_bnd_count = dbl_bnd_count + 1
+
         # Suffice it to say, RDKit does not deal with cis-trans isomerization
         # in an intuitive way...
         idxs_of_other_bnds_frm_atm1 = [b.GetIdx() for b in atom1.GetBonds()]
@@ -172,7 +177,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
 
     # Now come up with all possible up/down combinations for those bonds.
     all_sngl_bnd_idxs = list(all_sngl_bnd_idxs)
-    all_chiral_options = list(
+    all_atom_config_options = list(
         itertools.product(
             [True, False],
             repeat=len(all_sngl_bnd_idxs)
@@ -180,19 +185,20 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
     )
 
     # Let the user know.
-    Utils.log(
-        "\t" + mol.smiles(True) + " has " + str(len(unasignd_dbl_bnd_idxs)) +
-        " double bonds with unspecified stereochemistry."
-    )
+    if dbl_bnd_count > 0:
+        Utils.log(
+            "\t" + mol.smiles(True) + " has " + str(dbl_bnd_count) +
+            " double bond(s) with unspecified stereochemistry."
+        )
 
     # Go through and consider each of the retained combinations.
     smiles_to_consider = set([])
-    for chiral_options in all_chiral_options:
+    for atom_config_options in all_atom_config_options:
         # Make a copy of the original RDKit molecule.
         a_rd_mol = copy.copy(mol.rdkit_mol)
         # a_rd_mol = Chem.MolFromSmiles(mol.smiles())
 
-        for bond_idx, direc in zip(all_sngl_bnd_idxs, chiral_options):
+        for bond_idx, direc in zip(all_sngl_bnd_idxs, atom_config_options):
             # Always done with reference to the atom in the double bond.
             if direc:
                 a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(

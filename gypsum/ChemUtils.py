@@ -161,3 +161,29 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
                     contnr.name + "). Discarding conformer."
                 )
                 contnr.mols = []
+
+def uniq_mols_in_list(mol_lst):
+    # You need to make new molecules to get it to work.
+    # new_smiles = [m.smiles() for m in self.mols]
+    # new_mols = [Chem.MolFromSmiles(smi) for smi in new_smiles]
+    # new_can_smiles = [Chem.MolToSmiles(new_mol, isomericSmiles=True, canonical=True) for new_mol in new_mols]
+
+    can_smiles_already_set = set([])
+    uniq_mols = []
+    for m in mol_lst:
+        smi = m.smiles()
+        if not smi in can_smiles_already_set:
+            uniq_mols.append(m)
+        can_smiles_already_set.add(smi)
+
+        # if not new_can_smile in can_smiles_already_set:
+        #     # Never seen before
+        #     can_smiles_already_set.add(new_can_smile)
+        # else:
+        #     # Seen before. Delete!
+        #     self.mols[i] = None
+
+    # while None in self.mols:
+    #     self.mols.remove(None)
+
+    return uniq_mols

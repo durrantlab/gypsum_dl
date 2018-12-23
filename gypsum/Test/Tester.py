@@ -79,13 +79,16 @@ def run_test():
     # deprotonated).
     target_smiles |= set(["[O-]c1ccccc1", "Oc1ccccc1"])
 
-    # tautomer should produce two models (two tautomers).
-    target_smiles |= set(["C=CO", "CC=O"])
+    # tautomer_and_cis_trans should produce three models (two tautomers, one
+    # of them with alternate cis/trans).
+    target_smiles |= set(["C/C=C\O", "C/C=C/O", "CCC=O"])
 
     # two_chiral_one_unspecified_and_tautomer should produce four models.
     target_smiles |= set([
-        "C=C(O)[C@@](F)(Cl)C[C@@](C)(F)Cl", "C=C(O)[C@](F)(Cl)C[C@@](C)(F)Cl",
-        "CC(=O)[C@](F)(Cl)C[C@@](C)(F)Cl", "CC(=O)[C@@](F)(Cl)C[C@@](C)(F)Cl"
+        "CC(C)C(=O)[C@@](F)(Cl)C[C@@](C)(F)Cl",
+        "CC(C)=C(O)[C@@](F)(Cl)C[C@@](C)(F)Cl",
+        "CC(C)C(=O)[C@](F)(Cl)C[C@@](C)(F)Cl",
+        "CC(C)=C(O)[C@](F)(Cl)C[C@@](C)(F)Cl"
     ])
 
     # two_double_bonds_one_chiral_center should produce eight models.
@@ -111,12 +114,12 @@ def run_test():
         "CC(C)(C)[C@H]1CC[C@@H](C(C)(C)C)CC1"
     ])
 
-    msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
-        str(len(all_smiles)) + "."
-    if len(all_smiles) != len(target_smiles):
-        Utils.exception("FAILED. " + msg)
-    else:
-        Utils.log("PASSED. " + msg)
+    # msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
+    #     str(len(all_smiles)) + "."
+    # if len(all_smiles) != len(target_smiles):
+    #     Utils.exception("FAILED. " + msg)
+    # else:
+    #     Utils.log("PASSED. " + msg)
 
     if len(all_smiles ^ target_smiles) > 0:
         Utils.exception("FAILED. " + "Got some SMILES I didn't expect: " + \

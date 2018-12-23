@@ -45,7 +45,7 @@ def prepare_smiles(contnrs, params):
     job_manager = params["job_manager"]
     parallelizer_obj = params["Parallelizer"]
 
-    debug = False
+    debug = True
 
     # Desalt the molecules.
     Utils.log("Begin Desaltings")

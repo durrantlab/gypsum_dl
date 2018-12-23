@@ -443,20 +443,24 @@ class MyMol:
         # Note that C(O)=N, C and N mean they are aliphatic. Does not match
         # c(O)n, when aromatic. So this form is acceptable if in aromatic
         # structure.
-        prohibited_substructures = ["O(=*)-*", "C(O)=N"]
+        prohibited_substructures = ["O(=*)-*"] #, "C(O)=N"]
+        prohibited_substructures.append("C(=[CH2])[OH]")  # Enol forms with terminal alkenes are unlikely.
 
         for s in prohibited_substructures:
             # First just match strings... could be faster, but not 100%
             # accurate.
             if s in self.orig_smi:
+                Utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
             if s in self.orig_smi_deslt:
+                Utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
             if s in self.can_smi:
+                Utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -466,6 +470,7 @@ class MyMol:
             if self.rdkit_mol.HasSubstructMatch(pattrn):
                 # Utils.log("\tRemoving a molecule because it has an odd
                 # substructure: " + s)
+                Utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -696,12 +701,19 @@ class MyConformer:
             params.maxIterations = 0   # This should be the default but lets
                                        # set it anyway
 
-            # Also set whether to start from random coordinatesw.
+            # Also set whether to start from random coordinates.
             params.useRandomCoords = use_random_coordinates
 
             # AllChem.EmbedMolecule uses geometry to create inital molecule
             # coordinates. This sometimes takes a very long time
             AllChem.EmbedMolecule(self.mol, params)
+
+            # On rare occasions, the new conformer generating algorithm fails
+            # because params.useRandomCoords = False. So if it fails, try
+            # again with True.
+            if self.mol.GetNumConformers() == 0 and use_random_coordinates == False:
+                params.useRandomCoords = True
+                AllChem.EmbedMolecule(self.mol, params)
 
             # On very rare occasions, the new conformer generating algorithm
             # fails. For example, COC(=O)c1cc(C)nc2c(C)cc3[nH]c4ccccc4c3c12 .
