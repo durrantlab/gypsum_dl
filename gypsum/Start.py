@@ -160,7 +160,13 @@ def prepare_molecules(args):
     contnrs = []
     idx_counter = 0
     for i in range(0,len(smiles_data)):
-        smiles, name, props = smiles_data[i]
+        try:
+            smiles, name, props = smiles_data[i]
+        except:
+            msg = "Unexpected error. Does your \"source\" parameter specify a "
+            msg = msg + "filename that ends in a .can, .smi, or .sdf extension?"
+            Utils.exception(msg)
+
         if detect_unassigned_bonds(smiles) is None:
             Utils.log("Warning: Throwing out SMILES because of unassigned bonds: " + smiles)
             continue
