@@ -25,7 +25,7 @@ import gypsum.ChemUtils as ChemUtils
 import gypsum.MyMol as MyMol
 import gypsum.MolContainer as MolCont
 
-from gypsum.Steps.SMILES.dimorphite.dimorphite_dl import protonate
+from gypsum.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
 
 def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
                   thoroughness, num_procs, job_manager,
@@ -64,7 +64,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     # Make a simple directory with the ionization parameters.
     protonation_settings = {"min_ph": min_pH,
                             "max_ph": max_pH,
-                            "st_dev": st_dev}
+                            "pka_precision": st_dev}
 
     # Format the inputs for use in the parallelizer.
     inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])
@@ -135,7 +135,7 @@ def parallel_add_H(contnr, protonation_settings):
     protonation_settings["smiles"] = contnr.orig_smi_canonical
 
     # Protonate the SMILESstring. This is Dimorphite-DL.
-    smis = protonate(protonation_settings)
+    smis = Protonate(protonation_settings)
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
     # objects.

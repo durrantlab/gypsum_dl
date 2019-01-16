@@ -25,7 +25,8 @@ usage: dimorphite_dl.py [-h] [--min_ph MIN] [--max_ph MAX]
                         [--smiles_file FILE] [--output_file FILE]
                         [--label_states] [--test]
 
-Protonates small moleucles.
+Dimorphite 1.0: Creates models of appropriately protonated small moleucles.
+Apache 2.0 License. Copyright 2018 Jacob D. Durrant.
 
 optional arguments:
   -h, --help           show this help message and exit
@@ -47,11 +48,11 @@ Examples
 --------
 
 ```
-python dimorphite_dl.py --smiles_file sample_molecules.smi
-python dimorphite_dl.py --smiles "CCC(=O)O" --min_ph -3.0 --max_ph -2.0
-python dimorphite_dl.py --smiles "CCCN" --min_ph -3.0 --max_ph -2.0 --output_file output.smi
-python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
-python dimorphite_dl.py --test
+  python dimorphite_dl.py --smiles_file sample_molecules.smi
+  python dimorphite_dl.py --smiles "CCC(=O)O" --min_ph -3.0 --max_ph -2.0
+  python dimorphite_dl.py --smiles "CCCN" --min_ph -3.0 --max_ph -2.0 --output_file output.smi
+  python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
+  python dimorphite_dl.py --test
 ```
 
 Authors and Contacts
