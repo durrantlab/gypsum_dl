@@ -9,5 +9,5 @@
     "num_processors": 4,
     "min_ph": 4,
     "max_ph": 10,
-    "ph_std_dev": 1
+    "pka_precision": 1
 }

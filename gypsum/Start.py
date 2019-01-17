@@ -69,7 +69,7 @@ def prepare_molecules(args):
     json_warning_list = ['source', 'output_folder', 'num_processors',
                          'min_ph', 'max_ph', 'delta_ph_increment',
                          'thoroughness', 'max_variants_per_compound',
-                         'ph_std_dev']
+                         'pka_precision']
 
     # Whether to warn the user that the above parameters, if specified, will
     # be ignored.
@@ -290,7 +290,7 @@ def set_parameters(params_unicode):
         "run_time" : 0,
         "min_ph" : 6.4,
         "max_ph" : 8.4,
-        "ph_std_dev" : 1.0,
+        "pka_precision" : 1.0,
         "thoroughness" : 3,
         "max_variants_per_compound" : 5,
         "second_embed" : False,

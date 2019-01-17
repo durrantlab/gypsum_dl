@@ -38,7 +38,7 @@ def prepare_smiles(contnrs, params):
     # Unpack some of the parameter values.
     min_ph = params["min_ph"]
     max_ph = params["max_ph"]
-    std_dev = params["ph_std_dev"]
+    std_dev = params["pka_precision"]
     max_variants_per_compound = params["max_variants_per_compound"]
     thoroughness = params["thoroughness"]
     num_procs = params["num_processors"]

@@ -65,7 +65,7 @@ python run_gypsum.py --source ./examples/sample_molecules.smi \\
 6. Control how Gypsum ionizes the input molecules:
 
 python run_gypsum.py --source ./examples/sample_molecules.smi \\
-    --output_folder /my/folder/ --min_ph 12 --max_ph 14 --ph_std_dev 1
+    --output_folder /my/folder/ --min_ph 12 --max_ph 14 --pka_precision 1
 
 7. Run Gypsumn in serial mode (using only one processor):
 
@@ -141,7 +141,7 @@ PARSER.add_argument('--min_ph', metavar='MIN', type=float,
                     help='Minimum pH to consider.')
 PARSER.add_argument('--max_ph', metavar='MAX', type=float,
                     help='Maximum pH to consider.')
-PARSER.add_argument('--ph_std_dev', metavar='D', type=float,
+PARSER.add_argument('--pka_precision', metavar='D', type=float,
                     help='Size of pH substructure ranges. See Dimorphite-DL \
                     publication for details.')
 PARSER.add_argument('--skip_optimize_geometry', action='store_true',
