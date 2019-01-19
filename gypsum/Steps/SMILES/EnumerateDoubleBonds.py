@@ -124,6 +124,8 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
     # For this to work, you need to have explicit hydrogens in place.
     mol.rdkit_mol = Chem.AddHs(mol.rdkit_mol)
 
+    # print("HIHI", Chem.MolToSmiles(mol.rdkit_mol))
+
     # Get all double bonds that don't have defined stereochemistry. Note that
     # these are the bond indexes, not the atom indexes.
     unasignd_dbl_bnd_idxs = mol.get_double_bonds_without_stereochemistry()
@@ -248,7 +250,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
             # Sometimes you get an error if there's a bad structure otherwise.
 
             # Add the new molecule to the list of results, if it does not have
-            # a bizzare substructure.
+            # a bizarre substructure.
             if not new_mol.remove_bizarre_substruc():
                 new_mol.contnr_idx = mol.contnr_idx
                 new_mol.name = mol.name

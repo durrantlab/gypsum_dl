@@ -181,7 +181,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
         new_mol = MyMol.MyMol(a_rd_mol)
 
         # Add the new molecule to the list of results, if it does not have a
-        # bizzare substructure.
+        # bizarre substructure.
         if not new_mol.remove_bizarre_substruc():
             new_mol.contnr_idx = mol.contnr_idx
             new_mol.name = mol.name

@@ -445,6 +445,11 @@ class MyMol:
         # structure.
         prohibited_substructures = ["O(=*)-*"] #, "C(O)=N"]
         prohibited_substructures.append("C(=[CH2])[OH]")  # Enol forms with terminal alkenes are unlikely.
+        prohibited_substructures.append("C(=[CH2])[O-]")  # Enol forms with terminal alkenes are unlikely.
+        prohibited_substructures.append("C=C([OH])[OH]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append("C=C([O-])[OH]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append("C=C([O-])[O-]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append("[C-]")  # No carbanions.
 
         for s in prohibited_substructures:
             # First just match strings... could be faster, but not 100%
