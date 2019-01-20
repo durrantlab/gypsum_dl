@@ -109,7 +109,7 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     ChemUtils.bst_for_each_contnr_no_opt(contnrs, flat, max_variants_per_compound, thoroughness)
 
 def parallel_get_double_bonded(mol, max_variants_per_compound):
-    """[summary]
+    """A parallelizable function for enumerating double bonds.
 
     :param mol: The molecule with a potentially unspecified double bond.
     :type mol: MyMol.MyMol

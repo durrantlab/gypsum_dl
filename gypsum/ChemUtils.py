@@ -78,6 +78,27 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     # Return those molecules.
     return new_mols_list
 
+def remove_highly_charged_molecules(mol_lst):
+    # First, find the molecule that is closest to being neutral.
+    charges = [Chem.GetFormalCharge(mol.rdkit_mol) for mol in mol_lst]
+    abs_charges = [abs(c) for c in charges]
+    idx_of_closest_to_neutral = abs_charges.index(min(abs_charges))
+    charge_closest_to_neutral = charges[idx_of_closest_to_neutral]
+
+    # Now create a new mol list, where the charges deviation from the most
+    # neutral by no more than 2.
+    new_mol_lst = []
+    for i, charge in enumerate(charges):
+        if abs(charge - charge_closest_to_neutral) <= 2:
+            new_mol_lst.append(mol_lst[i])
+        else:
+            Utils.log(
+                "\tWARNING: Discarding highly charged form: " +
+                mol_lst[i].smiles() + "."
+            )
+
+    return new_mol_lst
+
 def bst_for_each_contnr_no_opt(contnrs, mol_lst,
                                max_variants_per_compound, thoroughness,
                                crry_ovr_frm_lst_step_if_no_fnd=True):
@@ -122,6 +143,8 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
         # Possible a compound was eliminated early on, so doesn't exist.
         if contnr_idx in list(data.keys()):
             mols = data[contnr_idx]
+
+            mols = remove_highly_charged_molecules(mols)
 
             # Pick the lowest-energy molecules. Note that this creates a
             # conformation if necessary, but it is not minimized and so is not
