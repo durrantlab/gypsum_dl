@@ -238,6 +238,7 @@ class MyMol:
         # If given a SMILES string.
         if self.rdkit_mol == "":
             try:
+                # sanitize = False makes it respect double-bond stereochemistry
                 m = Chem.MolFromSmiles(self.orig_smi_deslt, sanitize=False)
             except:
                 m = None
