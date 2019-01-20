@@ -79,6 +79,14 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     return new_mols_list
 
 def remove_highly_charged_molecules(mol_lst):
+    """Remove molecules that are highly charged.
+
+    :param mol_lst: The list of molecules to consider.
+    :type mol_lst: list
+    :return: A list of molecules that are not too charged.
+    :rtype: list
+    """
+
     # First, find the molecule that is closest to being neutral.
     charges = [Chem.GetFormalCharge(mol.rdkit_mol) for mol in mol_lst]
     abs_charges = [abs(c) for c in charges]
