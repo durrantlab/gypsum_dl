@@ -152,6 +152,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
         if contnr_idx in list(data.keys()):
             mols = data[contnr_idx]
 
+            # Remove molecules with unusually high charges.
             mols = remove_highly_charged_molecules(mols)
 
             # Pick the lowest-energy molecules. Note that this creates a
