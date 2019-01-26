@@ -56,13 +56,13 @@ def prepare_smiles(contnrs, params):
 
     # Add hydrogens for user-specified pH, if requested.
     if not params["skip_adding_hydrogen"]:
-        Utils.log("Protonating Molecules")
+        Utils.log("Ionizing Molecules")
         add_hydrogens(contnrs, min_ph, max_ph, std_dev, max_variants_per_compound,
                       thoroughness, num_procs, job_manager,
                       parallelizer_obj)
-        Utils.log("Done with Protonating")
+        Utils.log("Done with Ionization")
     else:
-        Utils.log("Skipping Protonation")
+        Utils.log("Skipping Ionization")
         wrap_molecules(contnrs)
 
     if debug: Utils.print_current_smiles(contnrs)
@@ -112,7 +112,7 @@ def wrap_molecules(contnrs):
     objects. Gypsum-DL stores Dimorphite-DL output molecules as RdKit molecule
     objects, in the container's mol list.
 
-    But Gypsum-DL gives the user the option of skipping the protonation step.
+    But Gypsum-DL gives the user the option of skipping the ionization step.
     In this case, the one SMILES needs to be converted to a RDKit mol object
     for subsequent steps to work. Let's do that here.
 

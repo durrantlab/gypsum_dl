@@ -110,7 +110,7 @@ def fnd_contnrs_not_represntd(contnrs, results):
     :rtype: list
     """
 
-    # Find ones that don't have any generated. In the context of protonation,
+    # Find ones that don't have any generated. In the context of ionization,
     # for example, this is because sometimes Dimorphite-DL failes to producce
     # valid smiles. In this case, just use the original smiles. Couldn't find
     # a good solution to work around.
@@ -123,8 +123,7 @@ def fnd_contnrs_not_represntd(contnrs, results):
         if not idx in idx_to_smi:
             idx_to_smi[idx] = contnrs[idx].orig_smi_deslt
 
-    # Now remove from those any that have associated protonated smiles
-    # strings.
+    # Now remove from those any that have associated ionized smiles strings.
     for m in results:
         if m.contnr_idx in idx_to_smi:
             del idx_to_smi[m.contnr_idx]

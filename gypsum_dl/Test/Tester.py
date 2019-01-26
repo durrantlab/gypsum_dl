@@ -75,8 +75,8 @@ def run_test():
     # List what the smiles should be.
     target_smiles = set([])
 
-    # salt_and_ionization should produce two models (protonated and
-    # deprotonated).
+    # salt_and_ionization should produce two models (ionized and
+    # deionized).
     target_smiles |= set(["[O-]c1ccccc1", "Oc1ccccc1"])
 
     # tautomer_and_cis_trans should produce three models (two tautomers, one

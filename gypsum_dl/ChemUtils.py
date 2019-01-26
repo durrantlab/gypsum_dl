@@ -167,7 +167,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
                 # container.
                 contnr.mols = []
 
-                # Add in the lowest-energy conformers back to the smiles.
+                # Add in the lowest-energy conformers back to the container.
                 for mol in mols:
                     contnr.add_mol(mol)
             else:
@@ -175,7 +175,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
         else:
             none_generated = True
 
-        # Now low-energy conformers were generated.
+        # No low-energy conformers were generated.
         if none_generated:
             if crry_ovr_frm_lst_step_if_no_fnd:
                 # Just use previous ones.
