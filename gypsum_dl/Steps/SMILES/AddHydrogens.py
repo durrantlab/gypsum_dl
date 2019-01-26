@@ -87,7 +87,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
         Utils.log(
-            "\tWARNING: Gypsum-DL produced no valid protonation states for " +
+            "\tWARNING: Gypsum-DL produced no valid ionization states for " +
             contnrs[miss_indx].orig_smi + " (" +
             contnrs[miss_indx].name + "), so using the original " +
             "smiles."
