@@ -227,7 +227,7 @@ def prepare_molecules(args):
     params["end_time"] = str(end_time)
     params["run_time"] = str(run_time)
 
-    Utils.log("Start time at: " + str(start_time))
+    Utils.log("\nStart time at: " + str(start_time))
     Utils.log("End time at:   " + str(end_time))
     Utils.log("Total time at: " + str(run_time))
 

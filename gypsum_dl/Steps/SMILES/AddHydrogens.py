@@ -100,7 +100,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
         amol.genealogy = [
             amol.orig_smi + " (source)",
             amol.orig_smi_deslt + " (desalted)",
-            "(WARNING: Gypsum-DL could not assign protonation states)"
+            "(WARNING: Gypsum-DL could not assign ionization states)"
         ]
 
         # Save this one to the results too, even though not processed
