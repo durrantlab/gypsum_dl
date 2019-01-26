@@ -106,7 +106,7 @@ def prepare_molecules(args):
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":
-        Utils.log("Multiprocessing is not supported on Windows. Tasks will be run in Serial mode.")
+        Utils.log("WARNING: Multiprocessing is not supported on Windows. Tasks will be run in Serial mode.")
         params["num_processors"] = 1
         params["job_manager"] = "serial"
 
@@ -124,6 +124,16 @@ def prepare_molecules(args):
     # they have specified a json file.
     if need_to_print_override_warning == True:
         Utils.log("WARNING: Using the --json flag overrides all other flags.")
+
+    # If running in mpi mode, separate_output_files must be set to true.
+    if params["job_manager"] == "mpi" and params["separate_output_files"] == False:
+        Utils.log("WARNING: Running in mpi mode, but separate_output_files is not set to True. Setting separate_output_files to True anyway.")
+        params["separate_output_files"] = True
+
+    # Outputing HTML files not supported in mpi mode.
+    if params["job_manager"] == "mpi" and params["add_html_output"] == True:
+        Utils.log("WARNING: Running in mpi mode, but add_html_output is set to True. HTML output is not supported in mpi mode.")
+        params["add_html_output"] = False
 
     # Load SMILES data
     if isinstance(params["source"], str):
@@ -168,12 +178,12 @@ def prepare_molecules(args):
             Utils.exception(msg)
 
         if detect_unassigned_bonds(smiles) is None:
-            Utils.log("Warning: Throwing out SMILES because of unassigned bonds: " + smiles)
+            Utils.log("WARNING: Throwing out SMILES because of unassigned bonds: " + smiles)
             continue
 
         new_contnr = MolContainer(smiles, name, idx_counter, props)
         if new_contnr.orig_smi_canonical==None or type(new_contnr.orig_smi_canonical) !=str:
-            Utils.log("Warning: Throwing out SMILES because of it couldn't convert to mol: " + smiles)
+            Utils.log("WARNING: Throwing out SMILES because of it couldn't convert to mol: " + smiles)
             continue
 
         contnrs.append(new_contnr)

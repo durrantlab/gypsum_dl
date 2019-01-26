@@ -31,7 +31,7 @@ except ImportError:
     from io import StringIO
 
 # Always let the user know a help file is available.
-print("\nFor help, use: python dimorphite_dl.py --help")
+# print("\nFor help, use: python dimorphite_dl.py --help")
 
 try:
     import rdkit

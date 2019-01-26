@@ -78,8 +78,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
     ChemUtils.bst_for_each_contnr_no_opt(
-        contnrs, clear, max_variants_per_compound, thoroughness,
-        job_manager, False
+        contnrs, clear, max_variants_per_compound, thoroughness, False
     )
 
 def parallel_make_3d(mol):
@@ -119,7 +118,7 @@ def parallel_make_3d(mol):
     if show_error_msg:
         # Something's gone wrong, so show this error.
         Utils.log(
-            "\tWarning: Could not generate 3D geometry for " +
+            "\tWARNING: Could not generate 3D geometry for " +
             str(mol.smiles()) + " (" + mol.name + "). Molecule " +
             "discarded."
         )

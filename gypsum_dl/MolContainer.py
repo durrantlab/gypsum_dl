@@ -53,6 +53,9 @@ class MolContainer:
         # Set some variables are set on the container level (not the MyMol
         # level)
         self.contnr_idx = index
+        self.contnr_idx_orig = index  # Because if some circumstances (mpi),
+                                      # might be reset. But good to have
+                                      # original for filename output.
         self.orig_smi = smiles
         self.orig_smi_deslt = smiles  # initial assumption
         self.mols = []

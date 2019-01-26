@@ -54,7 +54,7 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
             pdb_file = "{}{}__input{}__variant{}.pdb".format(
                 output_folder + os.sep,
                 Utils.slug(name),
-                contnr.contnr_idx + 1,
+                contnr.contnr_idx_orig + 1,
                 i + 1
             )
 

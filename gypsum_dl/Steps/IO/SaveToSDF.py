@@ -72,7 +72,7 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
             sdf_file = "{}{}__input{}.sdf".format(
                 output_folder + os.sep,
                 Utils.slug(contnr.name),
-                contnr.contnr_idx + 1
+                contnr.contnr_idx_orig + 1
             )
             w = Chem.SDWriter(sdf_file)
             # w = Chem.SDWriter(output_folder + os.sep + "output." + str(i + 1) + ".sdf")

@@ -78,14 +78,10 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
             results.append(parallel_add_H(i[0],i[1]))
 
     results = Parallelizer.flatten_list(results)
-    print("IONIZE RESULTS: ", results)
 
     # Dimorphite-DL might not have generated ionization states for some
     # molecules. Identify those that are missing.
-    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(
-        contnrs, results, job_manager
-    )
-    print("FAILED?: ", contnrs, contnr_idxs_of_failed)
+    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, results)
 
     # For those molecules, just use the original SMILES string, with hydrogen
     # atoms added using RDKit.
@@ -114,7 +110,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
     ChemUtils.bst_for_each_contnr_no_opt(
-        contnrs, results, max_variants_per_compound, thoroughness, job_manager
+        contnrs, results, max_variants_per_compound, thoroughness
     )
 
 def parallel_add_H(contnr, protonation_settings):
