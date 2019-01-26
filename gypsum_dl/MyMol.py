@@ -28,8 +28,8 @@ import sys
 import copy
 import operator
 
-import gypsum.Utils as Utils
-import gypsum.MolObjectHandling as MOH
+import gypsum_dl.Utils as Utils
+import gypsum_dl.MolObjectHandling as MOH
 
 #Disable the unnecessary RDKit warnings
 from rdkit import RDLogger
@@ -44,7 +44,7 @@ except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
-    from gypsum.molvs import standardize_smiles as ssmiles
+    from gypsum_dl.molvs import standardize_smiles as ssmiles
 except:
     Utils.exception("You need to install molvs and its dependencies.")
 
@@ -171,7 +171,7 @@ class MyMol:
         return not self.__eq__(other)
 
     def __lt__(self, other):
-        """Is this MyMol less than another one? Gypsum often sorts
+        """Is this MyMol less than another one? Gypsum-DL often sorts
         molecules by sorting tuples of the form (energy, MyMol). On rare
         occasions, the energies are identical, and the sorting algorithm
         attempts to compare MyMol directly.
@@ -185,8 +185,8 @@ class MyMol:
         return self.__hash__() < other.__hash__()
 
     def __le__(self, other):
-        """Is this MyMol less than or equal to another one? Gypsum often sorts
-        molecules by sorting tuples of the form (energy, MyMol). On rare
+        """Is this MyMol less than or equal to another one? Gypsum-DL often
+        sorts molecules by sorting tuples of the form (energy, MyMol). On rare
         occasions, the energies are identical, and the sorting algorithm
         attempts to compare MyMol directly.
 
@@ -199,7 +199,7 @@ class MyMol:
         return self.__hash__() <= other.__hash__()
 
     def __gt__(self, other):
-        """Is this MyMol greater than another one? Gypsum often sorts
+        """Is this MyMol greater than another one? Gypsum-DL often sorts
         molecules by sorting tuples of the form (energy, MyMol). On rare
         occasions, the energies are identical, and the sorting algorithm
         attempts to compare MyMol directly.
@@ -213,7 +213,7 @@ class MyMol:
         return self.__hash__() > other.__hash__()
 
     def __ge__(self, other):
-        """Is this MyMol greater than or equal to another one? Gypsum often
+        """Is this MyMol greater than or equal to another one? Gypsum-DL often
         sorts molecules by sorting tuples of the form (energy, MyMol). On rare
         occasions, the energies are identical, and the sorting algorithm
         attempts to compare MyMol directly.
@@ -668,7 +668,7 @@ class MyConformer:
         :type second_embed: bool, optional
         :param use_random_coordinates: The first conformer should not start
            from random coordinates, but rather the eigenvalues-based
-           coordinates rdkit defaults to. But Gypsum generates subsequent
+           coordinates rdkit defaults to. But Gypsum-DL generates subsequent
            conformers to try to consider alternate geometries. So they should
            start from random coordinates. Defaults to False.
         :type use_random_coordinates: bool, optional

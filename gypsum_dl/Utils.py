@@ -157,7 +157,7 @@ def exception(msg):
     log(msg)
     log("\n" + "=" * 79)
     log("For help with usage:")
-    log("\tpython run_gypsum.py --help")
+    log("\tpython run_gypsum_dl.py --help")
     log("=" * 79)
     log("")
     raise Exception(msg)

@@ -23,13 +23,13 @@ import sys
 import os
 from os.path import basename
 
-from gypsum import Utils
+from gypsum_dl import Utils
 import rdkit
 import rdkit.Chem as Chem
 #Disable the unnecessary RDKit warnings
 rdkit.RDLogger.DisableLog('rdApp.*')
 
-sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)),'gypsum'))
+sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)),'gypsum_dl'))
 
 def convert_sdfs_to_PDBs(contnrs, output_folder):
     """This will convert every conformer into a PDB file, which is saved in

@@ -18,7 +18,7 @@ The module includes definitions to manipulate the molecules.
 
 import __future__
 
-import gypsum.Utils as Utils
+import gypsum_dl.Utils as Utils
 
 try:
     from rdkit import Chem
@@ -55,7 +55,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
         return mol_lst
 
     # First, generate 3D structures. How many? num * thoroughness. mols_3d is
-    # a list of gypsum MyMol.MyMol objects.
+    # a list of Gypsum-DL MyMol.MyMol objects.
     mols_3d = Utils.random_sample(mol_lst, num * thoroughness, "")
 
     # Now get the energies

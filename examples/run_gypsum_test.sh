@@ -1,1 +1,1 @@
-python ../run_gypsum.py -j ../gypsum/Test/sample_molecules.json
+python ../run_gypsum_dl.py -j ../gypsum_dl/Test/sample_molecules.json

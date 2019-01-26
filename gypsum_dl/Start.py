@@ -25,9 +25,9 @@ import os
 from datetime import datetime
 from collections import OrderedDict
 
-import gypsum.Utils as Utils
-from gypsum.Parallelizer import Parallelizer
-from gypsum.Parallelizer import flatten_list
+import gypsum_dl.Utils as Utils
+from gypsum_dl.Parallelizer import Parallelizer
+from gypsum_dl.Parallelizer import flatten_list
 
 try:
     from rdkit.Chem import AllChem
@@ -45,12 +45,12 @@ try:
 except:
     Utils.exception("You need to install scipy and its dependencies.")
 
-from gypsum.MolContainer import MolContainer
-from gypsum.Steps.SMILES.PrepareSmiles import prepare_smiles
-from gypsum.Steps.ThreeD.PrepareThreeD import prepare_3d
-from gypsum.Steps.IO.ProcessOutput import proccess_output
-from gypsum.Steps.IO.LoadFiles import load_smiles_file
-from gypsum.Steps.IO.LoadFiles import load_sdf_file
+from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.Steps.SMILES.PrepareSmiles import prepare_smiles
+from gypsum_dl.Steps.ThreeD.PrepareThreeD import prepare_3d
+from gypsum_dl.Steps.IO.ProcessOutput import proccess_output
+from gypsum_dl.Steps.IO.LoadFiles import load_smiles_file
+from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def prepare_molecules(args):
@@ -184,14 +184,14 @@ def prepare_molecules(args):
     if len(contnrs) != idx_counter:
         Utils.exception("There is a corrupted container")
 
-    # In multiprocessing mode, Gypsum parallelizes each small-molecule
+    # In multiprocessing mode, Gypsum-DL parallelizes each small-molecule
     # preparation step separately. But this scheme is inefficient in MPI mode
     # because it increases the amount of communication required between nodes.
     # So for MPI mode, we will run all the preparation steps for a given
     # molecule container on a single thread.
     if params["Parallelizer"].return_mode() != "mpi":
         # Non-MPI (e.g., multithreading)
-        execute_gypsum(contnrs, params)
+        execute_gypsum_dl(contnrs, params)
     else:
         # MPI mode. Group the molecule containers so they can be passed to the
         # parallelizer.
@@ -206,7 +206,7 @@ def prepare_molecules(args):
             job_input.append(tuple([[contnr], temp_param]))
         job_input = tuple(job_input)
 
-        params["Parallelizer"].run(job_input, execute_gypsum)
+        params["Parallelizer"].run(job_input, execute_gypsum_dl)
 
     # Calculate the total run time.
     end_time = datetime.now()
@@ -222,7 +222,7 @@ def prepare_molecules(args):
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["job_manager"])
 
-def execute_gypsum(contnrs, params):
+def execute_gypsum_dl(contnrs, params):
     """A function for doing all of the manipulations to each molecule.
 
     :param contnrs: A list of all molecules.
@@ -501,6 +501,6 @@ def deal_with_failed_molecules(contnrs, params):
         Utils.log("\n")
 
         # Write the failures to an smi file.
-        outfile = open(params["output_folder"] + os.sep + "gypsum_failed.smi", 'w')
+        outfile = open(params["output_folder"] + os.sep + "gypsum_dl_failed.smi", 'w')
         outfile.write("\n".join(failed_ones))
         outfile.close()

@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import gypsum.Steps.SMILES
-import gypsum.Steps.ThreeD
-import gypsum.Steps.IO
+from gypsum_dl.Steps.IO.ProcessOutput import proccess_output
+from gypsum_dl.Steps.IO.LoadFiles import load_smiles_file
+from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file

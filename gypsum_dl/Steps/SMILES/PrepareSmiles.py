@@ -19,12 +19,12 @@ tautomeric, chiral forms, etc.
 
 import __future__
 
-from gypsum import Utils
-from gypsum.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
-from gypsum.Steps.SMILES.AddHydrogens import add_hydrogens
-from gypsum.Steps.SMILES.MakeTautomers import make_tauts
-from gypsum.Steps.SMILES.EnumerateChiralMols import enumerate_chiral_molecules
-from gypsum.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
+from gypsum_dl import Utils
+from gypsum_dl.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
+from gypsum_dl.Steps.SMILES.AddHydrogens import add_hydrogens
+from gypsum_dl.Steps.SMILES.MakeTautomers import make_tauts
+from gypsum_dl.Steps.SMILES.EnumerateChiralMols import enumerate_chiral_molecules
+from gypsum_dl.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 
 def prepare_smiles(contnrs, params):
     """Runs the appropriate steps for processing the SMILES strings.
@@ -109,12 +109,12 @@ def wrap_molecules(contnrs):
     no way to store muliple smiles in a molecule container.
 
     But those containers are designed to store multiple RDKit molecule
-    objects. Gypsum stores Dimorphite-DL output molecules as RdKit molecule
+    objects. Gypsum-DL stores Dimorphite-DL output molecules as RdKit molecule
     objects, in the container's mol list.
 
-    But Gypsum gives the user the option of skipping the protonation step. In
-    this case, the one SMILES needs to be converted to a RDKit mol object for
-    subsequent steps to work. Let's do that here.
+    But Gypsum-DL gives the user the option of skipping the protonation step.
+    In this case, the one SMILES needs to be converted to a RDKit mol object
+    for subsequent steps to work. Let's do that here.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list

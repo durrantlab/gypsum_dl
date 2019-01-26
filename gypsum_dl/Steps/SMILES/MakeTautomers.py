@@ -20,11 +20,11 @@ import __future__
 
 import random
 
-import gypsum.Parallelizer as Parallelizer
-import gypsum.Utils as Utils
-import gypsum.ChemUtils as ChemUtils
-import gypsum.MyMol as MyMol
-import gypsum.MolObjectHandling as MOH
+import gypsum_dl.Parallelizer as Parallelizer
+import gypsum_dl.Utils as Utils
+import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.MyMol as MyMol
+import gypsum_dl.MolObjectHandling as MOH
 
 try:
     from rdkit import Chem
@@ -32,7 +32,7 @@ except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
-    from gypsum.molvs import tautomer
+    from gypsum_dl.molvs import tautomer
 except:
     Utils.exception("You need to install molvs and its dependencies.")
 

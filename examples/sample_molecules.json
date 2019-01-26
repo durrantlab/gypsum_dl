@@ -2,7 +2,7 @@
     "source": "examples/sample_molecules.smi",
     "separate_output_files": true,
     "multithread_mode": "mpi",
-    "output_folder": "./gypsum_test_output/",
+    "output_folder": "./gypsum_dl_test_output/",
     "output_pdb": true,
     "max_variants_per_compound": 10,
     "thoroughness": 2,

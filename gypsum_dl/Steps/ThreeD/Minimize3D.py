@@ -21,9 +21,9 @@ import __future__
 
 import copy
 
-import gypsum.Utils as Utils
-import gypsum.ChemUtils as ChemUtils
-from gypsum.MyMol import MyConformer
+import gypsum_dl.Utils as Utils
+import gypsum_dl.ChemUtils as ChemUtils
+from gypsum_dl.MyMol import MyConformer
 
 def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, job_manager, parallelizer_obj):
     """This function minimizes a 3D molecular conformation. In an attempt to

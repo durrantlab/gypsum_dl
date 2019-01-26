@@ -19,7 +19,7 @@ Saves output files to SDF.
 import __future__
 import os
 
-import gypsum.Utils as Utils
+import gypsum_dl.Utils as Utils
 
 try:
     from rdkit import Chem
@@ -42,12 +42,12 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
 
     # Save an empty molecule with the parameters.
     if separate_output_files == False:
-        w = Chem.SDWriter(output_folder + os.sep + "gypsum_success.sdf")
+        w = Chem.SDWriter(output_folder + os.sep + "gypsum_dl_success.sdf")
     else:
-        w = Chem.SDWriter(output_folder + os.sep + "gypsum_params.sdf")
+        w = Chem.SDWriter(output_folder + os.sep + "gypsum_dl_params.sdf")
 
     m = Chem.Mol()
-    m.SetProp("_Name", "EMPTY MOLECULE DESCRIBING GYPSUM PARAMETERS")
+    m.SetProp("_Name", "EMPTY MOLECULE DESCRIBING GYPSUM-DL PARAMETERS")
     for param in params:
         m.SetProp(param, str(params[param]))
     w.write(m)

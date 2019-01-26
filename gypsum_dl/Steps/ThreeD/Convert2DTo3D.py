@@ -20,9 +20,9 @@ conversion is in MyMol.MyMol.make_first_3d_conf_no_min()
 import __future__
 import copy
 
-import gypsum.Parallelizer as Parallelizer
-import gypsum.Utils as Utils
-import gypsum.ChemUtils as ChemUtils
+import gypsum_dl.Parallelizer as Parallelizer
+import gypsum_dl.Utils as Utils
+import gypsum_dl.ChemUtils as ChemUtils
 
 try:
     from rdkit import Chem

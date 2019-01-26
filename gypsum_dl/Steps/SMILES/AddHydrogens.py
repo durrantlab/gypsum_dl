@@ -19,13 +19,13 @@ molecules.
 
 from rdkit import Chem
 
-import gypsum.Parallelizer as Parallelizer
-import gypsum.Utils as Utils
-import gypsum.ChemUtils as ChemUtils
-import gypsum.MyMol as MyMol
-import gypsum.MolContainer as MolCont
+import gypsum_dl.Parallelizer as Parallelizer
+import gypsum_dl.Utils as Utils
+import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.MyMol as MyMol
+import gypsum_dl.MolContainer as MolCont
 
-from gypsum.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
+from gypsum_dl.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
 
 def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
                   thoroughness, num_procs, job_manager,
@@ -87,7 +87,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
         Utils.log(
-            "\tWARNING: Gypsum produced no valid protonation states for " +
+            "\tWARNING: Gypsum-DL produced no valid protonation states for " +
             contnrs[miss_indx].orig_smi + " (" +
             contnrs[miss_indx].name + "), so using the original " +
             "smiles."
@@ -100,7 +100,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
         amol.genealogy = [
             amol.orig_smi + " (source)",
             amol.orig_smi_deslt + " (desalted)",
-            "(WARNING: Gypsum could not assign protonation states)"
+            "(WARNING: Gypsum-DL could not assign protonation states)"
         ]
 
         # Save this one to the results too, even though not processed

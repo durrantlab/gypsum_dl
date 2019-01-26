@@ -13,19 +13,19 @@
 # limitations under the License.
 
 """
-This module is for testing Gypsum. Not quite unit tests, but good enough
+This module is for testing Gypsum-DL. Not quite unit tests, but good enough
 for now.
 """
 
 import os
 import shutil
 import glob
-from gypsum import Utils
-from gypsum.Start import prepare_molecules
+from gypsum_dl import Utils
+from gypsum_dl.Start import prepare_molecules
 
 def run_test():
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    output_folder = script_dir + os.sep + "gypsum_test_output" + os.sep
+    output_folder = script_dir + os.sep + "gypsum_dl_test_output" + os.sep
 
     # Delete test output directory if it exists.
     if os.path.exists(output_folder):
@@ -34,7 +34,7 @@ def run_test():
     # Make the directory
     os.mkdir(output_folder)
 
-    # Make the gypsum parameters.
+    # Make the Gypsum-DL parameters.
     params = {
         "source": script_dir + os.sep + "sample_molecules.smi",
         "separate_output_files": True,
@@ -125,7 +125,7 @@ def run_test():
         Utils.exception("FAILED. " + "Got some SMILES I didn't expect: " + \
             " ".join(list(all_smiles ^ target_smiles)))
     else:
-        Utils.log("PASSED. Gypsum output the very SMILES strings I was expecting.")
+        Utils.log("PASSED. Gypsum-DL output the very SMILES strings I was expecting.")
 
     Utils.log("")
 

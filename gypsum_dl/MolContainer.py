@@ -23,9 +23,9 @@ MolContainer.MolContainer > MyMol.MyMol > MyMol.MyConformers
 
 import __future__
 
-import gypsum.Utils as Utils
-import gypsum.ChemUtils as ChemUtils
-import gypsum.MyMol as MyMol
+import gypsum_dl.Utils as Utils
+import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.MyMol as MyMol
 
 try:
     from rdkit import Chem

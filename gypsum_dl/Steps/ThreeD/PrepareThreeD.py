@@ -18,10 +18,10 @@ Runs the 3D preparation process.
 
 import __future__
 
-from gypsum.Steps.ThreeD.Convert2DTo3D import convert_2d_to_3d
-from gypsum.Steps.ThreeD.GenerateAlternate3DNonaromaticRingConfs \
+from gypsum_dl.Steps.ThreeD.Convert2DTo3D import convert_2d_to_3d
+from gypsum_dl.Steps.ThreeD.GenerateAlternate3DNonaromaticRingConfs \
     import generate_alternate_3d_nonaromatic_ring_confs
-from gypsum.Steps.ThreeD.Minimize3D import minimize_3d
+from gypsum_dl.Steps.ThreeD.Minimize3D import minimize_3d
 
 def prepare_3d(contnrs, params):
     """Runs the pipeline for generating the 3D small-molecule models.

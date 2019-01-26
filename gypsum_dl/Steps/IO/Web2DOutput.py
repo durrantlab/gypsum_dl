@@ -19,8 +19,8 @@ debugging.
 
 # import webbrowser
 import os
-import gypsum.Utils as Utils
-import gypsum.ChemUtils as ChemUtils
+import gypsum_dl.Utils as Utils
+import gypsum_dl.ChemUtils as ChemUtils
 
 try:
     from rdkit.Chem import rdDepictor
@@ -38,7 +38,7 @@ def web_2d_output(contnrs, output_folder):
     Utils.log("Saving html image of molecules associated with...")
 
     # Let's not parallelize it for now. This will rarely be used.
-    html_file = output_folder + os.sep + "gypsum_success.html"
+    html_file = output_folder + os.sep + "gypsum_dl_success.html"
     f = open(html_file, 'w')
     for contnr in contnrs:
         Utils.log("\t" + contnr.orig_smi)
