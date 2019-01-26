@@ -107,8 +107,8 @@ def remove_highly_charged_molecules(mol_lst):
 
     return new_mol_lst
 
-def bst_for_each_contnr_no_opt(contnrs, mol_lst,
-                               max_variants_per_compound, thoroughness,
+def bst_for_each_contnr_no_opt(contnrs, mol_lst, max_variants_per_compound,
+                               thoroughness, job_manager,
                                crry_ovr_frm_lst_step_if_no_fnd=True):
     """Keep only the top few compound variants in each container, to prevent a
        combinatorial explosion. This is run periodically on the growing
@@ -130,6 +130,8 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
        computational expense, but it also increases the chances of finding good
        molecules.
     :type thoroughness: int
+    :param job_manager: The name of the job manager being used.
+    :type job_manager: string
     :param crry_ovr_frm_lst_step_if_no_fnd: If it can't find any low-energy
        conformers, determines whether to just keep the old ones. Defaults to
        True.
@@ -141,10 +143,11 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst,
         mol_cont.remove_identical_mols_from_contnr()
 
     # Group the smiles by contnr_idx.
-    data = Utils.group_mols_by_container_index(mol_lst)
+    data = Utils.group_mols_by_container_index(mol_lst, job_manager)
 
     # Go through each container.
     for contnr_idx, contnr in enumerate(contnrs):
+        contnr_idx = contnr.contnr_idx
         none_generated = False
 
         # Pick just the lowest-energy conformers from the new candidates.

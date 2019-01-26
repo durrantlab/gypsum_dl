@@ -202,7 +202,9 @@ def prepare_molecules(args):
                 temp_param["Parallelizer"] = None
             else:
                 temp_param[key] = params[key]
+
         for contnr in contnrs:
+            contnr.contnr_idx = 0  # Because each container being run in isolation.
             job_input.append(tuple([[contnr], temp_param]))
         job_input = tuple(job_input)
 

@@ -87,7 +87,9 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     flat = Parallelizer.flatten_list(clean)
 
     # Get the indexes of the ones that failed to generate.
-    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, flat)
+    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(
+        contnrs, flat, job_manager
+    )
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
@@ -102,7 +104,9 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(contnrs, flat, max_variants_per_compound, thoroughness)
+    ChemUtils.bst_for_each_contnr_no_opt(
+        contnrs, flat, max_variants_per_compound, thoroughness, job_manager
+    )
 
 def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating chiralities.

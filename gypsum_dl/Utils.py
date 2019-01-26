@@ -23,7 +23,7 @@ import textwrap
 import random
 import string
 
-def group_mols_by_container_index(mol_lst):
+def group_mols_by_container_index(mol_lst, job_manager):
     """Take a list of MyMol.MyMol objects, and place them in lists according to
     their associated contnr_idx values. These lists are accessed via
     a dictionary, where they keys are the contnr_idx values
@@ -31,6 +31,8 @@ def group_mols_by_container_index(mol_lst):
 
     :param mol_lst: The list of MyMol.MyMol objects.
     :type mol_lst: list
+    :param job_manager: The name of the job manager being used.
+    :type job_manager: string
     :return: A dictionary, where keys are contnr_idx values and values are
        lists of MyMol.MyMol objects
     :rtype: dict
@@ -52,6 +54,12 @@ def group_mols_by_container_index(mol_lst):
     # Remove redundant entries.
     for key in list(grouped_results.keys()):
         grouped_results[key] = list(set(grouped_results[key]))
+
+    # When running in MPI mode, there should be only one container, and it's
+    # index won't necessarily match. Let's deal with that here.
+    print(">>>>>>>")
+    grouped_results = fix_contnr_grpings_when_mpi(grouped_results, mol_lst, job_manager)
+    print("<<<<<<<")
 
     return grouped_results
 
@@ -98,13 +106,55 @@ def log(txt):
         subsequent_indent = whitespace_before + "    "
     ))
 
-def fnd_contnrs_not_represntd(contnrs, results):
+def fix_contnr_grpings_when_mpi(dict_to_fix, mymol_lst, job_manager):
+    """In mpi mode, there are often mismatches between dictionaries that map
+    container indexes to lists of SMILES or MyMol.MyMol objects, and the actual
+    container indexes. This is because of how the containers are divided for
+    processing on multiple mpi processors. This function detects this problem
+    and fixes it.
+
+    :param dict_to_fix: The dictionary that maps container indexes (right or
+       wrong) to SMILES or MyMol.MyMol objects.
+    :type dict_to_fix: dict
+    :param mymol_lst: A list of the existing containers (with correct
+       contnr_idx values).
+    :type mymol_lst: list
+    :param job_manager: The name of the job manager being used.
+    :type job_manager: string
+    :return: A dictionary, mapping correct container indexes to the same lists
+       (SMILES or MyMol.MyMol).
+    :rtype: dict
+    """
+
+    return dict_to_fix
+
+    print("dict_to_fix: ", dict_to_fix)
+    print("contnr_idxs: ", [m.contnr_idx for m in mymol_lst])
+
+    # When running in MPI mode, there should be only one container, and it's
+    # index won't necessarily match. Let's deal with that here.
+    first_dict_to_fix_key = dict_to_fix.keys()[0]
+    first_contnr_idx = mymol_lst[0].contnr_idx
+    if (job_manager == "mpi" and len(dict_to_fix.keys()) == 1 and
+        len(set([m.contnr_idx for m in mymol_lst])) == 1 and
+        first_dict_to_fix_key != first_contnr_idx):
+
+        print("HIHO")
+        dict_to_fix = {first_contnr_idx: dict_to_fix[first_dict_to_fix_key]}
+    print("dict_to_fix2: ", dict_to_fix)
+
+    return dict_to_fix
+
+def fnd_contnrs_not_represntd(contnrs, results, job_manager):
     """Identify containers that have no representative elements in results.
+    Something likely failed for the containers with no results.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
     :param results: A list of MyMol.MyMol objects.
     :type results: list
+    :param job_manager: The name of the job manager being used.
+    :type job_manager: string
     :return: A list of integers, the indecies of the contnrs that have no
        associated elements in the results.
     :rtype: list
@@ -123,7 +173,13 @@ def fnd_contnrs_not_represntd(contnrs, results):
         if not idx in idx_to_smi:
             idx_to_smi[idx] = contnrs[idx].orig_smi_deslt
 
+    # When running in MPI mode, there should be only one container, and it's
+    # index won't necessarily match. Let's deal with that here.
+    idx_to_smi = fix_contnr_grpings_when_mpi(idx_to_smi, results, job_manager)
+
     # Now remove from those any that have associated ionized smiles strings.
+    # These are represented, and so you don't want to include them in the
+    # return.
     for m in results:
         if m.contnr_idx in idx_to_smi:
             del idx_to_smi[m.contnr_idx]
