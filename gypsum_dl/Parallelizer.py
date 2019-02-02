@@ -61,13 +61,13 @@ class Parallelizer(object):
             :self   int     self.num_processor:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
                                                 This will be overriden and fixed to a single processor if mode==serial
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
+        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
         :param int num_procs:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
                                         This will be overriden and fixed to a single processor if mode==serial
-        :param bol flag_for_low_level: this will override mode and number of processors and set it to a multithread as serial. This is useful because
+        :param bol flag_for_low_level: this will override mode and number of processors and set it to a multiprocess as serial. This is useful because
                                 a low-level program in mpi mode referenced by a top level program in mpi mode will have terrible problems. This means you can't mpi-multiprocess inside an mpi-multiprocess.
         """
 
@@ -136,16 +136,16 @@ class Parallelizer(object):
         it then checks if the mode has been already establish or if there is a low level flag.
 
         If the user explicitly or implicitly asks for mpi  (ie mode=None or mode="mpi") without flags and mpi4py is installed, then we will
-            run the from mpi4py import MPI check. if it passes then we will return a True and run mpi mode; if not we return False and run multithread
+            run the from mpi4py import MPI check. if it passes then we will return a True and run mpi mode; if not we return False and run multiprocess
 
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
+        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
         :param int num_procs:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
                                         This will be overriden and fixed to a single processor if mode==serial
-        :param bol flag_for_low_level: this will override mode and number of processors and set it to a multithread as serial. This is useful because
+        :param bol flag_for_low_level: this will override mode and number of processors and set it to a multiprocess as serial. This is useful because
                                 a low-level program in mpi mode referenced by a top level program in mpi mode will have terrible problems. This means you can't mpi-multiprocess inside an mpi-multiprocess.
 
         Returns:
@@ -153,7 +153,7 @@ class Parallelizer(object):
                         Returns False if it cannot or should not run mpi mode.
         """
         if MPI_installed == False:
-            # mpi4py isn't installed and we will need to multithread
+            # mpi4py isn't installed and we will need to multiprocess
             return False
 
         if flag_for_low_level == True:
@@ -178,11 +178,11 @@ class Parallelizer(object):
         This creates the object for parallizing in a given mode.
 
         mode=None can be used at a top level program, but if using a program enabled
-        with this multithread, referenced by a top level program, make sure the mode
+        with this multiprocess, referenced by a top level program, make sure the mode
         is explicitly chosen.
 
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
+        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -214,7 +214,7 @@ class Parallelizer(object):
 
 
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
+        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -254,7 +254,7 @@ class Parallelizer(object):
         :param list args: a list of lists/tuples, each sublist/tuple must contain all information required by the function for a single object which will be multiprocessed
         :param int num_procs:  (Primarily for Developers)  the number of processors or nodes that will be used. If None than we will use all available nodes/processors
                                         This will be overriden and fixed to a single processor if mode==serial
-        :param str mode:  (Primarily for Developers) the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
+        :param str mode:  (Primarily for Developers) the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -331,7 +331,7 @@ class Parallelizer(object):
         """
         Returns the mode chosen for the parallelization cababilities of the system and returns one
         of the following modes depending on the configuration:
-        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
+        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
                     if None then we will try to pick a possible multiprocessing choice. This should only be used for
                     top level coding. It is best practice to specify which multiprocessing choice to use.
                     if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.

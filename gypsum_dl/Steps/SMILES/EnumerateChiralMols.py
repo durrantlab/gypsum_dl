@@ -53,7 +53,7 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param job_manager: The multithread mode.
+    :param job_manager: The multiprocess mode.
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer

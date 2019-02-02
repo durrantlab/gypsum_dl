@@ -73,7 +73,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(contnrs, max_variants_per_compo
         run time, but sometimes converts certain molecules that would
         otherwise fail.
     :type second_embed: bool
-    :param job_manager: The multithread mode.
+    :param job_manager: The multiprocess mode.
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer

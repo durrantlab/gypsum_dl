@@ -37,7 +37,7 @@ def desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj):
     :type contnrs: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
-    :param job_manager: The multithread mode.
+    :param job_manager: The multiprocess mode.
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer

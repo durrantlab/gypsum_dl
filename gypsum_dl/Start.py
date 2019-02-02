@@ -116,8 +116,8 @@ def prepare_molecules(args):
     else:
         # Lower-level mpi (i.e. making a new Parallelizer within an mpi) has
         # problems with importing the MPI environment and mpi4py. So we will
-        # flag it to skip the MPI mode and just go to multithread/serial. This
-        # is a saftey precaution
+        # flag it to skip the MPI mode and just go to multiprocess/serial.
+        # This is a saftey precaution
         params["Parallelizer"] = Parallelizer(params["job_manager"], params["num_processors"], True)
 
     # Let the user know that their command-line parameters will be ignored, if
