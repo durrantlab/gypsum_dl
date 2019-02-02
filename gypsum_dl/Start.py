@@ -101,7 +101,7 @@ def prepare_molecules(args):
         try:
             import mpi4py
         except:
-            Utils.exception("mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multithreading or serial.")
+            Utils.exception("mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.")
 
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
@@ -200,7 +200,7 @@ def prepare_molecules(args):
     # So for MPI mode, we will run all the preparation steps for a given
     # molecule container on a single thread.
     if params["Parallelizer"].return_mode() != "mpi":
-        # Non-MPI (e.g., multithreading)
+        # Non-MPI (e.g., multiprocessing)
         execute_gypsum_dl(contnrs, params)
     else:
         # MPI mode. Group the molecule containers so they can be passed to the
@@ -313,7 +313,7 @@ def set_parameters(params_unicode):
         "skip_making_tautomers" : False,
         "skip_ennumerate_chiral_mol" : False,
         "skip_ennumerate_double_bonds" : False,
-        "job_manager" : "multithreading",
+        "job_manager" : "multiprocessing",
         "cache_prerun": False,
         "test": False
     })

@@ -21,7 +21,7 @@ The "parallelizer" object exposes a simple map interface that takes a function
 and a list of arguments and returns the result of applying the function to
 each argument. Internally, the parallelizer class can determine what parallel
 capabilities are present on a system and automatically pick between "mpi",
-"multithreading" or "serial" in order to speed up the map operation. This
+"multiprocessing" or "serial" in order to speed up the map operation. This
 approach simplifies development and allows the same program to run on a laptop
 or a high-performance computer cluster, utilizing the full resources of each
 system. (Description provided by Harrison Green.)
@@ -44,7 +44,7 @@ class Parallelizer(object):
 
     def __init__(self, mode=None, num_procs=None, flag_for_low_level=False):
         """
-        This will initialize the Parallelizer class and kick off the specific classes for multithreading and MPI.
+        This will initialize the Parallelizer class and kick off the specific classes for multiprocessing and MPI.
 
         Default num_procs is all the processesors possible
 
@@ -53,7 +53,7 @@ class Parallelizer(object):
                         if False it either cant import mpi4py or the mode/flag_for_low_level dictates not to check mpi4py import
                             due to issues which arrise when mpi is started within a program which is already mpi enabled
             :self   str     self.mode:  The mode which will be used for this paralellization. This determined by mode and the enviorment
-                                        default is mpi if the enviorment allows, if not mpi then multithreading on all processors unless stated otherwise.
+                                        default is mpi if the enviorment allows, if not mpi then multiprocessing on all processors unless stated otherwise.
             :self   class   self.parallel_obj: This is the obstantiated object of the class of parallizations.
                             ie) if self.mode=='mpi' self.parallel_obj will be an instance of the mpi class
                                 This style of retained parallel_obj to be used later is important because this is the object which controls the work nodes and maintains the mpi universe
@@ -61,7 +61,7 @@ class Parallelizer(object):
             :self   int     self.num_processor:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
                                                 This will be overriden and fixed to a single processor if mode==serial
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multithreading, mpi, or None:
+        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -85,7 +85,7 @@ class Parallelizer(object):
                 # THIS IS TO BE RUN IN MPI
                 self.mode = 'mpi'
             else:
-                self.mode = 'multithreading'
+                self.mode = 'multiprocessing'
 
         elif mode == 'mpi':
             if self.HAS_MPI == True:
@@ -94,15 +94,15 @@ class Parallelizer(object):
             else:
                 raise Exception('mpi4py package must be available to use mpi mode')
 
-        elif mode == 'multithreading':
-            self.mode = 'multithreading'
+        elif mode == 'multiprocessing':
+            self.mode = 'multiprocessing'
 
         elif mode == 'Serial' or mode == 'serial':
             self.mode = 'serial'
 
         else:
-            # Default setting will be multithreading
-            self.mode = 'multithreading'
+            # Default setting will be multiprocessing
+            self.mode = 'multiprocessing'
 
         # Start MPI MODE if applicable
         if self.mode == 'mpi':
@@ -139,7 +139,7 @@ class Parallelizer(object):
             run the from mpi4py import MPI check. if it passes then we will return a True and run mpi mode; if not we return False and run multithread
 
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multithreading, mpi, or None:
+        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -182,7 +182,7 @@ class Parallelizer(object):
         is explicitly chosen.
 
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multithreading, mpi, or None:
+        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -214,7 +214,7 @@ class Parallelizer(object):
 
 
         Inputs:
-        :param str mode: the multithread mode to be used, ie) serial, multithreading, mpi, or None:
+        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -237,11 +237,11 @@ class Parallelizer(object):
         """
         Run a task in parallel across the system.
 
-        Mode can be one of 'mpi', 'multithreading' or 'none' (serial). If it is not
+        Mode can be one of 'mpi', 'multiprocessing' or 'none' (serial). If it is not
         set, the best value will be determined automatically.
 
         By default, this method will use the full resources of the system. However,
-        if the mode is set to 'multithreading', num_procs can control the number
+        if the mode is set to 'multiprocessing', num_procs can control the number
         of threads initialized when it is set to a nonzero value.
 
         Example: If one wants to multiprocess function  def foo(x,y) which takes 2 ints and one wants to test all permutations of x and y between 0 and 2:
@@ -254,7 +254,7 @@ class Parallelizer(object):
         :param list args: a list of lists/tuples, each sublist/tuple must contain all information required by the function for a single object which will be multiprocessed
         :param int num_procs:  (Primarily for Developers)  the number of processors or nodes that will be used. If None than we will use all available nodes/processors
                                         This will be overriden and fixed to a single processor if mode==serial
-        :param str mode:  (Primarily for Developers) the multithread mode to be used, ie) serial, multithreading, mpi, or None:
+        :param str mode:  (Primarily for Developers) the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
                             if None then we will try to pick a possible multiprocessing choice. This should only be used for
                             top level coding. It is best practice to specify which multiprocessing choice to use.
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
@@ -268,7 +268,7 @@ class Parallelizer(object):
             mode = self.mode
         else:
             if self.mode != mode:
-                if mode != "mpi" and  mode != "serial" and  mode != "multithreading":
+                if mode != "mpi" and  mode != "serial" and  mode != "multiprocessing":
                     printout = "Overriding function with a multiprocess mode which doesn't match: " + mode
                     raise Exception(printout)
                 if mode == "mpi":
@@ -296,7 +296,7 @@ class Parallelizer(object):
 
             return self.parallel_obj.run(func, args)
 
-        elif mode == 'multithreading':
+        elif mode == 'multiprocessing':
             return MultiThreading(args, num_procs,  func)
         else:
             # serial is running the ParallelThreading with num_procs=1
@@ -309,7 +309,7 @@ class Parallelizer(object):
         of the following modes depending on the configuration:
 
         Returns:
-        :returns: str mode: the mode which is to be used 'mpi', 'multithreading', 'serial'
+        :returns: str mode: the mode which is to be used 'mpi', 'multiprocessing', 'serial'
         """
         # check if mpi4py is loaded and we have more than one processor in our MPI world
         if self.HAS_MPI:
@@ -317,27 +317,27 @@ class Parallelizer(object):
                 if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
                     return 'mpi'
             except:
-                return 'multithreading'
+                return 'multiprocessing'
             else:
-                return 'multithreading'
+                return 'multiprocessing'
         # # check if we could utilize more than one processor
         # if multiprocessing.cpu_count() > 1:
-        #     return 'multithreading'
+        #     return 'multiprocessing'
 
-        # default to multithreading
-        return 'multithreading'
+        # default to multiprocessing
+        return 'multiprocessing'
 
     def return_mode(self):
         """
         Returns the mode chosen for the parallelization cababilities of the system and returns one
         of the following modes depending on the configuration:
-        :param str mode: the multithread mode to be used, ie) serial, multithreading, mpi, or None:
+        :param str mode: the multithread mode to be used, ie) serial, multiprocessing, mpi, or None:
                     if None then we will try to pick a possible multiprocessing choice. This should only be used for
                     top level coding. It is best practice to specify which multiprocessing choice to use.
                     if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
                     BEST TO LEAVE THIS BLANK
         Returns:
-        :returns: str mode: the mode which is to be used 'mpi', 'multithreading', 'serial'
+        :returns: str mode: the mode which is to be used 'mpi', 'multiprocessing', 'serial'
         """
         return self.mode
 
@@ -346,7 +346,7 @@ class Parallelizer(object):
         Computes the number of "compute nodes" according to the selected mode.
 
         For mpi, this is the universe size
-        For multithreading this is the number of available cores
+        For multiprocessing this is the number of available cores
         For serial, this value is 1
         Returns:
         :returns: int num_procs: the number of nodes/processors which is to be used
@@ -358,7 +358,7 @@ class Parallelizer(object):
             if not self.HAS_MPI:
                 raise Exception('mpi4py package must be available to use mpi mode')
             return mpi4py.MPI.COMM_WORLD.Get_size()
-        elif mode == 'multithreading':
+        elif mode == 'multiprocessing':
             return multiprocessing.cpu_count()
         else:
             return 1
@@ -368,7 +368,7 @@ class Parallelizer(object):
         Returns the number of "compute nodes" according to the selected mode.
 
         For mpi, this is the universe size
-        For multithreading this is the number of available cores
+        For multiprocessing this is the number of available cores
         For serial, this value is 1
         Returns:
         :returns: int num_procs: the number of nodes/processors which is to be used

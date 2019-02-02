@@ -72,10 +72,10 @@ python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
     --job_manager serial
 
-8. Run Gypsum-DL in multithreading mode, using 4 processors:
+8. Run Gypsum-DL in multiprocessing mode, using 4 processors:
 
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
-    --job_manager multithreading --num_processors 4
+    --job_manager multiprocessing --num_processors 4
 
 9. Run Gypsum-DL in mpi mode using all available processors:
 
@@ -91,7 +91,7 @@ Where myparams.json might look like:
 {
     "source": "./examples/sample_molecules.smi",
     "separate_output_files": true,
-    "job_manager": "multithreading",
+    "job_manager": "multiprocessing",
     "output_folder": "/my/folder/",
     "add_pdb_output": true,
     "add_html_output": true,
@@ -107,10 +107,10 @@ PARSER.add_argument('--source', '-s', type=str, metavar='input.smi',
 PARSER.add_argument('--output_folder', '-o', type=str,
                     help='The path to an existing folder where the Gypsum-DL ' +
                     'output file(s) will be saved.')
-PARSER.add_argument('--job_manager', type=str, default='multithreading',
-                    choices = ["mpi", "multithreading", "serial"],
-                    help='Determine what style of multithreading to use: mpi, \
-                    multithreading, or serial. If this program is being used \
+PARSER.add_argument('--job_manager', type=str, default='multiprocessing',
+                    choices = ["mpi", "multiprocessing", "serial"],
+                    help='Determine what style of multiprocessing to use: mpi, \
+                    multiprocessing, or serial. If this program is being used \
                     by a program in MPI mode, we recommend setting this to \
                     serial. Serial will override the num_processors flag, \
                     forcing it to be one.')

@@ -3,5 +3,5 @@
     "output_file": "output_smp.sdf",
     "separate_output_files": false,
     "num_processors": -1,
-    "multithread_mode":"multithreading"
+    "job_manager":"multiprocessing"
 }

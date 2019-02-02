@@ -38,7 +38,7 @@ def run_test():
     params = {
         "source": script_dir + os.sep + "sample_molecules.smi",
         "separate_output_files": True,
-        "job_manager": "serial",  # multithreading
+        "job_manager": "serial",  # multiprocessing
         "output_folder": output_folder,
         "add_pdb_output": False,
         "max_variants_per_compound": 8,

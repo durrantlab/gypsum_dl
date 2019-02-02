@@ -31,9 +31,9 @@ Gypsum-DL accepts the following command-line parameters:
   --output_folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
                         The path to an existing folder where the Gypsum-DL
                         output file(s) will be saved.
-  --job_manager {mpi,multithreading,serial}
-                        Determine what style of multithreading to use: mpi,
-                        multithreading, or serial. If this program is being
+  --job_manager {mpi,multiprocessing,serial}
+                        Determine what style of multiprocessing to use: mpi,
+                        multiprocessing, or serial. If this program is being
                         used by a program in MPI mode, we recommend setting
                         this to serial. Serial will override the
                         num_processors flag, forcing it to be one.
@@ -132,11 +132,11 @@ python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
     --job_manager serial
 ```
 
-Run Gypsum-DL in multithreading mode, using 4 processors:
+Run Gypsum-DL in multiprocessing mode, using 4 processors:
 
 ``` bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
-    --job_manager multithreading --num_processors 4
+    --job_manager multiprocessing --num_processors 4
 ```
 
 Run Gypsum-DL in mpi mode using all available processors:
@@ -158,7 +158,7 @@ Where `myparams.json` might look like:
 {
     "source": "./examples/sample_molecules.smi",
     "separate_output_files": true,
-    "job_manager": "multithreading",
+    "job_manager": "multiprocessing",
     "output_folder": "/my/folder/",
     "add_pdb_output": true,
     "add_html_output": true,
