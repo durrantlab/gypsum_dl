@@ -15,8 +15,8 @@
 # limitations under the License.
 
 """
-Gypsum-DL is a conversion script to transform smiles strings and 2D SDFs into
-3D models.
+Gypsum-DL 1.0.0 is a conversion script to transform smiles strings and 2D SDFs
+into 3D models.
 """
 
 import argparse
@@ -28,10 +28,10 @@ from gypsum_dl import Utils
 PARSER = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="""
-Gypsum-DL, a free, open-source program for preparing 3D small-molecule models.
-Beyond simply assigning atomic coordinates, Gypsum-DL accounts for alternate
-ionization, tautomeric, chiral, cis/trans isomeric, and ring-conformational
-forms.""",
+Gypsum-DL 1.0.0, a free, open-source program for preparing 3D small-molecule
+models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
+alternate ionization, tautomeric, chiral, cis/trans isomeric, and
+ring-conformational forms.""",
     epilog="""
 EXAMPLES OF USE:
 
