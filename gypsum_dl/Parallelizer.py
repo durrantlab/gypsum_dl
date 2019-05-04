@@ -74,7 +74,6 @@ class Parallelizer(object):
         if mode == "none" or mode == "None":
             mode = None
 
-
         self.HAS_MPI = self.test_import_MPI(mode, flag_for_low_level)
 
         # Pick the mode
@@ -106,13 +105,12 @@ class Parallelizer(object):
 
         # Start MPI MODE if applicable
         if self.mode == 'mpi':
-            self.parallel_obj =self.start(self.mode)
+            self.parallel_obj = self.start(self.mode)
 
         else:
-            self.parallel_obj=None
+            self.parallel_obj = None
 
-
-        if self.mode =="serial":
+        if self.mode == "serial":
             self.num_procs = 1
 
         elif num_procs == None:
@@ -410,7 +408,6 @@ class ParallelMPI(object):
 
         self.COMM.bcast(None, root=0)
 
-
     def _worker(self):
         """
         Worker processors wait in this function to receive new jobs
@@ -425,7 +422,6 @@ class ParallelMPI(object):
 
             # receive arguments
             args_chunk = self.COMM.scatter([], root=0)
-
 
             if type(args_chunk[0]) == type(self.Empty_object): # or  args_chunk[0] == [[self.Empty_object]]:
                 result_chunk = [[self.Empty_object]]
@@ -524,7 +520,6 @@ class ParallelMPI(object):
             printout = "all items within args must be either a list or tuple"
             print(printout)
             raise Exception(printout)
-
 
     def run(self, func, args):
         """
