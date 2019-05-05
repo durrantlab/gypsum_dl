@@ -281,8 +281,6 @@ class Parallelizer(object):
                 printout = "Can't override num_procs in serial mode"
                 raise Exception(printout)
 
-
-
         if mode != self.mode:
             printout = "changing mode from {} to {} for development purpose".format(mode,self.mode)
             print(printout)
@@ -291,7 +289,6 @@ class Parallelizer(object):
             if not self.HAS_MPI:
                 raise Exception('mpi4py package must be available to use mpi mode')
 
-
             return self.parallel_obj.run(func, args)
 
         elif mode == 'multiprocessing':
@@ -299,7 +296,6 @@ class Parallelizer(object):
         else:
             # serial is running the ParallelThreading with num_procs=1
             return MultiThreading(args, 1,  func)
-
 
     def pick_mode(self):
         """
@@ -555,7 +551,6 @@ class ParallelMPI(object):
         # perform the calculation and get results
         result_chunk = [func(*arg) for arg in args_chunk]
         result_chunk = self.COMM.gather(result_chunk, root=0)
-
 
         if type(result_chunk) != list:
             raise Exception("result_chunk needs to be a list")
