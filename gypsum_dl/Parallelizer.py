@@ -164,7 +164,22 @@ class Parallelizer(object):
             # This must be either mpi or None, mpi4py can be installed and it hasn't been flagged at low level
 
             try:
+                import mpi4py
                 from mpi4py import MPI
+
+                mpi4py_version = mpi4py.__version__
+                mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
+                
+                if mpi4py_version[0] == 1:
+                    Utils.exception("mpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.")
+                elif mpi4py_version[0] == 2:
+                    if mpi4py_version[1] < 1:
+                        print("mpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.")
+                        return False
+                elif mpi4py_version[0] < 2:
+                    print("mpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.")
+                    return False
+                
                 return True
             except:
                 return False

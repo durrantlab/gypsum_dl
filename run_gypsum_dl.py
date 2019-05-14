@@ -79,7 +79,8 @@ python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
 
 9. Run Gypsum-DL in mpi mode using all available processors:
 
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py \\
+    --source ./examples/sample_molecules.smi \\
     --job_manager mpi --num_processors -1
 
 10. Gypsum-DL can also take parameters from a JSON file:
@@ -113,7 +114,9 @@ PARSER.add_argument('--job_manager', type=str, default='multiprocessing',
                     multiprocessing, or serial. If this program is being used \
                     by a program in MPI mode, we recommend setting this to \
                     serial. Serial will override the num_processors flag, \
-                    forcing it to be one.')
+                    forcing it to be one.\
+                    MPI mode requires mpi4py versions 2.1.0 or newer and to be executed as: \
+                        mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...')
 PARSER.add_argument('--num_processors', '-p', type=int, metavar='N', default=1,
                     help='Number of processors to use for parallel \
                     calculations.')

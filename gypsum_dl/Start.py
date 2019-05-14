@@ -102,7 +102,13 @@ def prepare_molecules(args):
             import mpi4py
         except:
             Utils.exception("mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.")
-
+        mpi4py_version = mpi4py.__version__
+        mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
+        if mpi4py_version[0] == 1:
+            Utils.exception("mpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.")
+        elif mpi4py_version[0] == 2:
+            if mpi4py_version[1] < 1:
+                Utils.exception("mpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.")
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":
@@ -112,6 +118,14 @@ def prepare_molecules(args):
 
     # Launch mpi workers if that's what's specified.
     if params["job_manager"] == 'mpi':
+        # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
+        # We must check that it is being run with the "-m mpi4py" runpy flag
+        sys_modules = sys.modules
+        if "runpy" not in sys_modules.keys():
+            printout ="\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+            print(printout)
+            raise Exceptions(printout)
+
         params["Parallelizer"] = Parallelizer(params["job_manager"], params["num_processors"])
     else:
         # Lower-level mpi (i.e. making a new Parallelizer within an mpi) has
