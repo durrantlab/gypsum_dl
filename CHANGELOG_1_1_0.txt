@@ -1,0 +1,34 @@
+Gypsum-DL 1.1.0 Release
+
+Updates from previous version (1.0.0):
+
+    Dependency updates:
+        1) Dimorphite-DL updated to version 
+        2) Added restrictions to versions of mpi4py. Now Gypsum-DL requires mpi4py versions 2.1.0 or higher.
+            - running mpi4py can result in deadlock if a raise Exception is triggered while multiprocessing.
+                - For more detail please read: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html 
+            - Newer mpi4py version (versions 2.1.0 and higher) provide an alternative command line execution mechanism
+            using the -m flag. This implements the runpy module of python.
+                - Earlier releases of mpi4py lack the "-m mpi4py".
+            - Gypsum-DL also requires the -m mpi4py execution to run in mpi mode. This enforcement was necesary to prevent deadlock issues.
+
+            Deadlock is a serious issue and so Gypsum-Dl has chosen to prevent use of its code with mpi4py versions less than 2.1.0
+
+                -We have extensively tested this and feel that this solution prevents the deadlock issue. If you experirence deadlock please contact us immediately.
+
+            -To test your version of mpi4py open a python window and run the following commands:
+                    >>> import mpi4py
+                    >>> print(mpi4py.__version__)
+                    3.0.1
+                    >>> 
+
+    Updates to code base:
+        1) Requires mpi4py versions 2.1.0 and higher.
+            - Necesary to prevent deadlock in mpi mode
+        2) Requires to be run with runpy -m flag ("mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...") to run in mpi mode.
+            - Necesary to prevent deadlock in mpi mode
+        3) Updated examples, documentation, and -h documentation to reflect the above modifications.
+        4)
+    
+**Fixed bugs:**
+    -deadlock in mpi mode: solution restrict mpi4py to version 2.1.0 and higher and require python -m mpi4py run mechanism
