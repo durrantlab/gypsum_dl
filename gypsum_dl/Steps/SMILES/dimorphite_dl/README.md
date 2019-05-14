@@ -1,4 +1,4 @@
-Dimorphite-DL 1.0
+Dimorphite-DL 1.2
 =================
 
 What is it?
@@ -10,10 +10,19 @@ open-source program for enumerating small-molecule ionization states.
 
 Users can provide SMILES strings from the command line or via an .smi file.
 
+Citation
+--------
+
+If you use Dimorphite-DL in your research, please cite:
+
+Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An
+open-source program for enumerating the ionization states of drug-like small
+molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.
+
 Licensing
 ---------
 
-Protonation is released under the Apache 2.0 license. See LICENCE.txt for
+Dimorphite-DL is released under the Apache 2.0 license. See LICENCE.txt for
 details.
 
 Usage
@@ -25,7 +34,7 @@ usage: dimorphite_dl.py [-h] [--min_ph MIN] [--max_ph MAX]
                         [--smiles_file FILE] [--output_file FILE]
                         [--label_states] [--test]
 
-Dimorphite 1.0: Creates models of appropriately protonated small moleucles.
+Dimorphite 1.2: Creates models of appropriately protonated small moleucles.
 Apache 2.0 License. Copyright 2018 Jacob D. Durrant.
 
 optional arguments:
@@ -54,6 +63,51 @@ Examples
   python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
   python dimorphite_dl.py --test
 ```
+
+Advanced Usage
+--------------
+
+It is also possible to access Dimorphite-DL from another Python script, rather
+than from the command line. Here's an example:
+
+```python
+from rdkit import Chem
+import dimorphite_dl
+
+# Using the dimorphite_dl.run() function, you can run Dimorphite-DL exactly as
+# you would from the command line. Here's an example:
+dimorphite_dl.run(
+   smiles="CCCN",
+   min_ph=-3.0,
+   max_ph=-2.0,
+   output_file="output.smi"
+)
+print("Output of first test saved to output.smi...")
+
+# Using the dimorphite_dl.run_with_mol_list() function, you can also pass a
+# list of RDKit Mol objects. The first argument is always the list.
+smiles = ["C[C@](F)(Br)CC(O)=O", "CCCCCN"]
+mols = [Chem.MolFromSmiles(s) for s in smiles]
+for i, mol in enumerate(mols):
+    mol.SetProp("msg","Orig SMILES: " + smiles[i])
+
+protonated_mols = dimorphite_dl.run_with_mol_list(
+    mols,
+    min_ph=5.0,
+    max_ph=9.0,
+)
+print([Chem.MolToSmiles(m) for m in protonated_mols])
+
+# Note that properties are preserved.
+print([m.GetProp("msg") for m in protonated_mols])
+```
+
+Caveats
+-------
+
+Dimorphite-DL deprotonates indoles and pyrroles around pH 14.5. But these
+substructures can also be protonated around pH -3.5. Dimorphite does not
+perform the protonation.
 
 Authors and Contacts
 --------------------

@@ -3,7 +3,9 @@ Gypsum-DL 1.1.0 Release
 Updates from previous version (1.0.0):
 
     Dependency updates:
-        1) Dimorphite-DL updated to version 
+        1) Dimorphite-DL updated from version 1.0.0 to version 1.2.0
+            - Details of version changes found in $PATH/gypsum_dl/Steps/SMILES/dimorphite_dl/CHANGES.md
+            
         2) Added restrictions to versions of mpi4py. Now Gypsum-DL requires mpi4py versions 2.1.0 or higher.
             - running mpi4py can result in deadlock if a raise Exception is triggered while multiprocessing.
                 - For more detail please read: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html 
