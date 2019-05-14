@@ -107,10 +107,13 @@ def prepare_molecules(args):
             print(printout)
             raise Exceptions(printout)
 
+        # Check mpi4py import
         try:
             import mpi4py
         except:
             Utils.exception("mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.")
+        
+        # Check mpi4py import version. This must be at version 2.1.0 and higher
         mpi4py_version = mpi4py.__version__
         mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
         if mpi4py_version[0] == 1:
