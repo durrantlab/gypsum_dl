@@ -98,6 +98,15 @@ def prepare_molecules(args):
 
     # Handle mpi errors if mpi4py isn't installed
     if params["job_manager"] == "mpi":
+
+        # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
+        # We must check that it is being run with the "-m mpi4py" runpy flag
+        sys_modules = sys.modules
+        if "runpy" not in sys_modules.keys():
+            printout ="\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+            print(printout)
+            raise Exceptions(printout)
+
         try:
             import mpi4py
         except:
@@ -118,14 +127,6 @@ def prepare_molecules(args):
 
     # Launch mpi workers if that's what's specified.
     if params["job_manager"] == 'mpi':
-        # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
-        # We must check that it is being run with the "-m mpi4py" runpy flag
-        sys_modules = sys.modules
-        if "runpy" not in sys_modules.keys():
-            printout ="\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
-            print(printout)
-            raise Exceptions(printout)
-
         params["Parallelizer"] = Parallelizer(params["job_manager"], params["num_processors"])
     else:
         # Lower-level mpi (i.e. making a new Parallelizer within an mpi) has

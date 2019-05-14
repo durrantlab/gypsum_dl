@@ -162,6 +162,16 @@ class Parallelizer(object):
 
         if mode == 'mpi' or mode == 'None' or mode == None:
             # This must be either mpi or None, mpi4py can be installed and it hasn't been flagged at low level
+            
+            # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
+            # We must check that it is being run with the "-m mpi4py" runpy flag
+            # Although this is lower priority over mpi4py version (as mpi4py.__versions__ less than 2.1.0 do not offer the -m feature)
+            #      This should get checked before loading the mpi4py api
+            sys_modules = sys.modules
+            if "runpy" not in sys_modules.keys():
+                printout ="\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+                print(printout)
+                return False
 
             try:
                 import mpi4py
