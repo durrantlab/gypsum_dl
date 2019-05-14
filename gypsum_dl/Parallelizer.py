@@ -29,6 +29,7 @@ system. (Description provided by Harrison Green.)
 
 import __future__
 import multiprocessing
+import sys
 
 MPI_installed = False
 try:
