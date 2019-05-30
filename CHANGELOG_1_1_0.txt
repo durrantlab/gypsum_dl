@@ -1,6 +1,10 @@
-Gypsum-DL 1.1.0 Release 2019
+Gypsum-DL 1.1.0 Release June 2019
 
-Updates from previous version (1.0.0):
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+    - This release of Gypsum-DL 1.1.0 follows backwards c
+
+
+Updates from previous version (1.0.0) to 1.1.0:
 
     Dependency updates:
         1) Dimorphite-DL updated from version 1.0.0 to version 1.2.0
