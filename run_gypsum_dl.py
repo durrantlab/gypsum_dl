@@ -15,9 +15,30 @@
 # limitations under the License.
 
 """
-Gypsum-DL 1.0.0 is a conversion script to transform smiles strings and 2D SDFs
+Gypsum-DL 1.1.0 is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
+def print_gypsum_citation():
+   
+    import sys
+    # And always report citation information.
+    citation_print = "\nIf you use Gypsum-DL in your research, please cite:\n"
+    citation_print = citation_print + "Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,\n"
+    citation_print = citation_print + "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
+    citation_print = citation_print + "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
+    citation_print = citation_print + "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
+    citation_print = citation_print +"\ndoi:10.1186/s13321-019-0358-3.\n\n"
+        
+    try:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank=comm.rank
+        if rank==0:
+            print(citation_print)
+    except:
+        print(citation_print)
+
+print_gypsum_citation()
 
 import argparse
 import copy
@@ -28,7 +49,7 @@ from gypsum_dl import Utils
 PARSER = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="""
-Gypsum-DL 1.0.0, a free, open-source program for preparing 3D small-molecule
+Gypsum-DL 1.1.0, a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
 alternate ionization, tautomeric, chiral, cis/trans isomeric, and
 ring-conformational forms.""",
@@ -178,7 +199,6 @@ elif ARGS_DICT["cache_prerun"] == False:
     for k, v in ARGS_DICT.items():
         if v is None:
             del INPUTS[k]
-
     prepare_molecules(INPUTS)
     Utils.log("Finished Gypsum-DL")
 else:

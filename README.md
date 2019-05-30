@@ -1,10 +1,17 @@
-# Gypsum-DL 1.0.0
+# Gypsum-DL 1.1.0
 
 Gypsum-DL, a free, open-source program for preparing 3D small-molecule models.
 Beyond simply assigning atomic coordinates, Gypsum-DL accounts for alternate
 ionization, tautomeric, chiral, cis/trans isomeric, and ring-conformational
 forms. It is released under the Apache License, Version 2.0 (see
 `LICENSE.txt`).
+
+# Citation
+
+If you use Gypsum-DL in your research, please cite:
+
+Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green, Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant. (2019) "Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for Structure-based Virtual Screening." Journal of Cheminformatics 11:1. doi:10.1186/s13321-019-0358-3.
+
 
 ## Getting Started
 
