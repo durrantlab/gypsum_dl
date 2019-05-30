@@ -19,6 +19,12 @@ Gypsum-DL 1.1.0 is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
 def print_gypsum_citation():
+    """
+    Print out the citation for the Gypsum-DL paper. 
+    Because this is before the Parallelizer is initiallized it requires
+    limiting the print statement to the cpu ranked=0. 
+    Without this check, in MPI mode it would print once per available cpu. 
+    """
    
     import sys
     # And always report citation information.
@@ -38,6 +44,7 @@ def print_gypsum_citation():
     except:
         print(citation_print)
 
+#print out the citation of Gypsum-DL paper.
 print_gypsum_citation()
 
 import argparse
