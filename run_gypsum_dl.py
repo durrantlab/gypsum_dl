@@ -20,12 +20,12 @@ into 3D models.
 """
 def print_gypsum_citation():
     """
-    Print out the citation for the Gypsum-DL paper. 
+    Print out the citation for the Gypsum-DL paper.
     Because this is before the Parallelizer is initiallized it requires
-    limiting the print statement to the cpu ranked=0. 
-    Without this check, in MPI mode it would print once per available cpu. 
+    limiting the print statement to the cpu ranked=0.
+    Without this check, in MPI mode it would print once per available cpu.
     """
-   
+
     import sys
     # And always report citation information.
     citation_print = "\nIf you use Gypsum-DL in your research, please cite:\n"
@@ -34,7 +34,7 @@ def print_gypsum_citation():
     citation_print = citation_print + "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
     citation_print = citation_print + "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
     citation_print = citation_print +"\ndoi:10.1186/s13321-019-0358-3.\n\n"
-        
+
     try:
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
@@ -139,11 +139,11 @@ PARSER.add_argument('--output_folder', '-o', type=str,
 PARSER.add_argument('--job_manager', type=str, default='multiprocessing',
                     choices = ["mpi", "multiprocessing", "serial"],
                     help='Determine what style of multiprocessing to use: mpi, \
-                    multiprocessing, or serial. If this program is being used \
-                    by a program in MPI mode, we recommend setting this to \
-                    serial. Serial will override the num_processors flag, \
-                    forcing it to be one.\
-                    MPI mode requires mpi4py versions 2.1.0 or newer and to be executed as: \
+                        multiprocessing, or serial. If running Gypsum-DL in \
+                        MPI mode, we recommend setting this to serial. Serial \
+                        will override the num_processors flag, forcing it to \
+                        be one. MPI mode requires mpi4py 2.1.0 or higher and \
+                        should be executed as: \
                         mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...')
 PARSER.add_argument('--num_processors', '-p', type=int, metavar='N', default=1,
                     help='Number of processors to use for parallel \
