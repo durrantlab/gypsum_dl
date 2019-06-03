@@ -118,17 +118,17 @@ def prepare_molecules(args):
         # Check mpi4py import version. This must be at version 2.1.0 and higher
         mpi4py_version = mpi4py.__version__
         mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
-        
+
         if mpi4py_version[0] == 2:
             if mpi4py_version[1] < 1:
-                printout ="\nmpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.\n"
+                printout ="\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
                 print(printout)
                 Utils.exception(printout)
         elif mpi4py_version[0] < 2:
-            printout ="\nmpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.\n"
+            printout ="\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
             print(printout)
             Utils.exception(printout)
-    
+
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":

@@ -163,7 +163,7 @@ class Parallelizer(object):
 
         if mode == 'mpi' or mode == 'None' or mode == None:
             # This must be either mpi or None, mpi4py can be installed and it hasn't been flagged at low level
-            
+
             # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
             # We must check that it is being run with the "-m mpi4py" runpy flag
             # Although this is lower priority over mpi4py version (as mpi4py.__versions__ less than 2.1.0 do not offer the -m feature)
@@ -180,15 +180,15 @@ class Parallelizer(object):
 
                 mpi4py_version = mpi4py.__version__
                 mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
-                
+
                 if mpi4py_version[0] == 2:
                     if mpi4py_version[1] < 1:
-                        print("\nmpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.\n")
+                        print("\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n")
                         return False
                 elif mpi4py_version[0] < 2:
-                    print("\nmpi4py needs to be versions 2.1.0 or higher and executed with the 'python -m mpi4py' flag.\nPlease update mpi4py to a newer version or switch job_manager to multiprocessing or serial.\n")
+                    print("\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n")
                     return False
-                
+
                 return True
             except:
                 return False
