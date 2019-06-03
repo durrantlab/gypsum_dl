@@ -1,17 +1,20 @@
 # Gypsum-DL 1.1.0
 
-Gypsum-DL, a free, open-source program for preparing 3D small-molecule models.
-Beyond simply assigning atomic coordinates, Gypsum-DL accounts for alternate
-ionization, tautomeric, chiral, cis/trans isomeric, and ring-conformational
-forms. It is released under the Apache License, Version 2.0 (see
-`LICENSE.txt`).
+Gypsum-DL is a free, open-source program for preparing 3D small-molecule
+models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
+alternate ionization, tautomeric, chiral, cis/trans isomeric, and
+ring-conformational forms. It is released under the Apache License, Version
+2.0 (see `LICENSE.txt`).
 
-# Citation
+## Citation
 
 If you use Gypsum-DL in your research, please cite:
 
-Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green, Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant. (2019) "Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for Structure-based Virtual Screening." Journal of Cheminformatics 11:1. doi:10.1186/s13321-019-0358-3.
-
+Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,
+Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D.
+Durrant. (2019) "Gypsum-DL: An Open-source Program for Preparing
+Small-molecule Libraries for Structure-based Virtual Screening." Journal of
+Cheminformatics 11:1. doi:10.1186/s13321-019-0358-3.
 
 ## Getting Started
 
@@ -19,7 +22,7 @@ To run Gypsum-DL, acquire a copy of this repository, either by git clone or by
 download. Install the required dependencies via your favorite python package
 manager. We suggest using Anaconda to manage packages:
 
-``` bash
+```bash
 conda install -c rdkit rdkit numpy scipy mpi4py
 ```
 
@@ -27,7 +30,7 @@ conda install -c rdkit rdkit numpy scipy mpi4py
 
 Gypsum-DL accepts the following command-line parameters:
 
-```
+```text
   -h, --help            show this help message and exit
   --json param.json, -j param.json
                         Name of a json file containing all parameters.
@@ -45,7 +48,7 @@ Gypsum-DL accepts the following command-line parameters:
                         this to serial. Serial will override the
                         num_processors flag, forcing it to be one.
                         MPI mode requires mpi4py versions 2.1.0 or newer and
-                        to be executed as: 
+                        to be executed as:
                             mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...
   --num_processors N, -p N
                         Number of processors to use for parallel calculations.
@@ -94,13 +97,13 @@ Gypsum-DL accepts the following command-line parameters:
 Prepare a virtual library and save all 3D models to a single SDF file in the
 present directory:
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi
 ```
 
 Instead save all 3D models to a different, existing folder:
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
    --output_folder /my/folder/
 ```
@@ -108,7 +111,7 @@ python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
 Additionally save the models associated with each input molecule to separate
 files:
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --separate_output_files
 ```
@@ -116,55 +119,55 @@ python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
 In addition to saving a 3D SDF file, also save 3D PDB files and an HTML file
 with 2D structures (for debugging).
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --add_pdb_output --add_html_output
 ```
 
 Save at most two variants per input molecule:
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --max_variants_per_compound 2
 ```
 
 Control how Gypsum-DL ionizes the input molecules:
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --min_ph 12 --max_ph 14 --pka_precision 1
 ```
 
 Run Gypsum-DL in serial mode (using only one processor):
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
     --job_manager serial
 ```
 
 Run Gypsum-DL in multiprocessing mode, using 4 processors:
 
-``` bash
+```bash
 python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
     --job_manager multiprocessing --num_processors 4
 ```
 
 Run Gypsum-DL in mpi mode using all available processors:
 
-``` bash
+```bash
 mpirun -n $NTASKS python -m mpi4py  run_gypsum_dl.py --source ./examples/sample_molecules.smi \
-    --job_manager mpi --num_processors -1```
+    --job_manager mpi --num_processors -1
+```
 
-    
 Gypsum-DL can also take parameters from a JSON file:
 
-``` bash
+```bash
 python run_gypsum_dl.py --json myparams.json
 ```
 
 Where `myparams.json` might look like:
 
-``` json
+```json
 {
     "source": "./examples/sample_molecules.smi",
     "separate_output_files": true,
