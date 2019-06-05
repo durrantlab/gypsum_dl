@@ -9,9 +9,9 @@
 
 ## Define the environment
 module purge
-module load intel/2017.1.132 intel-mpi/2017.1.132
-module load python/anaconda2.7-4.2.0
+module load gcc/8.2.0
+module load python/anaconda3.7-2018.12_westpa
 
 ## Run the process
-srun -n 1 --mpi=pmi2 python run_gypsum_dl.py -c
-srun -n $SLURM_NTASKS --mpi=pmi2 python run_gypsum_dl.py -j mpi_sample_molecules.json > test_mpi_gypsum_dl_output.txt
+mpirun -n 1 python -m mpi4py run_gypsum_dl.py -c
+mpirun -n $SLURM_NTASKS python -m mpi4py run_gypsum_dl.py -j mpi_sample_molecules.json > test_mpi_gypsum_dl_output.txt

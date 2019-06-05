@@ -1,6 +1,6 @@
 {
     "source": "sample_molecules.smi",
-    "output_file": "output.sdf",
+    "output_folder": "./gypsum_dl_output/",
     "separate_output_files": false,
     "job_manager": "multiprocessing"
 }

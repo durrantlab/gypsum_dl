@@ -1,6 +1,6 @@
 {
     "source": "test_smi_file.smi",
-    "output_file": "output.sdf",
+    "output_folder": "./gypsum_dl_output/",
     "separate_output_files": false,
     "num_processors": -1,
     "job_manager":"mpi"

@@ -29,6 +29,7 @@ system. (Description provided by Harrison Green.)
 
 import __future__
 import multiprocessing
+import sys
 
 MPI_installed = False
 try:
@@ -161,8 +162,31 @@ class Parallelizer(object):
         if mode == 'mpi' or mode == 'None' or mode == None:
             # This must be either mpi or None, mpi4py can be installed and it hasn't been flagged at low level
 
+            # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
+            # We must check that it is being run with the "-m mpi4py" runpy flag
+            # Although this is lower priority over mpi4py version (as mpi4py.__versions__ less than 2.1.0 do not offer the -m feature)
+            #      This should get checked before loading the mpi4py api
+            sys_modules = sys.modules
+            if "runpy" not in sys_modules.keys():
+                printout ="\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+                print(printout)
+                return False
+
             try:
+                import mpi4py
                 from mpi4py import MPI
+
+                mpi4py_version = mpi4py.__version__
+                mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
+
+                if mpi4py_version[0] == 2:
+                    if mpi4py_version[1] < 1:
+                        print("\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n")
+                        return False
+                elif mpi4py_version[0] < 2:
+                    print("\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n")
+                    return False
+
                 return True
             except:
                 return False
