@@ -139,12 +139,11 @@ PARSER.add_argument('--output_folder', '-o', type=str,
 PARSER.add_argument('--job_manager', type=str, default='multiprocessing',
                     choices = ["mpi", "multiprocessing", "serial"],
                     help='Determine what style of multiprocessing to use: mpi, \
-                        multiprocessing, or serial. If running Gypsum-DL in \
-                        MPI mode, we recommend setting this to serial. Serial \
-                        will override the num_processors flag, forcing it to \
-                        be one. MPI mode requires mpi4py 2.1.0 or higher and \
-                        should be executed as: \
-                        mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...')
+                        multiprocessing, or serial. Serial will override the \
+                        num_processors flag, forcing it to be one. MPI mode \
+                        requires mpi4py 2.1.0 or higher and should be executed \
+                        as: mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py \
+                        ...-settings...')
 PARSER.add_argument('--num_processors', '-p', type=int, metavar='N', default=1,
                     help='Number of processors to use for parallel \
                     calculations.')
