@@ -15,9 +15,37 @@
 # limitations under the License.
 
 """
-Gypsum-DL 1.0.0 is a conversion script to transform smiles strings and 2D SDFs
+Gypsum-DL 1.1.0 is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
+def print_gypsum_citation():
+    """
+    Print out the citation for the Gypsum-DL paper.
+    Because this is before the Parallelizer is initiallized it requires
+    limiting the print statement to the cpu ranked=0.
+    Without this check, in MPI mode it would print once per available cpu.
+    """
+
+    import sys
+    # And always report citation information.
+    citation_print = "\nIf you use Gypsum-DL in your research, please cite:\n"
+    citation_print = citation_print + "Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,\n"
+    citation_print = citation_print + "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
+    citation_print = citation_print + "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
+    citation_print = citation_print + "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
+    citation_print = citation_print +"\ndoi:10.1186/s13321-019-0358-3.\n\n"
+
+    try:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank=comm.rank
+        if rank==0:
+            print(citation_print)
+    except:
+        print(citation_print)
+
+#print out the citation of Gypsum-DL paper.
+print_gypsum_citation()
 
 import argparse
 import copy
@@ -28,7 +56,7 @@ from gypsum_dl import Utils
 PARSER = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="""
-Gypsum-DL 1.0.0, a free, open-source program for preparing 3D small-molecule
+Gypsum-DL 1.1.0, a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
 alternate ionization, tautomeric, chiral, cis/trans isomeric, and
 ring-conformational forms.""",
@@ -79,7 +107,8 @@ python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
 
 9. Run Gypsum-DL in mpi mode using all available processors:
 
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py \\
+    --source ./examples/sample_molecules.smi \\
     --job_manager mpi --num_processors -1
 
 10. Gypsum-DL can also take parameters from a JSON file:
@@ -110,10 +139,11 @@ PARSER.add_argument('--output_folder', '-o', type=str,
 PARSER.add_argument('--job_manager', type=str, default='multiprocessing',
                     choices = ["mpi", "multiprocessing", "serial"],
                     help='Determine what style of multiprocessing to use: mpi, \
-                    multiprocessing, or serial. If this program is being used \
-                    by a program in MPI mode, we recommend setting this to \
-                    serial. Serial will override the num_processors flag, \
-                    forcing it to be one.')
+                        multiprocessing, or serial. Serial will override the \
+                        num_processors flag, forcing it to be one. MPI mode \
+                        requires mpi4py 2.1.0 or higher and should be executed \
+                        as: mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py \
+                        ...-settings...')
 PARSER.add_argument('--num_processors', '-p', type=int, metavar='N', default=1,
                     help='Number of processors to use for parallel \
                     calculations.')
@@ -175,7 +205,6 @@ elif ARGS_DICT["cache_prerun"] == False:
     for k, v in ARGS_DICT.items():
         if v is None:
             del INPUTS[k]
-
     prepare_molecules(INPUTS)
     Utils.log("Finished Gypsum-DL")
 else:

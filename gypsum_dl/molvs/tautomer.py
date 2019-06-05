@@ -5,8 +5,6 @@ molvs.tautomer
 
 This module contains tools for enumerating tautomers and determining a canonical tautomer.
 
-:copyright: Copyright 2016 by Matt Swain.
-:license: MIT, see LICENSE file for more details.
 """
 
 from __future__ import print_function
@@ -173,9 +171,9 @@ class TautomerCanonicalizer(object):
         """Return a canonical tautomer by enumerating and scoring all possible tautomers.
 
         :param mol: The input molecule.
-        :type mol: :rdkit:`Mol <Chem.rdchem.Mol-class.html>`
+        :type mol: rdkit.Chem.rdchem.Mol
         :return: The canonical tautomer.
-        :rtype: :rdkit:`Mol <Chem.rdchem.Mol-class.html>`
+        :rtype: rdkit.Chem.rdchem.Mol
         """
         # TODO: Overload the mol parameter to pass a list of pre-enumerated tautomers
         tautomers = self._enumerate_tautomers(mol)
@@ -243,9 +241,9 @@ class TautomerEnumerator(object):
         """Enumerate all possible tautomers and return them as a list.
 
         :param mol: The input molecule.
-        :type mol: :rdkit:`Mol <Chem.rdchem.Mol-class.html>`
+        :type mol: rdkit.Chem.rdchem.Mol
         :return: A list of all possible tautomers of the molecule.
-        :rtype: list of :rdkit:`Mol <Chem.rdchem.Mol-class.html>`
+        :rtype: list of rdkit.Chem.rdchem.Mol
         """
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
         tautomers = {smiles: copy.deepcopy(mol)}

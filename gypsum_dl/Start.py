@@ -98,10 +98,36 @@ def prepare_molecules(args):
 
     # Handle mpi errors if mpi4py isn't installed
     if params["job_manager"] == "mpi":
+
+        # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
+        # We must check that it is being run with the "-m mpi4py" runpy flag
+        sys_modules = sys.modules
+        if "runpy" not in sys_modules.keys():
+            printout ="\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+            print(printout)
+            Utils.exception(printout)
+
+        # Check mpi4py import
         try:
             import mpi4py
         except:
-            Utils.exception("mpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.")
+            printout ="\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
+            print(printout)
+            Utils.exception(printout)
+
+        # Check mpi4py import version. This must be at version 2.1.0 and higher
+        mpi4py_version = mpi4py.__version__
+        mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
+
+        if mpi4py_version[0] == 2:
+            if mpi4py_version[1] < 1:
+                printout ="\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
+                print(printout)
+                Utils.exception(printout)
+        elif mpi4py_version[0] < 2:
+            printout ="\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
+            print(printout)
+            Utils.exception(printout)
 
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.

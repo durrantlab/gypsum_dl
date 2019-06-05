@@ -9,8 +9,8 @@
 
 ## Define the environment
 module purge
-module load intel/2017.1.132 intel-mpi/2017.1.132
-module load python/anaconda2.7-4.2.0
+module load gcc/8.2.0
+module load python/anaconda3.7-2018.12_westpa
 
 ## Run the process
 python run_gypsum_dl.py -j smp_sample_molecules.json > test_smp_gypsum_dl_output.txt
