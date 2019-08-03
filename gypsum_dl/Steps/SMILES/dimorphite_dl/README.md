@@ -1,5 +1,5 @@
-Dimorphite-DL 1.2
-=================
+Dimorphite-DL 1.2.1
+===================
 
 What is it?
 -----------
@@ -34,7 +34,7 @@ usage: dimorphite_dl.py [-h] [--min_ph MIN] [--max_ph MAX]
                         [--smiles_file FILE] [--output_file FILE]
                         [--label_states] [--test]
 
-Dimorphite 1.2: Creates models of appropriately protonated small moleucles.
+Dimorphite 1.2.1: Creates models of appropriately protonated small moleucles.
 Apache 2.0 License. Copyright 2018 Jacob D. Durrant.
 
 optional arguments:

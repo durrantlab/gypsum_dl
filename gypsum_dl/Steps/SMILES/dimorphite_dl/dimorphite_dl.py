@@ -137,10 +137,10 @@ class ArgParseFuncs:
         :return: A parser object.
         """
 
-        parser = MyParser(description="Dimorphite 1.2: Creates models of " +
-                                    "appropriately protonated small moleucles. " +
-                                    "Apache 2.0 License. Copyright 2018 Jacob D. " +
-                                    "Durrant.")
+        parser = MyParser(description="Dimorphite 1.2.1: Creates models of " +
+                                      "appropriately protonated small moleucles. " +
+                                      "Apache 2.0 License. Copyright 2018 Jacob D. " +
+                                      "Durrant.")
         parser.add_argument('--min_ph', metavar='MIN', type=float, default=6.4,
                             help='minimum pH to consider (default: 6.4)')
         parser.add_argument('--max_ph', metavar='MAX', type=float, default=8.4,
@@ -220,10 +220,12 @@ class UtilFuncs:
             ['[Ov2-:1]', '[Ov2+0:1]'],  # To handle O- bonded to two atoms. Should not be Negative.
             ['[#7v3+1:1]', '[#7v3+0:1]'],  # To handle N+ bonded to three atoms. Should not be positive.
             ['[#7v2-1:1]', '[#7+0:1]-[H]'],  # To handle N- Bonded to two atoms. Add hydrogen.
-            # ['[N:1]=[N+0:2]=[N:3]-[H]', '[N:1]=[N+1:2]=[N+0:3]-[H]'],  # To
-            # handle bad azide. Must be protonated. (Now handled elsewhere, before
-            # SMILES converted to Mol object.)
-            ['[H]-[N:1]-[N:2]#[N:3]', '[N:1]=[N+1:2]=[N:3]-[H]']  # To handle bad azide. R-N-N#N should be R-N=[N+]=N
+            # ['[N:1]=[N+0:2]=[N:3]-[H]', '[N:1]=[N+1:2]=[N+0:3]-[H]'],  # To handle bad azide. Must be
+                                                                         # protonated. (Now handled
+                                                                         # elsewhere, before SMILES
+                                                                         # converted to Mol object.)
+            ['[H]-[N:1]-[N:2]#[N:3]', '[N:1]=[N+1:2]=[N:3]-[H]']  # To handle bad azide. R-N-N#N should
+                                                                  # be R-N=[N+]=N
         ]
 
         # Add substructures and reactions (initially none)
@@ -232,7 +234,6 @@ class UtilFuncs:
             rxn_data[i].append(None)
 
         # Add hydrogens (respects valence, so incomplete).
-        # Chem.calcImplicitValence(mol)
         mol.UpdatePropertyCache(strict=False)
         mol = Chem.AddHs(mol)
 
@@ -258,10 +259,10 @@ class UtilFuncs:
                 mol = current_rxn.RunReactants((mol,))[0][0]
                 mol.UpdatePropertyCache(strict=False)  # Update valences
 
-        # The mols have been altered from the reactions described above, we need
-        # to resanitize them. Make sure aromatic rings are shown as such This
-        # catches all RDKit Errors. without the catchError and sanitizeOps the
-        # Chem.SanitizeMol can crash the program.
+        # The mols have been altered from the reactions described above, we
+        # need to resanitize them. Make sure aromatic rings are shown as such
+        # This catches all RDKit Errors. without the catchError and
+        # sanitizeOps the Chem.SanitizeMol can crash the program.
         sanitize_string =  Chem.SanitizeMol(
             mol,
             sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
@@ -280,8 +281,8 @@ class UtilFuncs:
             if it fails to convert to a Mol Obj
         """
 
-        # Check that there are no type errors, ie Nones or non-string
-        # A non-string type will cause RDKit to hard crash
+        # Check that there are no type errors, ie Nones or non-string A
+        # non-string type will cause RDKit to hard crash
         if smiles_str is None or type(smiles_str) is not str:
             return None
 
@@ -305,13 +306,12 @@ class UtilFuncs:
         os.dup2(stderr_save, stderr_fileno)
         os.close(stderr_save)
 
-        # Check that there are None type errors Chem.MolFromSmiles has sanitize on
-        # which means if there is even a small error in the SMILES (kekulize,
-        # nitrogen charge...) then mol=None. ie.
+        # Check that there are None type errors Chem.MolFromSmiles has
+        # sanitize on which means if there is even a small error in the SMILES
+        # (kekulize, nitrogen charge...) then mol=None. ie.
         # Chem.MolFromSmiles("C[N]=[N]=[N]") = None this is an example of an
         # nitrogen charge error. It is cased in a try statement to be overly
         # cautious.
-
         return None if mol is None else mol
 
     @staticmethod
@@ -465,10 +465,10 @@ class Protonate(object):
         return self.next()
 
     def next(self):
-        """Get the next protonated SMILES string.
+        """Return the next protonated SMILES string.
 
         :raises StopIteration: If there are no more lines left iin the file.
-        :return: TODO A dict, where the "smiles" key contains the canonical SMILES
+        :return: A dict, where the "smiles" key contains the canonical SMILES
                  string and the "data" key contains the remaining information
                  (e.g., the molecule name).
         :rtype: dict
@@ -489,7 +489,7 @@ class Protonate(object):
             # There are no more input smiles strings...
             raise StopIteration()
 
-        smi = smile_and_datum["smiles"]
+        orig_smi = smile_and_datum["smiles"]
         data = smile_and_datum["data"]  # Everything on SMILES line but the
                                         # SMILES string itself (e.g., the
                                         # molecule name).
@@ -498,36 +498,33 @@ class Protonate(object):
         # name).
         tag = " ".join(data)
 
-        # sites is a list of (atom index, "PROTONATED|DEPROTONATED|BOTH").
-        # Note that the second entry indicates what state the site SHOULD be
-        # in (not the one it IS in per the SMILES string). It's calculated
-        # based on the probablistic distributions obtained during training.
-        sites = ProtSubstructFuncs.get_prot_sites_and_target_states(smi, self.subs)
+        # sites is a list of (atom index, "PROTONATED|DEPROTONATED|BOTH",
+        # reaction name, mol). Note that the second entry indicates what state
+        # the site SHOULD be in (not the one it IS in per the SMILES string).
+        # It's calculated based on the probablistic distributions obtained
+        # during training.
+        sites, mol_used_to_idx_sites = ProtSubstructFuncs.get_prot_sites_and_target_states(orig_smi, self.subs)
 
-        new_smis = [smi]
-        for site in sites:
-            # Make a new smiles with the correct protonation state. Note that
-            # new_smis is a growing list. This is how multiple protonation
-            # sites are handled.
-
-            # new_smis_to_perhaps_add = ProtSubstructFuncs.protonate_site(new_smis, site)
-            new_smis = ProtSubstructFuncs.protonate_site(new_smis, site)
-            # print(site, new_smis)  # Good for debugging.
-
-            # Only add new smiles if not already in the list.
-            # for s in new_smis_to_perhaps_add:
-                # if not s in new_smis:
-                    # new_smis.append(s)
+        new_mols = [mol_used_to_idx_sites]
+        if (len(sites) > 0):
+            for site in sites:
+                # Make a new smiles with the correct protonation state. Note that
+                # new_smis is a growing list. This is how multiple protonation
+                # sites are handled.
+                new_mols = ProtSubstructFuncs.protonate_site(new_mols, site)
+        else:
+            # Deprotonate the mols (because protonate_site never called to do
+            # it).
+            mol_used_to_idx_sites = Chem.RemoveHs(mol_used_to_idx_sites)
+            new_mols = [mol_used_to_idx_sites]
 
         # In some cases, the script might generate redundant molecules.
         # Phosphonates, when the pH is between the two pKa values and the
         # stdev value is big enough, for example, will generate two identical
         # BOTH states. Let's remove this redundancy.
-        new_smis = list(set(new_smis))
-
-        # Deprotonating protonated aromatic nitrogen gives [nH-]. Change this
-        # to [n-]. This is a hack.
-        new_smis = [s.replace("[nH-]", "[n-]") for s in new_smis]
+        new_smis = list(set([
+            Chem.MolToSmiles(m, isomericSmiles=True, canonical=True) for m in new_mols
+        ]))
 
         # Sometimes Dimorphite-DL generates molecules that aren't actually
         # possible. Simply convert these to mol objects to eliminate the bad
@@ -536,12 +533,12 @@ class Protonate(object):
 
         # If there are no smi left, return the input one at the very least.
         # All generated forms have apparently been judged
-        # inappropriate/mal-formed.
+        # inappropriate/malformed.
         if len(new_smis) == 0:
-            new_smis = [smi]
+            new_smis = [orig_smi]
 
-        # If the user wants to see the target states, add those
-        # to the ends of each line.
+        # If the user wants to see the target states, add those to the ends of
+        # each line.
         if self.args["label_states"]:
             states = '\t'.join([x[1] for x in sites])
             new_lines = [x + "\t" + tag + "\t" + states for x in new_smis]
@@ -583,7 +580,6 @@ class ProtSubstructFuncs:
                     sub["smart"] = splits[1]
                     sub["mol"] = Chem.MolFromSmarts(sub["smart"])
 
-                    # NEED TO DIVIDE THIS BY 3s
                     pka_ranges = [splits[i:i+3] for i in range(2, len(splits)-1, 3)]
 
                     prot = []
@@ -617,8 +613,8 @@ class ProtSubstructFuncs:
         min_pka = mean - std
         max_pka = mean + std
 
-        # This needs to be reassigned, and 'ERROR' should never make it past the
-        # next set of checks.
+        # This needs to be reassigned, and 'ERROR' should never make it past
+        # the next set of checks.
         if min_pka <= max_ph and min_ph <= max_pka:
             protonation_state = 'BOTH'
         elif mean > max_ph:
@@ -636,37 +632,40 @@ class ProtSubstructFuncs:
 
         :param string smi: A SMILES string.
         :param list subs: Substructure information.
-        :return: A list of protonation sites and their pKa bin. ('PROTONATED',
-            'BOTH', or  'DEPROTONATED')
+        :return: A list of protonation sites (atom index), pKa bin.
+            ('PROTONATED', 'BOTH', or  'DEPROTONATED'), and reaction name.
+            Also, the mol object that was used to generate the atom index.
         """
 
         # Convert the Smiles string (smi) to an RDKit Mol Obj
-        mol = UtilFuncs.convert_smiles_str_to_mol(smi)
+        mol_used_to_idx_sites = UtilFuncs.convert_smiles_str_to_mol(smi)
 
         # Check Conversion worked
-        if mol is None:
+        if mol_used_to_idx_sites is None:
             UtilFuncs.eprint("ERROR:   ", smi)
             return []
 
         # Try to Add hydrogens. if failed return []
         try:
-            mol =  Chem.AddHs(mol)
+            mol_used_to_idx_sites = Chem.AddHs(mol_used_to_idx_sites)
         except:
             UtilFuncs.eprint("ERROR:   ", smi)
             return []
 
         # Check adding Hs worked
-        if mol is None:
+        if mol_used_to_idx_sites is None:
             UtilFuncs.eprint("ERROR:   ", smi)
             return []
 
-        ProtectUnprotectFuncs.unprotect_molecule(mol)
+        ProtectUnprotectFuncs.unprotect_molecule(mol_used_to_idx_sites)
         protonation_sites = []
 
         for item in subs:
             smart = item["mol"]
-            if mol.HasSubstructMatch(smart):
-                matches = ProtectUnprotectFuncs.get_unprotected_matches(mol, smart)
+            if mol_used_to_idx_sites.HasSubstructMatch(smart):
+                matches = ProtectUnprotectFuncs.get_unprotected_matches(
+                    mol_used_to_idx_sites, smart
+                )
                 prot = item["prot_states_for_pH"]
                 for match in matches:
                     # We want to move the site from being relative to the
@@ -680,87 +679,99 @@ class ProtSubstructFuncs:
                             # Because sites must be unique.
                             protonation_sites.append(new_site)
 
-                    ProtectUnprotectFuncs.protect_molecule(mol, match)
+                    ProtectUnprotectFuncs.protect_molecule(
+                        mol_used_to_idx_sites, match
+                    )
 
-        return protonation_sites
+        return protonation_sites, mol_used_to_idx_sites
 
     @staticmethod
-    def protonate_site(smis, site):
-        """Given a list of SMILES strings, we protonate the site.
+    def protonate_site(mols, site):
+        """Given a list of molecule objects, we protonate the site.
 
-        :param list smis:  The list of SMILES strings.
+        :param list mols:  The list of molecule objects.
         :param tuple site: Information about the protonation site.
-                        (idx, target_prot_state, prot_site_name)
-        :return: A list of the appropriately protonated SMILES.
+                           (idx, target_prot_state, prot_site_name)
+        :return: A list of the appropriately protonated molecule objects.
         """
 
-        # Decouple the atom index and its target protonation state from the site
-        # tuple
+        # Decouple the atom index and its target protonation state from the
+        # site tuple
         idx, target_prot_state, prot_site_name = site
 
-        # Initialize the output list
-        output_smis = []
-
         state_to_charge = {"DEPROTONATED": [-1],
-                        "PROTONATED": [0],
-                        "BOTH": [-1, 0]}
+                           "PROTONATED": [0],
+                           "BOTH": [-1, 0]}
 
         charges = state_to_charge[target_prot_state]
 
         # Now make the actual smiles match the target protonation state.
-        output_smis = ProtSubstructFuncs.set_protonation_charge(smis, idx, charges, prot_site_name)
+        output_mols = ProtSubstructFuncs.set_protonation_charge(
+            mols, idx, charges, prot_site_name
+        )
 
-        return output_smis
+        return output_mols
 
     @staticmethod
-    def set_protonation_charge(smis, idx, charges, prot_site_name):
+    def set_protonation_charge(mols, idx, charges, prot_site_name):
         """Sets the atomic charge on a particular site for a set of SMILES.
 
-        :param list smis:             A list of the SMILES strings.
-        :param int idx:               The index of the atom to consider.
-        :param list charges:          A list of the charges (ints) to assign at
-                                    this site.
-        :param string prot_site_name: The name of the protonation site.
-        :return: A list of the processed SMILES strings.
+        :param list mols:                  A list of the input molecule
+                                           objects.
+        :param int idx:                    The index of the atom to consider.
+        :param list charges:               A list of the charges (ints) to
+                                           assign at this site.
+        :param string prot_site_name:      The name of the protonation site.
+        :return: A list of the processed (protonated/deprotonated) molecule
+                 objects.
         """
 
         # Sets up the output list and the Nitrogen charge
         output = []
 
         for charge in charges:
-            # The charge for Nitrogens is 1 higher than others (i.e., protonated
-            # state is positively charged).
+            # The charge for Nitrogens is 1 higher than others (i.e.,
+            # protonated state is positively charged).
             nitro_charge = charge + 1
 
-            # But there are a few nitrogen moieties where the acidic group is the
-            # neutral one. Amides are a good example. I gave some thought re. how
-            # to best flag these. I decided that those nitrogen-containing
-            # moieties where the acidic group is neutral (rather than positively
-            # charged) will have "*" in the name.
+            # But there are a few nitrogen moieties where the acidic group is
+            # the neutral one. Amides are a good example. I gave some thought
+            # re. how to best flag these. I decided that those
+            # nitrogen-containing moieties where the acidic group is neutral
+            # (rather than positively charged) will have "*" in the name.
             if "*" in prot_site_name:
                 nitro_charge = nitro_charge - 1  # Undo what was done previously.
 
-            for smi in smis:
+            for mol in mols:
+                # Make a copy of the molecule.
+                mol_copy = copy.deepcopy(mol)
 
-                # Convert smilesstring (smi) into a RDKit Mol
-                mol = UtilFuncs.convert_smiles_str_to_mol(smi)
-
-                # Check that the conversion worked, skip if it fails
-                if mol is None:
+                # Remove hydrogen atoms.
+                # print("DDD", Chem.MolToSmiles(mol_copy))
+                try:
+                    mol_copy = Chem.RemoveHs(mol_copy)
+                except:
+                    UtilFuncs.eprint("WARNING: Skipping poorly formed SMILES string: " + Chem.MolToSmiles(mol_copy))
                     continue
 
-                atom = mol.GetAtomWithIdx(idx)
+                atom = mol_copy.GetAtomWithIdx(idx)
 
-                # Assign the protonation charge, with special care for Nitrogens
+                # Assign the protonation charge, with special care for
+                # nitrogens
                 element = atom.GetAtomicNum()
                 if element == 7:
                     atom.SetFormalCharge(nitro_charge)
                 else:
                     atom.SetFormalCharge(charge)
 
-                # Convert back to SMILE and add to output
-                out_smile = Chem.MolToSmiles(mol, isomericSmiles=True,canonical=True)
-                output.append(out_smile)
+                # Deprotonating protonated aromatic nitrogen gives [nH-]. Change this
+                # to [n-].
+                if "[nH-]" in Chem.MolToSmiles(mol_copy):
+                    atom.SetNumExplicitHs(0)
+
+                mol_copy.UpdatePropertyCache()
+
+                output.append(mol_copy)
 
         return output
 
@@ -962,6 +973,26 @@ class TestFuncs:
             args["pka_precision"] = 5  # Should give all three
 
             TestFuncs.test_check(args, [mix, deprotonated, protonated], ["BOTH", "BOTH"])
+
+        print("")
+        print("Other Tests")
+        print("-----------")
+        print("")
+
+        # Make sure no carbanion (old bug).
+        smi = 'Cc1nc2cc(-c3[nH]c4cc5ccccc5c5c4c3CCN(C(=O)O)[C@@H]5O)cc3c(=O)[nH][nH]c(n1)c23'
+        output = list(
+            Protonate({
+                'smiles': smi,
+                'test': False
+            })
+        )
+
+        if "[C-]" in "".join(output).upper():
+            msg = "Processing " + smi + " produced a molecule with a carbanion!"
+            raise Exception(msg)
+        else:
+            print("(CORRECT) No carbanion in processed " + smi)
 
     @staticmethod
     def test_check(args, expected_output, labels):

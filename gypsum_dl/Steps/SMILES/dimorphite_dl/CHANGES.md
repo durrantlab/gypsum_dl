@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.2.1
+-----
+
+* Corrected a bug that rarely misprotonated/deprotonated compounds with
+  multiple ionization sites (e.g., producing a carbanion).
+
 1.2
 ---
 
