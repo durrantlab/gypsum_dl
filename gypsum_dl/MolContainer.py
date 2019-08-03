@@ -71,9 +71,14 @@ class MolContainer:
         # Get the number of nonaromatic rings
         self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
 
-        # Get the number of chiral centers, assigned or not
+        # Get the number of chiral centers, assigned
         self.num_specif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
+        )
+
+        # Also get the number of chiral centers, unassigned
+        self.num_unspecif_chiral_cntrs = len(
+            self.mol_orig_frm_inp_smi.chiral_cntrs_w_unasignd()
         )
 
         # Get the non-acidic carbon-hydrogen footprint.
@@ -190,6 +195,9 @@ class MolContainer:
         self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
         self.num_specif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
+        )
+        self.num_unspecif_chiral_cntrs = len(
+            self.mol_orig_frm_inp_smi.chiral_cntrs_w_unasignd()
         )
 
         # None of the mols derived to date, if present, are accurate.

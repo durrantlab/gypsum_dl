@@ -357,12 +357,14 @@ def parallel_check_chiral_centers(taut, contnr):
     :rtype: MyMol.MyMol | None
     """
 
-    # How many chiral centers in the original smiles?
-    num_specif_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs
+    # import pdb; pdb.set_trace()
 
-    # Make a new list containing only the ones that don't break chiral
-    # centers.
-    m_num_specif_chiral_cntrs = len(taut.chiral_cntrs_only_asignd())
+    # How many chiral centers in the original smiles?
+    num_specif_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs + contnr.num_unspecif_chiral_cntrs
+
+    # Make a new list containing only the ones that don't break chiral centers
+    # (or that add new chiral centers).
+    m_num_specif_chiral_cntrs = len(taut.chiral_cntrs_only_asignd()) + len(taut.chiral_cntrs_w_unasignd())
     if m_num_specif_chiral_cntrs == num_specif_chiral_cntrs_orig:
         # Same number of chiral centers as original molecule. Save this good
         # one.
