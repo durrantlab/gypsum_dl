@@ -451,6 +451,7 @@ class MyMol:
         prohibited_substructures.append("C=C([O-])[OH]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
         prohibited_substructures.append("C=C([O-])[O-]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
         prohibited_substructures.append("[C-]")  # No carbanions.
+        prohibited_substructures.append("[c-]")  # No carbanions.
 
         for s in prohibited_substructures:
             # First just match strings... could be faster, but not 100%

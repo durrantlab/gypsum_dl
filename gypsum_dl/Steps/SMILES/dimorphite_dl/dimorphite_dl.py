@@ -988,7 +988,7 @@ class TestFuncs:
             })
         )
 
-        if "[C-]" in "".join(output).upper():
+        if "[C-]" in "".join(output).upper() or "[c-]" in "".join(output).upper():
             msg = "Processing " + smi + " produced a molecule with a carbanion!"
             raise Exception(msg)
         else:
