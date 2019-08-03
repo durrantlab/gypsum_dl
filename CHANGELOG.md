@@ -1,6 +1,11 @@
 Changes
 =======
 
+1.1.1
+-----
+
+* Updated Dimorphite-DL version to 1.2.1.
+
 1.1.0
 -----
 
