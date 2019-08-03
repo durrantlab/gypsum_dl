@@ -4,7 +4,11 @@ Changes
 1.1.1
 -----
 
-* Updated Dimorphite-DL version to 1.2.1.
+* Updated Dimorphite-DL to version 1.2.1.
+* Updated MolVS-generated tautomer filters. Before, Gypsum-DL rejected
+  tautomers that changed the number of _specified_ chiral centers. It now
+  rejects tautomers that change the total number of chiral centers, both
+  specified and unspecified.
 
 1.1.0
 -----

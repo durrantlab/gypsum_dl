@@ -357,8 +357,6 @@ def parallel_check_chiral_centers(taut, contnr):
     :rtype: MyMol.MyMol | None
     """
 
-    # import pdb; pdb.set_trace()
-
     # How many chiral centers in the original smiles?
     num_specif_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs + contnr.num_unspecif_chiral_cntrs
 
