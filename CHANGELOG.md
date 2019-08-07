@@ -14,6 +14,11 @@ Changes
   behavior (i.e., to allow tautomers that change the total number of chiral
   centers), use `--let_tautomers_change_chirality`. See `README.md` for
   important information about how Gypsum-DL treats tautomers.
+* Added Durrant-lab filters. In looking over many Gypsum-DL-generated
+  variants, we have identified several substructures that, though technically
+  possible, strike us as improbable. See `README.md` for examples. To discard
+  molecular variants with these substructures, use the
+  `--use_durrant_lab_filters` flag.
 
 1.1.0
 -----

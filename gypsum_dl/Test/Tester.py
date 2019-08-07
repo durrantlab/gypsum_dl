@@ -45,7 +45,8 @@ def run_test():
         "thoroughness": 1,
         "min_ph": 4,
         "max_ph": 10,
-        "pka_precision": 1
+        "pka_precision": 1,
+        "use_durrant_lab_filters": True
     }
 
     # Prepare the molecules.

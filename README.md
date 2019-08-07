@@ -206,4 +206,4 @@ are some examples:
 * `[nH+]c[n-]`
 
 If you'd like to discard molecular variants with these substructures, use the
-`--use_durrant_lab_filters`.
+`--use_durrant_lab_filters` flag.
