@@ -340,6 +340,7 @@ def set_parameters(params_unicode):
         "skip_enumerate_chiral_mol" : False,
         "skip_enumerate_double_bonds" : False,
         "let_tautomers_change_chirality": False,
+        "use_durrant_lab_filters": False,
         "job_manager" : "multiprocessing",
         "cache_prerun": False,
         "test": False

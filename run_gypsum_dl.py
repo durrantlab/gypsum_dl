@@ -194,6 +194,12 @@ PARSER.add_argument('--let_tautomers_change_chirality',
                     the total number of chiral centers (see README.md for \
                     further explanation).')
 
+PARSER.add_argument('--use_durrant_lab_filters',
+                    action='store_true', help='Use substructure filters to \
+                    remove molecular variants that, though technically \
+                    possible, were judged improbable by members of the \
+                    Durrant lab. See README.md for more details.')
+
 PARSER.add_argument('--2d_output_only', action='store_true',
                     help='Skips the generate-3D-models step.')
 PARSER.add_argument('--cache_prerun', '-c', action='store_true',

@@ -184,12 +184,26 @@ Where `myparams.json` might look like:
 
 Gypsum-DL uses MolVS to generate tautomers. While MolVS is effective, we have
 noticed that it sometimes generates inappropriate tautomers that change the
-total number of chiral centers, e.g. O=C(c1ccc(CN)cc1)N to N=Cc1ccc(C(O)N)cc1.
-But some legitimate tautomers also change the number of chiral centers, e.g.,
-C[C@@H](C(C)=O)F to C/C(F)=C(C)\O.
+total number of chiral centers, e.g. `O=C(c1ccc(CN)cc1)N` to
+`N=Cc1ccc(C(O)N)cc1`. But some legitimate tautomers also change the number of
+chiral centers, e.g., `C[C@@H](C(C)=O)F` to `C/C(F)=C(C)\O`.
 
 To compensate for this MolVS bug, by default Gypsum-DL rejects all tautomers
 that change the total number of chiral centers. Use the
 `--let_tautomers_change_chirality` flag if you would like to retain these
 tautomers instead. As always, be sure to examine the structures that Gypsum-DL
 outputs to ensure they are chemically feasible.
+
+### Durrant-Lab Filters
+
+In looking over many Gypsum-DL-generated variants, we have identified several
+substructures that, though technically possible, strike us as improbable. Here
+are some examples:
+
+* `[nH+][nH+]`
+* `C=[N-]`
+* `[N-]C=[N+]`
+* `[nH+]c[n-]`
+
+If you'd like to discard molecular variants with these substructures, use the
+`--use_durrant_lab_filters`.

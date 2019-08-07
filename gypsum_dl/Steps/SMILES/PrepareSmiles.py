@@ -23,6 +23,7 @@ from gypsum_dl import Utils
 from gypsum_dl.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum_dl.Steps.SMILES.AddHydrogens import add_hydrogens
 from gypsum_dl.Steps.SMILES.MakeTautomers import make_tauts
+from gypsum_dl.Steps.SMILES.DurrantLabFilter import durrant_lab_filters
 from gypsum_dl.Steps.SMILES.EnumerateChiralMols import enumerate_chiral_molecules
 from gypsum_dl.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 
@@ -79,6 +80,13 @@ def prepare_smiles(contnrs, params):
         Utils.log("Skipping Tautomerization")
 
     if debug: Utils.print_current_smiles(contnrs)
+
+    # Apply Durrant-lab filters if requested
+    if params["use_durrant_lab_filters"]:
+        Utils.log("Applying Durrant-Lab Filters")
+        durrant_lab_filters(contnrs, num_procs, job_manager,
+                            parallelizer_obj)
+        Utils.log("Done Applying Durrant-Lab Filters")
 
     # Make alternate chiral forms, if requested.
     if not params["skip_enumerate_chiral_mol"]:
