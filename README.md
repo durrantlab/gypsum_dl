@@ -46,9 +46,8 @@ Gypsum-DL accepts the following command-line parameters:
                         multiprocessing, or serial. Serial will override the
                         num_processors flag, forcing it to be one. MPI mode
                         requires mpi4py 2.1.0 or higher and should be executed
-                        as:
-                            mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py \
-                            ...-settings...
+                        as: mpirun -n $NTASKS python -m mpi4py
+                        run_gypsum_dl.py ...-settings...
   --num_processors N, -p N
                         Number of processors to use for parallel calculations.
   --max_variants_per_compound V, -m V
@@ -82,10 +81,18 @@ Gypsum-DL accepts the following command-line parameters:
                         Skips the ionization step.
   --skip_making_tautomers
                         Skips tautomer-generation step.
-  --skip_ennumerate_chiral_mol
+  --skip_enumerate_chiral_mol
                         Skips the ennumeration of unspecified chiral centers.
-  --skip_ennumerate_double_bonds
+  --skip_enumerate_double_bonds
                         Skips the ennumeration of double bonds.
+  --let_tautomers_change_chirality
+                        Allow tautomers that change the total number of chiral
+                        centers (see README.md for further explanation).
+  --use_durrant_lab_filters
+                        Use substructure filters to remove molecular variants
+                        that, though technically possible, were judged
+                        improbable by members of the Durrant lab. See
+                        README.md for more details.
   --2d_output_only      Skips the generate-3D-models step.
   --cache_prerun, -c    Run this before running Gypsum-DL in mpi mode.
   --test                Tests Gypsum-DL to check for programming bugs.
