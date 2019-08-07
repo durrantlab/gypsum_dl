@@ -19,6 +19,9 @@ Changes
   possible, strike us as improbable. See `README.md` for examples. To discard
   molecular variants with these substructures, use the
   `--use_durrant_lab_filters` flag.
+* PDB writing was converted from using the RDKit's PDB flavor=4 to flavor=32
+* PDB files now contain 2 REMARK lines describing the input SMILES string and 
+  the final SMILES of the ligand. 
 
 1.1.0
 -----
