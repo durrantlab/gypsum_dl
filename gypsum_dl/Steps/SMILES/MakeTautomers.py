@@ -36,7 +36,7 @@ try:
 except:
     Utils.exception("You need to install molvs and its dependencies.")
 
-def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
+def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, let_tautomers_change_chirality, parallelizer_obj):
     """Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
     substructure keeps popping up, add it to the list in the
@@ -59,6 +59,9 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
+    :param let_tautomers_change_chirality: Whether to allow tautomers that
+      change the total number of chiral centers.
+    :type let_tautomers_change_chirality: bool
     :param job_manager: The multithred mode to use.
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
@@ -93,8 +96,11 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_
     # Remove bad tautomers.
     taut_data = tauts_no_break_arom_rngs(contnrs, taut_data, num_procs,
                                          job_manager, parallelizer_obj)
-    taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_procs,
-                                     job_manager, parallelizer_obj)
+
+    if not let_tautomers_change_chirality:
+        taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_procs,
+                                        job_manager, parallelizer_obj)
+
     # taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
     #    contnrs, taut_data, num_procs, job_manager, parallelizer_obj
     # )

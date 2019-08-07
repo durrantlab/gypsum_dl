@@ -5,10 +5,15 @@ Changes
 -----
 
 * Updated Dimorphite-DL to version 1.2.1.
-* Updated MolVS-generated tautomer filters. Before, Gypsum-DL rejected
-  tautomers that changed the number of _specified_ chiral centers. It now
-  rejects tautomers that change the total number of chiral centers, both
-  specified and unspecified.
+* Corrected spelling in user-parameter names. Parameters that previously used
+  "ennumerate" now use "enumerate".
+* Updated MolVS-generated tautomer filters. Previous versions of Gypsum-DL
+  rejected tautomers that changed the number of _specified_ chiral centers. By
+  default, Gypsum now rejects tautomers that change the total number of chiral
+  centers, _both specified and unspecified_. To override the new default
+  behavior (i.e., to allow tautomers that change the total number of chiral
+  centers), use `--let_tautomers_change_chirality`. See `README.md` for
+  important information about how Gypsum-DL treats tautomers.
 
 1.1.0
 -----
@@ -25,7 +30,7 @@ Changes
   execution mechanism (the `-m` flag) that implements the runpy Python module.
   Gypsum-DL also requires `-m mpi4py` to run in mpi mode (e.g., `mpirun -n
   $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...`). If you
-  experirence deadlock, [please contact](mailto:durrantj@pitt.edu) us
+  experience deadlock, [please contact](mailto:durrantj@pitt.edu) us
   immediately.
 
   To test your version of mpi4py, open a python window and run the following

@@ -337,8 +337,9 @@ def set_parameters(params_unicode):
         "skip_alternate_ring_conformations" : False,
         "skip_adding_hydrogen" : False,
         "skip_making_tautomers" : False,
-        "skip_ennumerate_chiral_mol" : False,
-        "skip_ennumerate_double_bonds" : False,
+        "skip_enumerate_chiral_mol" : False,
+        "skip_enumerate_double_bonds" : False,
+        "let_tautomers_change_chirality": False,
         "job_manager" : "multiprocessing",
         "cache_prerun": False,
         "test": False

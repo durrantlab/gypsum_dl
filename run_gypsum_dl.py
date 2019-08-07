@@ -183,11 +183,17 @@ PARSER.add_argument('--skip_adding_hydrogen', action='store_true',
                     help='Skips the ionization step.')
 PARSER.add_argument('--skip_making_tautomers', action='store_true',
                     help='Skips tautomer-generation step.')
-PARSER.add_argument('--skip_ennumerate_chiral_mol', action='store_true',
+PARSER.add_argument('--skip_enumerate_chiral_mol', action='store_true',
                     help='Skips the ennumeration of unspecified chiral \
                     centers.')
-PARSER.add_argument('--skip_ennumerate_double_bonds', action='store_true',
+PARSER.add_argument('--skip_enumerate_double_bonds', action='store_true',
                     help='Skips the ennumeration of double bonds.')
+
+PARSER.add_argument('--let_tautomers_change_chirality',
+                    action='store_true', help='Allow tautomers that change \
+                    the total number of chiral centers (see README.md for \
+                    further explanation).')
+
 PARSER.add_argument('--2d_output_only', action='store_true',
                     help='Skips the generate-3D-models step.')
 PARSER.add_argument('--cache_prerun', '-c', action='store_true',

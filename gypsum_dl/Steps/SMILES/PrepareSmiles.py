@@ -43,6 +43,7 @@ def prepare_smiles(contnrs, params):
     thoroughness = params["thoroughness"]
     num_procs = params["num_processors"]
     job_manager = params["job_manager"]
+    let_tautomers_change_chirality = params["let_tautomers_change_chirality"]
     parallelizer_obj = params["Parallelizer"]
 
     debug = True
@@ -71,7 +72,8 @@ def prepare_smiles(contnrs, params):
     if not params["skip_making_tautomers"]:
         Utils.log("Tautomerizing Molecules")
         make_tauts(contnrs, max_variants_per_compound, thoroughness,
-                   num_procs, job_manager, parallelizer_obj)
+                   num_procs, job_manager, let_tautomers_change_chirality,
+                   parallelizer_obj)
         Utils.log("Done with Tautomerization")
     else:
         Utils.log("Skipping Tautomerization")
@@ -79,7 +81,7 @@ def prepare_smiles(contnrs, params):
     if debug: Utils.print_current_smiles(contnrs)
 
     # Make alternate chiral forms, if requested.
-    if not params["skip_ennumerate_chiral_mol"]:
+    if not params["skip_enumerate_chiral_mol"]:
         Utils.log("Enumerating Chirality")
         enumerate_chiral_molecules(contnrs, max_variants_per_compound,
                                    thoroughness, num_procs,
@@ -91,7 +93,7 @@ def prepare_smiles(contnrs, params):
     if debug: Utils.print_current_smiles(contnrs)
 
     # Make alternate double-bond isomers, if requested.
-    if not params["skip_ennumerate_double_bonds"]:
+    if not params["skip_enumerate_double_bonds"]:
         Utils.log("Enumerating Double Bonds")
         enumerate_double_bonds(contnrs, max_variants_per_compound,
                                thoroughness, num_procs,

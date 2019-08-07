@@ -177,3 +177,19 @@ Where `myparams.json` might look like:
     "num_processors": -1
 }
 ```
+
+## Important Caveats
+
+### Tautomers
+
+Gypsum-DL uses MolVS to generate tautomers. While MolVS is effective, we have
+noticed that it sometimes generates inappropriate tautomers that change the
+total number of chiral centers, e.g. O=C(c1ccc(CN)cc1)N to N=Cc1ccc(C(O)N)cc1.
+But some legitimate tautomers also change the number of chiral centers, e.g.,
+C[C@@H](C(C)=O)F to C/C(F)=C(C)\O.
+
+To compensate for this MolVS bug, by default Gypsum-DL rejects all tautomers
+that change the total number of chiral centers. Use the
+`--let_tautomers_change_chirality` flag if you would like to retain these
+tautomers instead. As always, be sure to examine the structures that Gypsum-DL
+outputs to ensure they are chemically feasible.
