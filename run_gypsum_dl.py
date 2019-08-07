@@ -28,12 +28,12 @@ def print_gypsum_citation():
 
     import sys
     # And always report citation information.
-    citation_print = "\nIf you use Gypsum-DL in your research, please cite:\n"
+    citation_print = "\nIf you use Gypsum-DL in your research, please cite:\n\n"
     citation_print = citation_print + "Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,\n"
     citation_print = citation_print + "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
     citation_print = citation_print + "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
     citation_print = citation_print + "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
-    citation_print = citation_print +"\ndoi:10.1186/s13321-019-0358-3.\n\n"
+    citation_print = citation_print +"\ndoi:10.1186/s13321-019-0358-3.\n"
 
     try:
         from mpi4py import MPI

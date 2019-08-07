@@ -16,6 +16,10 @@ Durrant. (2019) "Gypsum-DL: An Open-source Program for Preparing
 Small-molecule Libraries for Structure-based Virtual Screening." Journal of
 Cheminformatics 11:1. doi:10.1186/s13321-019-0358-3.
 
+Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An
+open-source program for enumerating the ionization states of drug-like small
+molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.
+
 ## Getting Started
 
 To run Gypsum-DL, acquire a copy of this repository, either by git clone or by
