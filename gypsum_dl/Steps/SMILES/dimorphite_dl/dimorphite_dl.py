@@ -31,10 +31,10 @@ except ImportError:
     from io import StringIO
 
 # Always let the user know a help file is available.
-# print("\nFor help, use: python dimorphite_dl.py --help")
+print("\nFor help, use: python dimorphite_dl.py --help")
 
 # And always report citation information.
-# print("\nIf you use Dimorphite-DL in your research, please cite:")
+print("\nIf you use Dimorphite-DL in your research, please cite:")
 print("Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An")
 print("open-source program for enumerating the ionization states of drug-like small")
 print("molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.\n")
@@ -137,7 +137,7 @@ class ArgParseFuncs:
         :return: A parser object.
         """
 
-        parser = MyParser(description="Dimorphite 1.2.1: Creates models of " +
+        parser = MyParser(description="Dimorphite 1.2.2: Creates models of " +
                                       "appropriately protonated small moleucles. " +
                                       "Apache 2.0 License. Copyright 2018 Jacob D. " +
                                       "Durrant.")
@@ -153,6 +153,8 @@ class ArgParseFuncs:
                             help='file that contains SMILES strings to protonate')
         parser.add_argument('--output_file', metavar="FILE", type=str,
                             help='output file to write protonated SMILES (optional)')
+        parser.add_argument('--max_variants', metavar="MXV", type=int, default=128,
+                            help='limit number of variants per input compound (default: 128)')
         parser.add_argument('--label_states', action="store_true",
                             help='label protonated SMILES with target state ' + \
                                 '(i.e., "DEPROTONATED", "PROTONATED", or "BOTH").')
@@ -174,7 +176,8 @@ class ArgParseFuncs:
                     'max_ph' : 8.4,
                     'pka_precision' : 1.0,
                     'label_states' : False,
-                    'test' : False}
+                    'test' : False,
+                    'max_variants': 128}
 
         for key in defaults:
             if key not in args:
@@ -512,6 +515,11 @@ class Protonate(object):
                 # new_smis is a growing list. This is how multiple protonation
                 # sites are handled.
                 new_mols = ProtSubstructFuncs.protonate_site(new_mols, site)
+                if len(new_mols) > self.args["max_variants"]:
+                    new_mols = new_mols[:self.args["max_variants"]]
+                    UtilFuncs.eprint("WARNING: Limited number of variants to " +
+                                     str(self.args["max_variants"]) + ": " +
+                                     orig_smi)
         else:
             # Deprotonate the mols (because protonate_site never called to do
             # it).
@@ -747,7 +755,6 @@ class ProtSubstructFuncs:
                 mol_copy = copy.deepcopy(mol)
 
                 # Remove hydrogen atoms.
-                # print("DDD", Chem.MolToSmiles(mol_copy))
                 try:
                     mol_copy = Chem.RemoveHs(mol_copy)
                 except:
@@ -988,11 +995,25 @@ class TestFuncs:
             })
         )
 
-        if "[C-]" in "".join(output).upper() or "[c-]" in "".join(output).upper():
+        if "[C-]" in "".join(output).upper():
             msg = "Processing " + smi + " produced a molecule with a carbanion!"
             raise Exception(msg)
         else:
-            print("(CORRECT) No carbanion in processed " + smi)
+            print("(CORRECT) No carbanion: " + smi)
+
+        # Make sure max number of variants is limited (old bug).
+        smi = 'CCCC[C@@H](C(=O)N)NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](C(C)C)NC(=O)[C@@H](NC(=O)[C@H](Cc1c[nH]c2c1cccc2)NC(=O)[C@@H](NC(=O)[C@@H](Cc1ccc(cc1)O)N)CCC(=O)N)C)C)Cc1nc[nH]c1)Cc1ccccc1'
+        output = list(
+            Protonate({
+                'smiles': smi,
+                'test': False
+            })
+        )
+        if len(output) != 128:
+            msg = "Processing " + smi + " produced more than 128 variants!"
+            raise Exception(msg)
+        else:
+            print("(CORRECT) Produced 128 variants: " + smi)
 
     @staticmethod
     def test_check(args, expected_output, labels):
@@ -1015,20 +1036,20 @@ class TestFuncs:
         if (len(output) != num_states):
             msg = args["smiles"] + " should have " + str(num_states) + \
                 " states at at pH " + str(args["min_ph"]) + ": " + str(output)
-            print(msg)
+            UtilFuncs.eprint(msg)
             raise Exception(msg)
 
         if (len(set([l[0] for l in output]) - set(expected_output)) != 0):
             msg = args["smiles"] + " is not " + " AND ".join(expected_output) + \
                 " at pH " + str(args["min_ph"]) + " - " + str(args["max_ph"]) + \
                 "; it is " + " AND ".join([l[0] for l in output])
-            print(msg)
+            UtilFuncs.eprint(msg)
             raise Exception(msg)
 
         if (len(set([l[1] for l in output]) - set(labels)) != 0):
             msg = args["smiles"] + " not labeled as " + " AND ".join(labels) + \
                 "; it is " + " AND ".join([l[1] for l in output])
-            print(msg)
+            UtilFuncs.eprint(msg)
             raise Exception(msg)
 
         ph_range = sorted(list(set([args["min_ph"], args["max_ph"]])))
@@ -1072,7 +1093,7 @@ def run_with_mol_list(mol_lst, **kwargs):
                    "**kwargs) function, but you also passed the \"" + \
                    bad_arg + "\" argument. Did you mean to use the " + \
                    "run(**kwargs) function instead?"
-            print(msg)
+            UtilFuncs.eprint(msg)
             raise Exception(msg)
 
     # Set the return_as_list flag so main() will return the protonated smiles

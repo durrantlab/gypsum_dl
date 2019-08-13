@@ -4,7 +4,7 @@ Changes
 1.1.1
 -----
 
-* Updated Dimorphite-DL to version 1.2.1.
+* Updated Dimorphite-DL to version 1.2.2.
 * Corrected spelling in user-parameter names. Parameters that previously used
   "ennumerate" now use "enumerate".
 * Updated MolVS-generated tautomer filters. Previous versions of Gypsum-DL

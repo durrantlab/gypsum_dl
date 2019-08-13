@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.2.2
+-----
+
+* Added a new parameter to limit the number of variants per compound
+  (`--max_variants`). The default is 128.
+
 1.2.1
 -----
 
