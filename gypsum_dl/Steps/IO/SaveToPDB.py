@@ -65,4 +65,13 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
                 continue
             else:
                 # Write conformers to a PDB file.
-                Chem.MolToPDBFile(mol, pdb_file, flavor = 4)
+                Chem.MolToPDBFile(mol, pdb_file, flavor = 32)               
+
+                # Add header to PDB file with original SMILES and final SMILES
+                printout = "REMARK Original SMILES string: {}\nREMARK Final SMILES string: {}\n".format(m.orig_smi,m.standardize_smiles())
+                with open(pdb_file) as f:
+                    printout = printout + f.read()
+                with open(pdb_file,'w') as f:
+                    f.write(printout)
+                printout = ""
+                

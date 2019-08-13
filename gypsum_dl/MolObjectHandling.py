@@ -216,12 +216,14 @@ def Nitrogen_charge_adjustment(mol):
 
     for atom in atoms:
         if atom.GetAtomicNum() == 7:
-            bonds = atom.GetBonds()
-            num_bond_sums = 0.0
-            for bond in bonds:
-                # GetBondTypeAsDouble prints out 1 for single, 2.0 for double,
-                # 3.0 for triple, 1.5 for AROMATIC
-                num_bond_sums = num_bond_sums + bond.GetBondTypeAsDouble()
+            bonds = [bond.GetBondTypeAsDouble() for bond in atom.GetBonds()]
+            # If aromatic skip as we do not want assume the charge.
+            if 1.5 in bonds:
+                continue
+            # GetBondTypeAsDouble prints out 1 for single, 2.0 for double,
+            # 3.0 for triple, 1.5 for AROMATIC but if AROMATIC WE WILL SKIP THIS ATOM
+            num_bond_sums = sum(bonds)
+            
             # Check if the octet is filled
             if num_bond_sums == 4.0:
                 atom.SetFormalCharge(+1)
