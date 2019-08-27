@@ -61,10 +61,13 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
+    Utils.log("Ionizing all molecules...")
+
     # Make a simple directory with the ionization parameters.
     protonation_settings = {"min_ph": min_pH,
                             "max_ph": max_pH,
-                            "pka_precision": st_dev}
+                            "pka_precision": st_dev,
+                            "max_variants": thoroughness * max_variants_per_compound}
 
     # Format the inputs for use in the parallelizer.
     inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])

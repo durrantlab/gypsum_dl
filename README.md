@@ -191,6 +191,16 @@ Where `myparams.json` might look like:
 
 ## Important Caveats
 
+### Large Molecules
+
+Gypsum-DL is designed to process drug-like molecules. Generating 3D structures
+for larger molecules takes a very long time. For example, in our tests it
+takes Gypsum-DL a very long time to process this molecule:
+CCCC[C@@H](C(N[C@H]1CC(NCCCC[C@H](NC([C@@H](NC([C@@H](NC([C@@H](NC([C@@H]2CCCN2C1=O)=O)Cc3ccccc3)=O)CCCNC(N)=N)=O)Cc(c[nH]4)c5c4cccc5)=O)C(N6CCC[C@H]6C(N[C@@H](C(C)C)C(N)=O)=O)=O)=O)=O)NC(C)=O
+
+You may wish to run your compounds through a drug-like filter before
+processing them with Gypsum-DL.
+
 ### Tautomers
 
 Gypsum-DL uses MolVS to generate tautomers. While MolVS is effective, we have
@@ -211,10 +221,35 @@ In looking over many Gypsum-DL-generated variants, we have identified several
 substructures that, though technically possible, strike us as improbable. Here
 are some examples:
 
-* `[nH+][nH+]`
 * `C=[N-]`
 * `[N-]C=[N+]`
 * `[nH+]c[n-]`
+* `[#7+]~[#7+]`
+* `[#7-]~[#7-]`
+* `[!#7]~[#7+]~[#7-]~[!#7]`
 
 If you'd like to discard molecular variants with these substructures, use the
 `--use_durrant_lab_filters` flag.
+
+### Advanced Methods for Eliminating Problematic Compounds
+
+Gypsum-DL aims to enumerate possible (not necessarily probable) variant forms.
+If you see rare forms that you'd like to exclude even after applying
+Durrant-Lab filters, you have several options:
+
+1. Identify the steps Gypsum-DL takes to generate the problematic form (see
+   the "Genealogy" field of every output SDF file). Then use parameters such
+   as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`,
+   `--skip_adding_hydrogen`, `--skip_making_tautomers`,
+   `--skip_enumerate_chiral_mol`, or `--skip_enumerate_double_bonds` to skip
+   the problem-causing step. This fix is easy, but it may unexpectedly impact
+   unrelated compounds.
+2. If Gypsum-DL is producing compounds with undesired protonation states,
+   consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision`
+   parameters. Alternatively you can delete specific protonation rules by
+   modifying the
+   `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
+3. If there is a specific substructure you would like to avoid (e.g., imidic
+   acid due to amide/imidic-acid tautomerization), consider adding to the
+   Durrant-Lab filters by modifying the
+   `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.

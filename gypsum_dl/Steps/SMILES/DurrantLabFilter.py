@@ -21,6 +21,7 @@ import __future__
 
 import gypsum_dl.Parallelizer as Parallelizer
 import gypsum_dl.Utils as Utils
+import gypsum_dl.ChemUtils as ChemUtils
 
 try:
     from rdkit import Chem
@@ -44,8 +45,9 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     Utils.log("Applying Durrant-lab filters to all molecules...")
 
     # Get the substructures you won't permit.
-    prohibited_smi_substrs = ["[nH+][nH+]", "C=[N-]", "[N-]C=[N+]",
-                              "[nH+]c[n-]"]
+    prohibited_smi_substrs = ["C=[N-]", "[N-]C=[N+]",
+                              "[nH+]c[n-]", "[#7+]~[#7+]",
+                              "[#7-]~[#7-]", "[!#7]~[#7+]~[#7-]~[!#7]"]
     prohibited_substructs = [Chem.MolFromSmarts(s) for s in prohibited_smi_substrs]
 
     # Get the parameters to pass to the parallelizer object.
@@ -61,10 +63,23 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
         for c in params:
             tmp.append(parallel_durrant_lab_filter(c, prohibited_substructs))
 
+    # Note that results is a list of containers.
+
     # Stripping out None values (failed).
     results = Parallelizer.strip_none(tmp)
 
-    return results
+    # You need to get the molecules as a flat array so you can run it through
+    # bst_for_each_contnr_no_opt
+    mols = []
+    for contnr in results:
+        mols.extend(contnr.mols)
+        # contnr.mols = []  # Necessary because ones are being removed...
+
+    # Using this function just to make the changes.
+    ChemUtils.bst_for_each_contnr_no_opt(
+        contnrs, mols, 1000, 1000 # max_variants_per_compound, thoroughness
+    )
+
 
 def parallel_durrant_lab_filter(contnr, prohibited_substructs):
     """A parallelizable helper function that checks that tautomers do not
