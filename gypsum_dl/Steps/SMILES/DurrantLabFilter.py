@@ -45,9 +45,14 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     Utils.log("Applying Durrant-lab filters to all molecules...")
 
     # Get the substructures you won't permit.
-    prohibited_smi_substrs = ["C=[N-]", "[N-]C=[N+]",
-                              "[nH+]c[n-]", "[#7+]~[#7+]",
-                              "[#7-]~[#7-]", "[!#7]~[#7+]~[#7-]~[!#7]"]
+    prohibited_smi_substrs = [
+        "C=[N-]",
+        "[N-]C=[N+]",
+        "[nH+]c[n-]",
+        "[#7+]~[#7+]",
+        "[#7-]~[#7-]",
+        "[!#7]~[#7+]~[#7-]~[!#7]"  # Doesn't hit azide.
+    ]
     prohibited_substructs = [Chem.MolFromSmarts(s) for s in prohibited_smi_substrs]
 
     # Get the parameters to pass to the parallelizer object.
