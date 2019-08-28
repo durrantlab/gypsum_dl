@@ -274,9 +274,6 @@ def execute_gypsum_dl(contnrs, params):
     # stereoisomeric forms, etc.
     prepare_smiles(contnrs, params)
 
-    Utils.print_current_smiles(contnrs)
-    import pdb; pdb.set_trace()
-
     # Convert the processed SMILES strings to 3D.
     prepare_3d(contnrs, params)
 
