@@ -233,23 +233,23 @@ If you'd like to discard molecular variants with these substructures, use the
 
 ### Advanced Methods for Eliminating Problematic Compounds
 
-Gypsum-DL aims to enumerate possible (not necessarily probable) variant forms.
-If you see rare forms that you'd like to exclude even after applying
-Durrant-Lab filters, you have several options:
+Gypsum-DL aims to enumerate many possible variant forms, including forms that
+are not necessarily probable. Beyond applying Durrant-Lab filters, several
+methods allow users to exclude other potentially problematic forms:
 
-1. Identify the steps Gypsum-DL takes to generate the problematic form (see
-   the "Genealogy" field of every output SDF file). Then use parameters such
-   as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`,
+1. Identify the steps Gypsum-DL takes to generate a given problematic form
+   (see the "Genealogy" field of every output SDF file). Then use parameters
+   such as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`,
    `--skip_adding_hydrogen`, `--skip_making_tautomers`,
    `--skip_enumerate_chiral_mol`, or `--skip_enumerate_double_bonds` to skip
    the problem-causing step. This fix is easy, but it may unexpectedly impact
    unrelated compounds.
-2. If Gypsum-DL is producing compounds with undesired protonation states,
-   consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision`
-   parameters. Alternatively you can delete specific protonation rules by
+2. Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision`
+   parameters if Gypsum-DL is producing compounds with undesired protonation
+   states. Alternatively, you can delete specific protonation rules by
    modifying the
    `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
-3. If there is a specific substructure you would like to avoid (e.g., imidic
-   acid due to amide/imidic-acid tautomerization), consider adding to the
-   Durrant-Lab filters by modifying the
+3. Add to the Durrant-Lab filters if there is a specific substructure you
+   would like to avoid (e.g., imidic acid due to amide/imidic-acid
+   tautomerization). Simplify modify the
    `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.
