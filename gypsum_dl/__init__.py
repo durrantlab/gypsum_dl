@@ -13,9 +13,9 @@
 # limitations under the License.
 
 
-#gypsum_dl/gypsum_dl/
-#including the below information provides the ability for other programs 
-# to import in functions from gypsum-DL making it transportable
+# gypsum_dl/gypsum_dl/
+# Including the below allows other programs to import functions from
+# gypsum-DL.
 import sys
 import os
 current_dir = os.path.dirname(os.path.realpath(__file__))
