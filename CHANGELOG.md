@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.1.2
+-----
+
+* Bug fix: thoroughness parameter is now correctly recognized as an int when
+  specified from the command line.
+
 1.1.1
 -----
 

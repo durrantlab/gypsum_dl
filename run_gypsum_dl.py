@@ -15,7 +15,7 @@
 # limitations under the License.
 
 """
-Gypsum-DL 1.1.1 is a conversion script to transform smiles strings and 2D SDFs
+Gypsum-DL 1.1.2 is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
 def print_gypsum_citation():
@@ -56,7 +56,7 @@ from gypsum_dl import Utils
 PARSER = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="""
-Gypsum-DL 1.1.1, a free, open-source program for preparing 3D small-molecule
+Gypsum-DL 1.1.2, a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
 alternate ionization, tautomeric, chiral, cis/trans isomeric, and
 ring-conformational forms.""",
@@ -150,7 +150,7 @@ PARSER.add_argument('--num_processors', '-p', type=int, metavar='N', default=1,
 PARSER.add_argument('--max_variants_per_compound', '-m', type=int, metavar='V',
                     help='The maximum number of variants to create per input \
                     molecule.')
-PARSER.add_argument('--thoroughness', '-t', type=str,
+PARSER.add_argument('--thoroughness', '-t', type=int,
                     help='How widely to search for low-energy conformers. \
                     Larger values increase run times but can produce better \
                     results.')
