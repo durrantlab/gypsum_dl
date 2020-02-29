@@ -299,6 +299,10 @@ def detect_unassigned_bonds(smiles):
     """
 
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
+    if mol is None:
+        # Apparently the bonds are particularly bad, because couldn't even
+        # create the molecule.
+        return None
     for bond in mol.GetBonds():
         if bond.GetBondTypeAsDouble() == 0:
             return None
