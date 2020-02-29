@@ -744,9 +744,16 @@ class MyConformer:
 
         # Calculate some energies, other housekeeping.
         if self.mol is not False:
-            ff = AllChem.UFFGetMoleculeForceField(self.mol)
+            try:
+                ff = AllChem.UFFGetMoleculeForceField(self.mol)
+                self.energy = ff.CalcEnergy()
+            except:
+                Utils.log("Warning: Could not calculate energy for molecule " +
+                          Chem.MolToSmiles(self.mol))
+                # Example of smiles that cause problem here without try...catch:
+                # NC1=NC2=C(N[C@@H]3[C@H](N2)O[C@@H](COP(O)(O)=O)C2=C3S[Mo](S)(=O)(=O)S2)C(=O)N1
+                self.energy = 9999
             self.minimized = False
-            self.energy = ff.CalcEnergy()
             self.ids_hvy_atms = [a.GetIdx() for a in self.mol.GetAtoms()
                                  if a.GetAtomicNum() != 1]
 
@@ -776,9 +783,14 @@ class MyConformer:
             return
 
         # Perform the minimization, and save the energy.
-        ff = AllChem.UFFGetMoleculeForceField(self.mol)
-        ff.Minimize()
-        self.energy = ff.CalcEnergy()
+        try:
+            ff = AllChem.UFFGetMoleculeForceField(self.mol)
+            ff.Minimize()
+            self.energy = ff.CalcEnergy()
+        except:
+            Utils.log("Warning: Could not calculate energy for molecule " +
+                      Chem.MolToSmiles(self.mol))
+            self.energy = 9999
         self.minimized = True
 
     def align_to_me(self, other_conf):
