@@ -142,7 +142,6 @@ def try_reprotanation(sanitized_deprotanated_mol):
         except:
             mol = None
 
-
         mol_sanitized = check_sanitization(mol)
         return mol_sanitized
     else:
@@ -223,7 +222,7 @@ def Nitrogen_charge_adjustment(mol):
             # GetBondTypeAsDouble prints out 1 for single, 2.0 for double,
             # 3.0 for triple, 1.5 for AROMATIC but if AROMATIC WE WILL SKIP THIS ATOM
             num_bond_sums = sum(bonds)
-            
+
             # Check if the octet is filled
             if num_bond_sums == 4.0:
                 atom.SetFormalCharge(+1)

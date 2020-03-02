@@ -6,6 +6,12 @@ See Start.py:303
 
 Similar problem with energy calcs: MyMol.py 747
 
+Added metals to durrantlab filters. Not really druglike. Also Boron.
+
+Some durrantlab filters are applied immediately after desalting (to avoid very long molecule preparation times in the add hydrogen step when it tries to generate 3d structures for ranking)
+
+NOTE DONE BUT YOU SHOULD DO IT: Make ChemUtils.bst_for_each_contnr_no_opt parallel. It's currently a pretty substantial bottleneck.
+
 1.1.2
 -----
 

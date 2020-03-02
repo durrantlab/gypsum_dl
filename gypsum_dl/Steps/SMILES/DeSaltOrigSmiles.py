@@ -29,7 +29,7 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
-def desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj):
+def desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj, durrant_lab_filters = False):
     """If an input molecule has multiple unconnected fragments, this removes
        all but the largest fragment.
 
@@ -51,7 +51,6 @@ def desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj):
     # just run it on a single processor always.
     tmp = [desalter(x) for x in contnrs]
 
-
     # Go through each contnr and update the orig_smi_deslt. If we update it,
     # also add a note in the genealogy record.
     tmp = Parallelizer.strip_none(tmp)
@@ -63,7 +62,9 @@ def desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj):
         if contnrs[idx].orig_smi != desalt_mol.orig_smi:
             desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)
+
         cont.add_mol(desalt_mol)
+
 
 def desalter(contnr):
     """Desalts molecules in a molecule container.

@@ -28,6 +28,63 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
+# Get the substructures you won't permit (per substructure matching)
+prohibited_smi_substrs_for_substruc = [
+    "C=[N-]",
+    "[N-]C=[N+]",
+    "[nH+]c[n-]",
+    "[#7+]~[#7+]",
+    "[#7-]~[#7-]",
+    "[!#7]~[#7+]~[#7-]~[!#7]",  # Doesn't hit azide.
+
+    # Vina can't process boron anyway...
+    "[#5]",   # B
+]
+
+# Get the substrings you won't permit (per substring matching)
+prohibited_smi_substrs_for_substr = [
+    # Let's eliminate ones with common metals too (not really druglike)
+    # "[#13]",  # Al
+    # "[#23]",  # V
+    # "[#26]",  # Fe
+    # "[#27]",  # Co
+    # "[#29]",  # Cu
+    # "[#30]",  # Zn
+    # "[#42]",  # Mo
+    # "[#48]",  # Cd
+    # "[#79]",  # Au
+    # "[#82]"   # Pb
+    # "[#83]",  # Bi
+    "[Al",  # Al
+    "[V",  # V
+    "[Fe",  # Fe
+    "[Co",  # Co
+    "[Cu",  # Cu
+    "[Zn",  # Zn
+    "[Mo",  # Mo
+    "[Cd",  # Cd
+    "[Au",  # Au
+    "[Pb"   # Pb
+    "[Bi",  # Bi
+]
+
+
+def durrant_lab_contains_bad_substr(smiles):
+    """Determines if a smiles string contains a prohibitive substring. Faster
+    than substructure matching.
+
+    :param smiles: The SMILES string.
+    :type smiles: A string.
+    :return: True if it contains the substring. False otherwise.
+    :rtype: boolean
+    """
+
+    for s in prohibited_smi_substrs_for_substr:
+        if s in smiles:
+            return True
+    return False
+
+
 def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     """Removes any molecules that contain prohibited substructures, per the
     durrant-lab filters.
@@ -44,16 +101,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
 
     Utils.log("Applying Durrant-lab filters to all molecules...")
 
-    # Get the substructures you won't permit.
-    prohibited_smi_substrs = [
-        "C=[N-]",
-        "[N-]C=[N+]",
-        "[nH+]c[n-]",
-        "[#7+]~[#7+]",
-        "[#7-]~[#7-]",
-        "[!#7]~[#7+]~[#7-]~[!#7]"  # Doesn't hit azide.
-    ]
-    prohibited_substructs = [Chem.MolFromSmarts(s) for s in prohibited_smi_substrs]
+    prohibited_substructs = [Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc]
 
     # Get the parameters to pass to the parallelizer object.
     params = [[c, prohibited_substructs] for c in contnrs]
@@ -80,7 +128,14 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
         mols.extend(contnr.mols)
         # contnr.mols = []  # Necessary because ones are being removed...
 
-    # Using this function just to make the changes.
+    # contnrs = results
+
+    # print([c.orig_smi for c in results])
+    # import pdb; pdb.set_trace()
+
+    # Using this function just to make the changes. Doesn't do energy
+    # minimization or anything (as it does later) because max variants
+    # and thoroughness maxed out.
     ChemUtils.bst_for_each_contnr_no_opt(
         contnrs, mols, 1000, 1000 # max_variants_per_compound, thoroughness
     )
@@ -102,7 +157,7 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
     # Replace any molecules that have prohibited substructure with None.
     for mi, m in enumerate(contnr.mols):
         for pattrn in prohibited_substructs:
-            if m.rdkit_mol.HasSubstructMatch(pattrn):
+            if durrant_lab_contains_bad_substr(m.orig_smi_deslt) or m.rdkit_mol.HasSubstructMatch(pattrn):
                 Utils.log(
                     "\t" + m.smiles(True) + ", a variant generated " +
                     "from " + contnr.orig_smi + " (" + m.name +

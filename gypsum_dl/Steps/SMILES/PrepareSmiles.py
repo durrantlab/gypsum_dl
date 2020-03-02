@@ -23,7 +23,7 @@ from gypsum_dl import Utils
 from gypsum_dl.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum_dl.Steps.SMILES.AddHydrogens import add_hydrogens
 from gypsum_dl.Steps.SMILES.MakeTautomers import make_tauts
-from gypsum_dl.Steps.SMILES.DurrantLabFilter import durrant_lab_filters
+from gypsum_dl.Steps.SMILES.DurrantLabFilter import durrant_lab_filters, durrant_lab_contains_bad_substr
 from gypsum_dl.Steps.SMILES.EnumerateChiralMols import enumerate_chiral_molecules
 from gypsum_dl.Steps.SMILES.EnumerateDoubleBonds import enumerate_double_bonds
 
@@ -49,10 +49,26 @@ def prepare_smiles(contnrs, params):
 
     debug = True
 
-    # Desalt the molecules.
+    # Desalt the molecules. Note that the program always desalts (can't turn it
+    # off).
     # Utils.log("Begin Desaltings")
     desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj)
     # Utils.log("Done with Desalting")
+
+
+    # Filter the containers to remove ones that have bad substrings (metal,
+    # etc.) in the desalted smiles, assuming durrant lab filter turned on. Note
+    # that some compounds aren't filtered until later.
+    if params["use_durrant_lab_filters"] == True:
+        contnrs = [
+            c for c in contnrs
+            if not durrant_lab_contains_bad_substr(c.orig_smi_deslt)
+        ]
+
+    # import gypsum_dl.Steps.SMILES.DurrantLabFilter as DurrantLabFilter
+    # ddd = [c.orig_smi_deslt for c in contnrs if DurrantLabFilter.durrant_lab_contains_bad_substr(c.orig_smi_deslt)]
+    # print("\n".join(ddd))
+    # import pdb; pdb.set_trace()
 
     if debug: Utils.print_current_smiles(contnrs)
 
