@@ -32,6 +32,7 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
+
 class MolContainer:
     """The molecucle container class. It stores all the molecules (tautomers,
     etc.) associated with a single input SMILES entry."""
@@ -54,8 +55,8 @@ class MolContainer:
         # level)
         self.contnr_idx = index
         self.contnr_idx_orig = index  # Because if some circumstances (mpi),
-                                      # might be reset. But good to have
-                                      # original for filename output.
+        # might be reset. But good to have
+        # original for filename output.
         self.orig_smi = smiles
         self.orig_smi_deslt = smiles  # initial assumption
         self.mols = []
@@ -69,7 +70,9 @@ class MolContainer:
         self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
 
         # Get the number of nonaromatic rings
-        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
+        self.num_nonaro_rngs = len(
+            self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms()
+        )
 
         # Get the number of chiral centers, assigned
         self.num_specif_chiral_cntrs = len(
@@ -192,7 +195,9 @@ class MolContainer:
         self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
         self.frgs = ""
         self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
-        self.num_nonaro_rngs = len(self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms())
+        self.num_nonaro_rngs = len(
+            self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms()
+        )
         self.num_specif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
         )
@@ -289,7 +294,7 @@ class MolContainer:
         :type new_idx: int
         """
 
-        if type(new_idx)!= int:
+        if type(new_idx) != int:
             Utils.exception("New idx value must be an int.")
         self.contnr_idx = new_idx
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx

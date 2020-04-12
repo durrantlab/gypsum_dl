@@ -24,6 +24,7 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
+
 def load_smiles_file(filename):
     """Loads a smiles file.
 
@@ -51,9 +52,13 @@ def load_smiles_file(filename):
             # Handle unnamed ligands.
             if name == "":
                 name = "untitled_line_{}".format(line_counter + 1)
-                Utils.log(("\tUntitled ligand on line {}. Naming that ligand " +
-                           "{}. All associated files will be referred to with " +
-                           "this name.").format(line_counter + 1, name))
+                Utils.log(
+                    (
+                        "\tUntitled ligand on line {}. Naming that ligand "
+                        + "{}. All associated files will be referred to with "
+                        + "this name."
+                    ).format(line_counter + 1, name)
+                )
 
             # Handle duplicate ligands in same list.
             if name in name_list:
@@ -62,25 +67,42 @@ def load_smiles_file(filename):
                     duplicate_names[name] = duplicate_names[name] + 1
 
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
-                    Utils.log("\tThe version of the ligand on line {} will be retitled {}".format(line_counter,new_name))
-                    Utils.log("\tAll associated files will be referred to with this name")
+                    Utils.log(
+                        "\nMultiple entries with the ligand name: {}".format(name)
+                    )
+                    Utils.log(
+                        "\tThe version of the ligand on line {} will be retitled {}".format(
+                            line_counter, new_name
+                        )
+                    )
+                    Utils.log(
+                        "\tAll associated files will be referred to with this name"
+                    )
                     name = new_name
                 else:
                     duplicate_names[name] = 2
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
-                    Utils.log("\tThe version of the ligand on line {} will be retitled {}".format(line_counter,new_name))
-                    Utils.log("\tAll associated files will be referred to with this name")
+                    Utils.log(
+                        "\nMultiple entries with the ligand name: {}".format(name)
+                    )
+                    Utils.log(
+                        "\tThe version of the ligand on line {} will be retitled {}".format(
+                            line_counter, new_name
+                        )
+                    )
+                    Utils.log(
+                        "\tAll associated files will be referred to with this name"
+                    )
                     name = new_name
 
             # Save the data for this line and advance.
             name_list.append(name)
-            line_counter +=1
+            line_counter += 1
             data.append((smiles, name, {}))
 
     # Return the data.
     return data
+
 
 def load_sdf_file(filename):
     """Loads an sdf file.
@@ -100,9 +122,7 @@ def load_sdf_file(filename):
     for mol in suppl:
         # Convert mols to smiles. That's what the rest of the program is
         # designed to deal with.
-        smiles = Chem.MolToSmiles(
-            mol, isomericSmiles=True, canonical=True
-        )
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True, canonical=True)
 
         try:
             name = mol.GetProp("_Name")
@@ -111,8 +131,12 @@ def load_sdf_file(filename):
 
         # Handle unnamed ligands
         if name == "":
-            Utils.log("\tUntitled ligand for the {} molecule in the input SDF".format(mol_obj_counter))
-            name = "untitled_{}_molnum_{}".format(missing_name_counter,mol_obj_counter)
+            Utils.log(
+                "\tUntitled ligand for the {} molecule in the input SDF".format(
+                    mol_obj_counter
+                )
+            )
+            name = "untitled_{}_molnum_{}".format(missing_name_counter, mol_obj_counter)
             Utils.log("\tNaming that ligand {}".format(name))
             Utils.log("\tAll associated files will be referred to with this name")
             missing_name_counter += 1
@@ -124,16 +148,32 @@ def load_sdf_file(filename):
                     duplicate_names[name] = duplicate_names[name] + 1
 
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
-                    Utils.log("\tThe version of the ligand for the {} molecule in the SDF file will be retitled {}".format(mol_obj_counter,new_name))
-                    Utils.log("\tAll associated files will be referred to with this name")
+                    Utils.log(
+                        "\nMultiple entries with the ligand name: {}".format(name)
+                    )
+                    Utils.log(
+                        "\tThe version of the ligand for the {} molecule in the SDF file will be retitled {}".format(
+                            mol_obj_counter, new_name
+                        )
+                    )
+                    Utils.log(
+                        "\tAll associated files will be referred to with this name"
+                    )
                     name = new_name
                 else:
                     duplicate_names[name] = 2
                     new_name = "{}_copy_{}".format(name, duplicate_names[name])
-                    Utils.log("\nMultiple entries with the ligand name: {}".format(name))
-                    Utils.log("\tThe version of the ligand for the {} molecule in the SDF file will be retitled {}".format(mol_obj_counter,new_name))
-                    Utils.log("\tAll associated files will be referred to with this name")
+                    Utils.log(
+                        "\nMultiple entries with the ligand name: {}".format(name)
+                    )
+                    Utils.log(
+                        "\tThe version of the ligand for the {} molecule in the SDF file will be retitled {}".format(
+                            mol_obj_counter, new_name
+                        )
+                    )
+                    Utils.log(
+                        "\tAll associated files will be referred to with this name"
+                    )
                     name = new_name
 
             mol_obj_counter += 1

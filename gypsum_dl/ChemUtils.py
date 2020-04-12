@@ -26,6 +26,7 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
+
 def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     """Pick molecules with low energies. If necessary, the definition also
        makes a conformer without minimization (so not too computationally
@@ -62,7 +63,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     data = []
     for i, mol in enumerate(mols_3d):
         mol.make_first_3d_conf_no_min()  # Make sure at least one conformer
-                                         # exists.
+        # exists.
         if len(mol.conformers) > 0:
             energy = mol.conformers[0].energy
             data.append((energy, i))
@@ -77,6 +78,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
 
     # Return those molecules.
     return new_mols_list
+
 
 def remove_highly_charged_molecules(mol_lst):
     """Remove molecules that are highly charged.
@@ -101,15 +103,21 @@ def remove_highly_charged_molecules(mol_lst):
             new_mol_lst.append(mol_lst[i])
         else:
             Utils.log(
-                "\tWARNING: Discarding highly charged form: " +
-                mol_lst[i].smiles() + "."
+                "\tWARNING: Discarding highly charged form: "
+                + mol_lst[i].smiles()
+                + "."
             )
 
     return new_mol_lst
 
-def bst_for_each_contnr_no_opt(contnrs, mol_lst, max_variants_per_compound,
-                               thoroughness,
-                               crry_ovr_frm_lst_step_if_no_fnd=True):
+
+def bst_for_each_contnr_no_opt(
+    contnrs,
+    mol_lst,
+    max_variants_per_compound,
+    thoroughness,
+    crry_ovr_frm_lst_step_if_no_fnd=True,
+):
     """Keep only the top few compound variants in each container, to prevent a
        combinatorial explosion. This is run periodically on the growing
        containers to keep them in check.
@@ -159,9 +167,7 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst, max_variants_per_compound,
             # Pick the lowest-energy molecules. Note that this creates a
             # conformation if necessary, but it is not minimized and so is not
             # computationally expensive.
-            mols = pick_lowest_enrgy_mols(
-                mols, max_variants_per_compound, thoroughness
-            )
+            mols = pick_lowest_enrgy_mols(mols, max_variants_per_compound, thoroughness)
 
             if len(mols) > 0:
                 # Now remove all previously determined mols for this
@@ -181,19 +187,24 @@ def bst_for_each_contnr_no_opt(contnrs, mol_lst, max_variants_per_compound,
             if crry_ovr_frm_lst_step_if_no_fnd:
                 # Just use previous ones.
                 Utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: " +
-                    contnr.orig_smi_deslt + " (" +
-                    contnr.name + "). Keeping original " +
-                    "conformers."
+                    "\tWARNING: Unable to find low-energy conformations: "
+                    + contnr.orig_smi_deslt
+                    + " ("
+                    + contnr.name
+                    + "). Keeping original "
+                    + "conformers."
                 )
             else:
                 # Discard the conformation.
                 Utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: " +
-                    contnr.orig_smi_deslt + " (" +
-                    contnr.name + "). Discarding conformer."
+                    "\tWARNING: Unable to find low-energy conformations: "
+                    + contnr.orig_smi_deslt
+                    + " ("
+                    + contnr.name
+                    + "). Discarding conformer."
                 )
                 contnr.mols = []
+
 
 def uniq_mols_in_list(mol_lst):
     # You need to make new molecules to get it to work.

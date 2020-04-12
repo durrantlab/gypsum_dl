@@ -18,6 +18,8 @@
 Gypsum-DL 1.1.3 is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
+
+
 def print_gypsum_citation():
     """
     Print out the citation for the Gypsum-DL paper.
@@ -27,24 +29,39 @@ def print_gypsum_citation():
     """
 
     import sys
+
     # And always report citation information.
     citation_print = "\nIf you use Gypsum-DL in your research, please cite:\n\n"
-    citation_print = citation_print + "Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,\n"
-    citation_print = citation_print + "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
-    citation_print = citation_print + "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
-    citation_print = citation_print + "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
-    citation_print = citation_print +"\ndoi:10.1186/s13321-019-0358-3.\n"
+    citation_print = (
+        citation_print
+        + "Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,\n"
+    )
+    citation_print = (
+        citation_print
+        + "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
+    )
+    citation_print = (
+        citation_print
+        + "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
+    )
+    citation_print = (
+        citation_print
+        + "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
+    )
+    citation_print = citation_print + "\ndoi:10.1186/s13321-019-0358-3.\n"
 
     try:
         from mpi4py import MPI
+
         comm = MPI.COMM_WORLD
-        rank=comm.rank
-        if rank==0:
+        rank = comm.rank
+        if rank == 0:
             print(citation_print)
     except:
         print(citation_print)
 
-#print out the citation of Gypsum-DL paper.
+
+# print out the citation of Gypsum-DL paper.
 print_gypsum_citation()
 
 import argparse
@@ -126,86 +143,161 @@ Where myparams.json might look like:
     "add_html_output": true,
     "num_processors": -1
 }
-""")
+""",
+)
 
-PARSER.add_argument('--json', '-j', type=str, metavar='param.json',
-                    help='Name of a json file containing all parameters. \
-                    Overrides all other arguments specified at the commandline.')
-PARSER.add_argument('--source', '-s', type=str, metavar='input.smi',
-                    help='Name of the source file (e.g., input.smi).')
-PARSER.add_argument('--output_folder', '-o', type=str,
-                    help='The path to an existing folder where the Gypsum-DL ' +
-                    'output file(s) will be saved.')
-PARSER.add_argument('--job_manager', type=str, default='multiprocessing',
-                    choices = ["mpi", "multiprocessing", "serial"],
-                    help='Determine what style of multiprocessing to use: mpi, \
+PARSER.add_argument(
+    "--json",
+    "-j",
+    type=str,
+    metavar="param.json",
+    help="Name of a json file containing all parameters. \
+                    Overrides all other arguments specified at the commandline.",
+)
+PARSER.add_argument(
+    "--source",
+    "-s",
+    type=str,
+    metavar="input.smi",
+    help="Name of the source file (e.g., input.smi).",
+)
+PARSER.add_argument(
+    "--output_folder",
+    "-o",
+    type=str,
+    help="The path to an existing folder where the Gypsum-DL "
+    + "output file(s) will be saved.",
+)
+PARSER.add_argument(
+    "--job_manager",
+    type=str,
+    default="multiprocessing",
+    choices=["mpi", "multiprocessing", "serial"],
+    help="Determine what style of multiprocessing to use: mpi, \
                         multiprocessing, or serial. Serial will override the \
                         num_processors flag, forcing it to be one. MPI mode \
                         requires mpi4py 2.1.0 or higher and should be executed \
                         as: mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py \
-                        ...-settings...')
-PARSER.add_argument('--num_processors', '-p', type=int, metavar='N', default=1,
-                    help='Number of processors to use for parallel \
-                    calculations.')
-PARSER.add_argument('--max_variants_per_compound', '-m', type=int, metavar='V',
-                    help='The maximum number of variants to create per input \
-                    molecule.')
-PARSER.add_argument('--thoroughness', '-t', type=int,
-                    help='How widely to search for low-energy conformers. \
+                        ...-settings...",
+)
+PARSER.add_argument(
+    "--num_processors",
+    "-p",
+    type=int,
+    metavar="N",
+    default=1,
+    help="Number of processors to use for parallel \
+                    calculations.",
+)
+PARSER.add_argument(
+    "--max_variants_per_compound",
+    "-m",
+    type=int,
+    metavar="V",
+    help="The maximum number of variants to create per input \
+                    molecule.",
+)
+PARSER.add_argument(
+    "--thoroughness",
+    "-t",
+    type=int,
+    help="How widely to search for low-energy conformers. \
                     Larger values increase run times but can produce better \
-                    results.')
-PARSER.add_argument('--separate_output_files', action='store_true',
-                    help='Indicates that the outputs should be split between \
+                    results.",
+)
+PARSER.add_argument(
+    "--separate_output_files",
+    action="store_true",
+    help="Indicates that the outputs should be split between \
                     files. If true, each output .sdf file will correspond to a \
                     single input file, but different 3D conformers will still \
-                    be stored in the same file.')
-PARSER.add_argument('--add_pdb_output', action='store_true',
-                    help='Indicates that the outputs should also be written in \
+                    be stored in the same file.",
+)
+PARSER.add_argument(
+    "--add_pdb_output",
+    action="store_true",
+    help="Indicates that the outputs should also be written in \
                     the .pdb format. Creates one PDB file for each molecular \
-                    variant.')
-PARSER.add_argument('--add_html_output', action='store_true',
-                    help='Indicates that the outputs should also be written in \
+                    variant.",
+)
+PARSER.add_argument(
+    "--add_html_output",
+    action="store_true",
+    help="Indicates that the outputs should also be written in \
                     the .html format, for debugging. Attempts to open a \
-                    browser for viewing.')
-PARSER.add_argument('--min_ph', metavar='MIN', type=float,
-                    help='Minimum pH to consider.')
-PARSER.add_argument('--max_ph', metavar='MAX', type=float,
-                    help='Maximum pH to consider.')
-PARSER.add_argument('--pka_precision', metavar='D', type=float,
-                    help='Size of pH substructure ranges. See Dimorphite-DL \
-                    publication for details.')
-PARSER.add_argument('--skip_optimize_geometry', action='store_true',
-                    help='Skips the optimization step.')
-PARSER.add_argument('--skip_alternate_ring_conformations', action='store_true',
-                    help='Skips the non-aromatic ring-conformation \
-                    generation step.')
-PARSER.add_argument('--skip_adding_hydrogen', action='store_true',
-                    help='Skips the ionization step.')
-PARSER.add_argument('--skip_making_tautomers', action='store_true',
-                    help='Skips tautomer-generation step.')
-PARSER.add_argument('--skip_enumerate_chiral_mol', action='store_true',
-                    help='Skips the ennumeration of unspecified chiral \
-                    centers.')
-PARSER.add_argument('--skip_enumerate_double_bonds', action='store_true',
-                    help='Skips the ennumeration of double bonds.')
+                    browser for viewing.",
+)
+PARSER.add_argument(
+    "--min_ph", metavar="MIN", type=float, help="Minimum pH to consider."
+)
+PARSER.add_argument(
+    "--max_ph", metavar="MAX", type=float, help="Maximum pH to consider."
+)
+PARSER.add_argument(
+    "--pka_precision",
+    metavar="D",
+    type=float,
+    help="Size of pH substructure ranges. See Dimorphite-DL \
+                    publication for details.",
+)
+PARSER.add_argument(
+    "--skip_optimize_geometry", action="store_true", help="Skips the optimization step."
+)
+PARSER.add_argument(
+    "--skip_alternate_ring_conformations",
+    action="store_true",
+    help="Skips the non-aromatic ring-conformation \
+                    generation step.",
+)
+PARSER.add_argument(
+    "--skip_adding_hydrogen", action="store_true", help="Skips the ionization step."
+)
+PARSER.add_argument(
+    "--skip_making_tautomers",
+    action="store_true",
+    help="Skips tautomer-generation step.",
+)
+PARSER.add_argument(
+    "--skip_enumerate_chiral_mol",
+    action="store_true",
+    help="Skips the ennumeration of unspecified chiral \
+                    centers.",
+)
+PARSER.add_argument(
+    "--skip_enumerate_double_bonds",
+    action="store_true",
+    help="Skips the ennumeration of double bonds.",
+)
 
-PARSER.add_argument('--let_tautomers_change_chirality',
-                    action='store_true', help='Allow tautomers that change \
+PARSER.add_argument(
+    "--let_tautomers_change_chirality",
+    action="store_true",
+    help="Allow tautomers that change \
                     the total number of chiral centers (see README.md for \
-                    further explanation).')
+                    further explanation).",
+)
 
-PARSER.add_argument('--use_durrant_lab_filters',
-                    action='store_true', help='Use substructure filters to \
+PARSER.add_argument(
+    "--use_durrant_lab_filters",
+    action="store_true",
+    help="Use substructure filters to \
                     remove molecular variants that, though technically \
                     possible, were judged improbable by members of the \
-                    Durrant lab. See README.md for more details.')
+                    Durrant lab. See README.md for more details.",
+)
 
-PARSER.add_argument('--2d_output_only', action='store_true',
-                    help='Skips the generate-3D-models step.')
-PARSER.add_argument('--cache_prerun', '-c', action='store_true',
-                    help='Run this before running Gypsum-DL in mpi mode.')
-PARSER.add_argument('--test', action='store_true',
-                    help='Tests Gypsum-DL to check for programming bugs.')
+PARSER.add_argument(
+    "--2d_output_only", action="store_true", help="Skips the generate-3D-models step."
+)
+PARSER.add_argument(
+    "--cache_prerun",
+    "-c",
+    action="store_true",
+    help="Run this before running Gypsum-DL in mpi mode.",
+)
+PARSER.add_argument(
+    "--test", action="store_true", help="Tests Gypsum-DL to check for programming bugs."
+)
 
 ARGS_DICT = vars(PARSER.parse_args())
 if ARGS_DICT["test"] == True:

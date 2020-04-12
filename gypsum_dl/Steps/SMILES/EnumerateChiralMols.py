@@ -32,7 +32,15 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
-def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
+
+def enumerate_chiral_molecules(
+    contnrs,
+    max_variants_per_compound,
+    thoroughness,
+    num_procs,
+    job_manager,
+    parallelizer_obj,
+):
     """Enumerates all possible enantiomers of a molecule. If the chirality of
        an atom is given, that chiral center is not varied. Only the chirality
        of unspecified chiral centers is varied.
@@ -74,11 +82,11 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
 
     # Run it through the parallelizer.
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(params, parallel_get_chiral, num_procs, job_manager)
     else:
         for i in params:
-            tmp.append(parallel_get_chiral(i[0],i[1],i[2]))
+            tmp.append(parallel_get_chiral(i[0], i[1], i[2]))
 
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)
@@ -92,10 +100,13 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
         Utils.log(
-            "\tCould not generate valid enantiomers for " +
-            contnrs[miss_indx].orig_smi + " (" +
-            contnrs[miss_indx].name + "), so using existing " +
-            "(unprocessed) structures.")
+            "\tCould not generate valid enantiomers for "
+            + contnrs[miss_indx].orig_smi
+            + " ("
+            + contnrs[miss_indx].name
+            + "), so using existing "
+            + "(unprocessed) structures."
+        )
         for mol in contnrs[miss_indx].mols:
             mol.genealogy.append("(WARNING: Unable to generate enantiomers)")
             clean.append(mol)
@@ -105,6 +116,7 @@ def enumerate_chiral_molecules(contnrs, max_variants_per_compound, thoroughness,
     ChemUtils.bst_for_each_contnr_no_opt(
         contnrs, flat, max_variants_per_compound, thoroughness
     )
+
 
 def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating chiralities.
@@ -152,9 +164,14 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
 
     # Let the user know the number of chiral centers.
     Utils.log(
-        "\t" + mol.smiles(True) + " (" + mol.name + ") has " +
-        str(len(options)) + " enantiomers when chiral centers with " +
-        "no specified chirality are systematically varied."
+        "\t"
+        + mol.smiles(True)
+        + " ("
+        + mol.name
+        + ") has "
+        + str(len(options))
+        + " enantiomers when chiral centers with "
+        + "no specified chirality are systematically varied."
     )
 
     # Randomly select a few of the chiral combinations to examine. This is to
@@ -188,9 +205,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
             new_mol.contnr_idx = mol.contnr_idx
             new_mol.name = mol.name
             new_mol.genealogy = mol.genealogy[:]
-            new_mol.genealogy.append(
-                new_mol.smiles(True) + " (chirality)"
-            )
+            new_mol.genealogy.append(new_mol.smiles(True) + " (chirality)")
             results.append(new_mol)
 
     # Return the results.

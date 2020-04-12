@@ -26,10 +26,12 @@ from os.path import basename
 from gypsum_dl import Utils
 import rdkit
 import rdkit.Chem as Chem
-#Disable the unnecessary RDKit warnings
-rdkit.RDLogger.DisableLog('rdApp.*')
 
-sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)),'gypsum_dl'))
+# Disable the unnecessary RDKit warnings
+rdkit.RDLogger.DisableLog("rdApp.*")
+
+sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), "gypsum_dl"))
+
 
 def convert_sdfs_to_PDBs(contnrs, output_folder):
     """This will convert every conformer into a PDB file, which is saved in
@@ -55,7 +57,7 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
                 output_folder + os.sep,
                 Utils.slug(name),
                 contnr.contnr_idx_orig + 1,
-                i + 1
+                i + 1,
             )
 
             # Get the conformers into the rdkit_mol object.
@@ -65,13 +67,14 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
                 continue
             else:
                 # Write conformers to a PDB file.
-                Chem.MolToPDBFile(mol, pdb_file, flavor = 32)               
+                Chem.MolToPDBFile(mol, pdb_file, flavor=32)
 
                 # Add header to PDB file with original SMILES and final SMILES
-                printout = "REMARK Original SMILES string: {}\nREMARK Final SMILES string: {}\n".format(m.orig_smi,m.standardize_smiles())
+                printout = "REMARK Original SMILES string: {}\nREMARK Final SMILES string: {}\n".format(
+                    m.orig_smi, m.standardize_smiles()
+                )
                 with open(pdb_file) as f:
                     printout = printout + f.read()
-                with open(pdb_file,'w') as f:
+                with open(pdb_file, "w") as f:
                     f.write(printout)
                 printout = ""
-                

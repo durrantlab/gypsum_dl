@@ -36,9 +36,8 @@ prohibited_smi_substrs_for_substruc = [
     "[#7+]~[#7+]",
     "[#7-]~[#7-]",
     "[!#7]~[#7+]~[#7-]~[!#7]",  # Doesn't hit azide.
-
     # Vina can't process boron anyway...
-    "[#5]",   # B
+    "[#5]",  # B
 ]
 
 # Get the substrings you won't permit (per substring matching)
@@ -64,8 +63,7 @@ prohibited_smi_substrs_for_substr = [
     "[Mo",  # Mo
     "[Cd",  # Cd
     "[Au",  # Au
-    "[Pb"   # Pb
-    "[Bi",  # Bi
+    "[Pb" "[Bi",  # Pb  # Bi
 ]
 
 
@@ -101,14 +99,16 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
 
     Utils.log("Applying Durrant-lab filters to all molecules...")
 
-    prohibited_substructs = [Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc]
+    prohibited_substructs = [
+        Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc
+    ]
 
     # Get the parameters to pass to the parallelizer object.
     params = [[c, prohibited_substructs] for c in contnrs]
 
     # Run the tautomizer through the parallel object.
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(
             params, parallel_durrant_lab_filter, num_procs, job_manager
         )
@@ -137,7 +137,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # minimization or anything (as it does later) because max variants
     # and thoroughness maxed out.
     ChemUtils.bst_for_each_contnr_no_opt(
-        contnrs, mols, 1000, 1000 # max_variants_per_compound, thoroughness
+        contnrs, mols, 1000, 1000  # max_variants_per_compound, thoroughness
     )
 
 
@@ -157,12 +157,19 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
     # Replace any molecules that have prohibited substructure with None.
     for mi, m in enumerate(contnr.mols):
         for pattrn in prohibited_substructs:
-            if durrant_lab_contains_bad_substr(m.orig_smi_deslt) or m.rdkit_mol.HasSubstructMatch(pattrn):
+            if durrant_lab_contains_bad_substr(
+                m.orig_smi_deslt
+            ) or m.rdkit_mol.HasSubstructMatch(pattrn):
                 Utils.log(
-                    "\t" + m.smiles(True) + ", a variant generated " +
-                    "from " + contnr.orig_smi + " (" + m.name +
-                    "), contains a prohibited substructure, so I'm " +
-                    "discarding it."
+                    "\t"
+                    + m.smiles(True)
+                    + ", a variant generated "
+                    + "from "
+                    + contnr.orig_smi
+                    + " ("
+                    + m.name
+                    + "), contains a prohibited substructure, so I'm "
+                    + "discarding it."
                 )
 
                 contnr.mols[mi] = None

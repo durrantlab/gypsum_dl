@@ -36,7 +36,16 @@ try:
 except:
     Utils.exception("You need to install molvs and its dependencies.")
 
-def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, let_tautomers_change_chirality, parallelizer_obj):
+
+def make_tauts(
+    contnrs,
+    max_variants_per_compound,
+    thoroughness,
+    num_procs,
+    job_manager,
+    let_tautomers_change_chirality,
+    parallelizer_obj,
+):
     """Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
     substructure keeps popping up, add it to the list in the
@@ -83,23 +92,25 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_
 
     # Run the tautomizer through the parallel object.
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, job_manager)
     else:
         for i in params:
-            tmp.append(parallel_make_taut(i[0],i[1],i[2]))
+            tmp.append(parallel_make_taut(i[0], i[1], i[2]))
 
     # Flatten the resulting list of lists.
     none_data = tmp
     taut_data = Parallelizer.flatten_list(none_data)
 
     # Remove bad tautomers.
-    taut_data = tauts_no_break_arom_rngs(contnrs, taut_data, num_procs,
-                                         job_manager, parallelizer_obj)
+    taut_data = tauts_no_break_arom_rngs(
+        contnrs, taut_data, num_procs, job_manager, parallelizer_obj
+    )
 
     if not let_tautomers_change_chirality:
-        taut_data = tauts_no_elim_chiral(contnrs, taut_data, num_procs,
-                                        job_manager, parallelizer_obj)
+        taut_data = tauts_no_elim_chiral(
+            contnrs, taut_data, num_procs, job_manager, parallelizer_obj
+        )
 
     # taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
     #    contnrs, taut_data, num_procs, job_manager, parallelizer_obj
@@ -110,6 +121,7 @@ def make_tauts(contnrs, max_variants_per_compound, thoroughness, num_procs, job_
     ChemUtils.bst_for_each_contnr_no_opt(
         contnrs, taut_data, max_variants_per_compound, thoroughness
     )
+
 
 def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     """Makes alternate tautomers for a given molecule container. This is the
@@ -142,8 +154,9 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     # Make sure it's not None.
     if m is None:
         Utils.log(
-            "\tCould not generate tautomers for " + contnr.orig_smi +
-            ". I'm deleting it."
+            "\tCould not generate tautomers for "
+            + contnr.orig_smi
+            + ". I'm deleting it."
         )
         return
 
@@ -158,9 +171,7 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     # add more, so you'll need to once again trim to this number later. But
     # this could at least help prevent the combinatorial explosion at this
     # stage.
-    enum = tautomer.TautomerEnumerator(
-        max_tautomers=max_variants_per_compound
-    )
+    enum = tautomer.TautomerEnumerator(max_tautomers=max_variants_per_compound)
     tauts_rdkit_mols = enum.enumerate(m)
 
     # Make all those tautomers into MyMol objects.
@@ -188,7 +199,10 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
 
     return results
 
-def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, job_manager, parallelizer_obj):
+
+def tauts_no_break_arom_rngs(
+    contnrs, taut_data, num_procs, job_manager, parallelizer_obj
+):
     """For a given molecule, the number of atomatic rings should never change
        regardless of tautization, ionization, etc. Any taut that breaks
        aromaticity is unlikely to be worth pursuing. So remove it.
@@ -221,18 +235,19 @@ def tauts_no_break_arom_rngs(contnrs, taut_data, num_procs, job_manager, paralle
     # Run it through the parallelizer to remove non-aromatic rings.
 
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(
             params, parallel_check_nonarom_rings, num_procs, job_manager
         )
     else:
         for i in params:
-            tmp.append(parallel_check_nonarom_rings(i[0],i[1]))
+            tmp.append(parallel_check_nonarom_rings(i[0], i[1]))
 
     # Stripping out None values (failed).
     results = Parallelizer.strip_none(tmp)
 
     return results
+
 
 def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelizer_obj):
     """Unfortunately, molvs sees removing chiral specifications as being a
@@ -269,20 +284,23 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
 
     # Run it through the parallelizer.
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(
             params, parallel_check_chiral_centers, num_procs, job_manager
         )
     else:
         for i in params:
-            tmp.append(parallel_check_chiral_centers(i[0],i[1]))
+            tmp.append(parallel_check_chiral_centers(i[0], i[1]))
 
     # Stripping out None values
     results = [x for x in tmp if x != None]
 
     return results
 
-def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_procs, job_manager, parallelizer_obj):
+
+def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
+    contnrs, taut_data, num_procs, job_manager, parallelizer_obj
+):
     """Generally speaking, only carbons that are alpha to a carbonyl are
        sufficiently acidic to participate in tautomer formation. The
        tautomer-generating code you use makes these inappropriate tautomers.
@@ -310,18 +328,19 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(contnrs, taut_data, num_pro
 
     # Run it through the parallelizer.
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(
             params, parallel_check_carbon_hydrogens, num_procs, job_manager
         )
     else:
         for i in params:
-            tmp.append(parallel_check_carbon_hydrogens(i[0],i[1]))
+            tmp.append(parallel_check_carbon_hydrogens(i[0], i[1]))
 
     # Strip out the None values.
     results = [x for x in tmp if x != None]
 
     return results
+
 
 def parallel_check_nonarom_rings(taut, contnr):
     """A parallelizable helper function that checks that tautomers do not
@@ -346,10 +365,16 @@ def parallel_check_nonarom_rings(taut, contnr):
         return taut
     else:
         Utils.log(
-            "\t" + taut.smiles(True) + ", a tautomer generated " +
-            "from " + contnr.orig_smi + " (" + taut.name +
-            "), broke an aromatic ring, so I'm discarding it."
+            "\t"
+            + taut.smiles(True)
+            + ", a tautomer generated "
+            + "from "
+            + contnr.orig_smi
+            + " ("
+            + taut.name
+            + "), broke an aromatic ring, so I'm discarding it."
         )
+
 
 def parallel_check_chiral_centers(taut, contnr):
     """A parallelizable helper function that checks that tautomers do not break
@@ -364,25 +389,36 @@ def parallel_check_chiral_centers(taut, contnr):
     """
 
     # How many chiral centers in the original smiles?
-    num_specif_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs + contnr.num_unspecif_chiral_cntrs
+    num_specif_chiral_cntrs_orig = (
+        contnr.num_specif_chiral_cntrs + contnr.num_unspecif_chiral_cntrs
+    )
 
     # Make a new list containing only the ones that don't break chiral centers
     # (or that add new chiral centers).
-    m_num_specif_chiral_cntrs = len(taut.chiral_cntrs_only_asignd()) + len(taut.chiral_cntrs_w_unasignd())
+    m_num_specif_chiral_cntrs = len(taut.chiral_cntrs_only_asignd()) + len(
+        taut.chiral_cntrs_w_unasignd()
+    )
     if m_num_specif_chiral_cntrs == num_specif_chiral_cntrs_orig:
         # Same number of chiral centers as original molecule. Save this good
         # one.
         return taut
     else:
         Utils.log(
-            "\t" + contnr.orig_smi + " ==> " + taut.smiles(True) +
-            " (tautomer transformation on " + taut.name + ") " +
-            "changed the molecules total number of specified " +
-            "chiral centers from " +
-            str(num_specif_chiral_cntrs_orig) + " to " +
-            str(m_num_specif_chiral_cntrs) +
-            ", so I'm deleting it."
+            "\t"
+            + contnr.orig_smi
+            + " ==> "
+            + taut.smiles(True)
+            + " (tautomer transformation on "
+            + taut.name
+            + ") "
+            + "changed the molecules total number of specified "
+            + "chiral centers from "
+            + str(num_specif_chiral_cntrs_orig)
+            + " to "
+            + str(m_num_specif_chiral_cntrs)
+            + ", so I'm deleting it."
         )
+
 
 def parallel_check_carbon_hydrogens(taut, contnr):
     """A parallelizable helper function that checks that tautomers do not
@@ -407,8 +443,13 @@ def parallel_check_carbon_hydrogens(taut, contnr):
         return taut
     else:
         Utils.log(
-            "\t" + contnr.orig_smi + " ==> " + taut.smiles(True) +
-            " (tautomer transformation on " + taut.name + ") " +
-            "changed the number of hydrogen atoms bound to a " +
-            "carbon, so I'm deleting it."
+            "\t"
+            + contnr.orig_smi
+            + " ==> "
+            + taut.smiles(True)
+            + " (tautomer transformation on "
+            + taut.name
+            + ") "
+            + "changed the number of hydrogen atoms bound to a "
+            + "carbon, so I'm deleting it."
         )

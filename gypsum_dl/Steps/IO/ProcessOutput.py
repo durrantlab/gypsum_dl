@@ -24,6 +24,7 @@ from gypsum_dl.Steps.IO.SaveToPDB import convert_sdfs_to_PDBs
 from gypsum_dl.Steps.IO.Web2DOutput import web_2d_output
 from gypsum_dl import Utils
 
+
 def proccess_output(contnrs, params):
     """Proccess the molecular models in preparation for writing them to the
        disk."""

@@ -27,9 +27,18 @@ import gypsum_dl.MolContainer as MolCont
 
 from gypsum_dl.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
 
-def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
-                  thoroughness, num_procs, job_manager,
-                  parallelizer_obj):
+
+def add_hydrogens(
+    contnrs,
+    min_pH,
+    max_pH,
+    st_dev,
+    max_variants_per_compound,
+    thoroughness,
+    num_procs,
+    job_manager,
+    parallelizer_obj,
+):
     """Adds hydrogen atoms to molecule containers, as appropriate for a given
        pH.
 
@@ -64,21 +73,29 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     Utils.log("Ionizing all molecules...")
 
     # Make a simple directory with the ionization parameters.
-    protonation_settings = {"min_ph": min_pH,
-                            "max_ph": max_pH,
-                            "pka_precision": st_dev,
-                            "max_variants": thoroughness * max_variants_per_compound}
+    protonation_settings = {
+        "min_ph": min_pH,
+        "max_ph": max_pH,
+        "pka_precision": st_dev,
+        "max_variants": thoroughness * max_variants_per_compound,
+    }
 
     # Format the inputs for use in the parallelizer.
-    inputs = tuple([tuple([cont, protonation_settings]) for cont in contnrs if type(cont.orig_smi_canonical)==str])
+    inputs = tuple(
+        [
+            tuple([cont, protonation_settings])
+            for cont in contnrs
+            if type(cont.orig_smi_canonical) == str
+        ]
+    )
 
     # Run the parallelizer and collect the results.
     results = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, job_manager)
     else:
         for i in inputs:
-            results.append(parallel_add_H(i[0],i[1]))
+            results.append(parallel_add_H(i[0], i[1]))
 
     results = Parallelizer.flatten_list(results)
 
@@ -90,10 +107,12 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
         Utils.log(
-            "\tWARNING: Gypsum-DL produced no valid ionization states for " +
-            contnrs[miss_indx].orig_smi + " (" +
-            contnrs[miss_indx].name + "), so using the original " +
-            "smiles."
+            "\tWARNING: Gypsum-DL produced no valid ionization states for "
+            + contnrs[miss_indx].orig_smi
+            + " ("
+            + contnrs[miss_indx].name
+            + "), so using the original "
+            + "smiles."
         )
 
         amol = contnrs[miss_indx].mol_orig_frm_inp_smi
@@ -103,7 +122,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
         amol.genealogy = [
             amol.orig_smi + " (source)",
             amol.orig_smi_deslt + " (desalted)",
-            "(WARNING: Gypsum-DL could not assign ionization states)"
+            "(WARNING: Gypsum-DL could not assign ionization states)",
         ]
 
         # Save this one to the results too, even though not processed
@@ -115,6 +134,7 @@ def add_hydrogens(contnrs, min_pH, max_pH, st_dev, max_variants_per_compound,
     ChemUtils.bst_for_each_contnr_no_opt(
         contnrs, results, max_variants_per_compound, thoroughness
     )
+
 
 def parallel_add_H(contnr, protonation_settings):
     """Creates alternate ionization variants for a given molecule container.
@@ -131,7 +151,9 @@ def parallel_add_H(contnr, protonation_settings):
     # Make sure the canonical SMILES is actually a string.
     if type(contnr.orig_smi_canonical) != str:
         Utils.log("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
-        Utils.log("type container.orig_smi_canonical: " + str(type(contnr.orig_smi_canonical)))
+        Utils.log(
+            "type container.orig_smi_canonical: " + str(type(contnr.orig_smi_canonical))
+        )
         Utils.exception("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
 
     # Add the SMILES string to the protonation parameters.

@@ -32,7 +32,15 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
-def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
+
+def enumerate_double_bonds(
+    contnrs,
+    max_variants_per_compound,
+    thoroughness,
+    num_procs,
+    job_manager,
+    parallelizer_obj,
+):
     """Enumerates all possible cis-trans isomers. If the stereochemistry of a
        double bond is specified, it is not varied. All unspecified double bonds
        are varied.
@@ -63,9 +71,7 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     if max_variants_per_compound == 0:
         return
 
-    Utils.log(
-        "Enumerating all possible cis-trans isomers for all molecules..."
-    )
+    Utils.log("Enumerating all possible cis-trans isomers for all molecules...")
 
     # Group the molecule containers so they can be passed to the parallelizer.
     params = []
@@ -76,11 +82,13 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
 
     # Ruin it through the parallelizer.
     tmp = []
-    if parallelizer_obj !=  None:
-        tmp = parallelizer_obj.run(params, parallel_get_double_bonded, num_procs, job_manager)
+    if parallelizer_obj != None:
+        tmp = parallelizer_obj.run(
+            params, parallel_get_double_bonded, num_procs, job_manager
+        )
     else:
         for i in params:
-            tmp.append(parallel_get_double_bonded(i[0],i[1]))
+            tmp.append(parallel_get_double_bonded(i[0], i[1]))
 
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)
@@ -94,10 +102,13 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
         Utils.log(
-            "\tCould not generate valid double-bond variant for " +
-            contnrs[miss_indx].orig_smi + " (" +
-            contnrs[miss_indx].name + "), so using existing " +
-            "(unprocessed) structures.")
+            "\tCould not generate valid double-bond variant for "
+            + contnrs[miss_indx].orig_smi
+            + " ("
+            + contnrs[miss_indx].name
+            + "), so using existing "
+            + "(unprocessed) structures."
+        )
         for mol in contnrs[miss_indx].mols:
             mol.genealogy.append("(WARNING: Unable to generate double-bond variant)")
             clean.append(mol)
@@ -109,6 +120,7 @@ def enumerate_double_bonds(contnrs, max_variants_per_compound, thoroughness, num
     ChemUtils.bst_for_each_contnr_no_opt(
         contnrs, flat, max_variants_per_compound, thoroughness
     )
+
 
 def parallel_get_double_bonded(mol, max_variants_per_compound):
     """A parallelizable function for enumerating double bonds.
@@ -135,16 +147,31 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
         return [mol]
 
     # Throw out any bond that is in a small ring.
-    unasignd_dbl_bnd_idxs = [i for i in unasignd_dbl_bnd_idxs
-                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(3)]
-    unasignd_dbl_bnd_idxs = [i for i in unasignd_dbl_bnd_idxs
-                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(4)]
-    unasignd_dbl_bnd_idxs = [i for i in unasignd_dbl_bnd_idxs
-                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(5)]
-    unasignd_dbl_bnd_idxs = [i for i in unasignd_dbl_bnd_idxs
-                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(6)]
-    unasignd_dbl_bnd_idxs = [i for i in unasignd_dbl_bnd_idxs
-                if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(7)]
+    unasignd_dbl_bnd_idxs = [
+        i
+        for i in unasignd_dbl_bnd_idxs
+        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(3)
+    ]
+    unasignd_dbl_bnd_idxs = [
+        i
+        for i in unasignd_dbl_bnd_idxs
+        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(4)
+    ]
+    unasignd_dbl_bnd_idxs = [
+        i
+        for i in unasignd_dbl_bnd_idxs
+        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(5)
+    ]
+    unasignd_dbl_bnd_idxs = [
+        i
+        for i in unasignd_dbl_bnd_idxs
+        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(6)
+    ]
+    unasignd_dbl_bnd_idxs = [
+        i
+        for i in unasignd_dbl_bnd_idxs
+        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(7)
+    ]
 
     # Get a list of all the single bonds that come of each double-bond atom.
     all_sngl_bnd_idxs = set([])
@@ -180,17 +207,17 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
     # Now come up with all possible up/down combinations for those bonds.
     all_sngl_bnd_idxs = list(all_sngl_bnd_idxs)
     all_atom_config_options = list(
-        itertools.product(
-            [True, False],
-            repeat=len(all_sngl_bnd_idxs)
-        )
+        itertools.product([True, False], repeat=len(all_sngl_bnd_idxs))
     )
 
     # Let the user know.
     if dbl_bnd_count > 0:
         Utils.log(
-            "\t" + mol.smiles(True) + " has " + str(dbl_bnd_count) +
-            " double bond(s) with unspecified stereochemistry."
+            "\t"
+            + mol.smiles(True)
+            + " has "
+            + str(dbl_bnd_count)
+            + " double bond(s) with unspecified stereochemistry."
         )
 
     # Go through and consider each of the retained combinations.
@@ -203,13 +230,9 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
         for bond_idx, direc in zip(all_sngl_bnd_idxs, atom_config_options):
             # Always done with reference to the atom in the double bond.
             if direc:
-                a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(
-                    Chem.BondDir.ENDUPRIGHT
-                )
+                a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(Chem.BondDir.ENDUPRIGHT)
             else:
-                a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(
-                    Chem.BondDir.ENDDOWNRIGHT
-                )
+                a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(Chem.BondDir.ENDDOWNRIGHT)
 
         # Assign the StereoChemistry. Required to actually set it.
         a_rd_mol.ClearComputedProps()
@@ -240,7 +263,9 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
 
     # Only keep those with that same max count. The others have double bonds
     # that remain unspecified.
-    smiles_to_consider = [s[0] for s in zip(smiles_to_consider, cnts) if s[1] == max_cnts]
+    smiles_to_consider = [
+        s[0] for s in zip(smiles_to_consider, cnts) if s[1] == max_cnts
+    ]
     results = []
     for smile_to_consider in smiles_to_consider:
         # Make a new MyMol.MyMol object with the specified smiles.

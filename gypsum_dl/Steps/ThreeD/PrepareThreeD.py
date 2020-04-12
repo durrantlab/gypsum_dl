@@ -19,9 +19,11 @@ Runs the 3D preparation process.
 import __future__
 
 from gypsum_dl.Steps.ThreeD.Convert2DTo3D import convert_2d_to_3d
-from gypsum_dl.Steps.ThreeD.GenerateAlternate3DNonaromaticRingConfs \
-    import generate_alternate_3d_nonaromatic_ring_confs
+from gypsum_dl.Steps.ThreeD.GenerateAlternate3DNonaromaticRingConfs import (
+    generate_alternate_3d_nonaromatic_ring_confs,
+)
 from gypsum_dl.Steps.ThreeD.Minimize3D import minimize_3d
+
 
 def prepare_3d(contnrs, params):
     """Runs the pipeline for generating the 3D small-molecule models.
@@ -43,16 +45,35 @@ def prepare_3d(contnrs, params):
     # Do the 2d to 3d conversionl, if requested.
     if not params["2d_output_only"]:
         # Make the 3D model.
-        convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness,
-                         num_procs, job_manager, parallelizer_obj)
+        convert_2d_to_3d(
+            contnrs,
+            max_variants_per_compound,
+            thoroughness,
+            num_procs,
+            job_manager,
+            parallelizer_obj,
+        )
 
         # Generate alternate non-aromatic ring conformations, if requested.
         if not params["skip_alternate_ring_conformations"]:
             generate_alternate_3d_nonaromatic_ring_confs(
-                contnrs, max_variants_per_compound, thoroughness, num_procs,
-                second_embed, job_manager, parallelizer_obj
+                contnrs,
+                max_variants_per_compound,
+                thoroughness,
+                num_procs,
+                second_embed,
+                job_manager,
+                parallelizer_obj,
             )
 
         # Minimize the molecules, if requested.
         if not params["skip_optimize_geometry"]:
-            minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, job_manager, parallelizer_obj)
+            minimize_3d(
+                contnrs,
+                max_variants_per_compound,
+                thoroughness,
+                num_procs,
+                second_embed,
+                job_manager,
+                parallelizer_obj,
+            )

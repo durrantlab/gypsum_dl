@@ -18,6 +18,7 @@
 # gypsum-DL.
 import sys
 import os
+
 current_dir = os.path.dirname(os.path.realpath(__file__))
 gypsum_gypsum_dir = current_dir
 gypsum_top_dir = os.path.dirname(gypsum_gypsum_dir)

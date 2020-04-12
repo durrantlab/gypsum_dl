@@ -25,7 +25,16 @@ import gypsum_dl.Utils as Utils
 import gypsum_dl.ChemUtils as ChemUtils
 from gypsum_dl.MyMol import MyConformer
 
-def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, second_embed, job_manager, parallelizer_obj):
+
+def minimize_3d(
+    contnrs,
+    max_variants_per_compound,
+    thoroughness,
+    num_procs,
+    second_embed,
+    job_manager,
+    parallelizer_obj,
+):
     """This function minimizes a 3D molecular conformation. In an attempt to
        not get trapped in a local minimum, it actually generates a number of
        conformers, minimizes the best ones, and then saves the best of the
@@ -70,25 +79,26 @@ def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, sec
             # so they can be skipped here.
             for mol in contnr.mols:
                 ones_without_nonaro_rngs.add(mol.contnr_idx)
-                params.append(tuple([mol, max_variants_per_compound, thoroughness, second_embed]))
+                params.append(
+                    tuple([mol, max_variants_per_compound, thoroughness, second_embed])
+                )
     params = tuple(params)
 
     # Run the inputs through the parallelizer.
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(params, parallel_minit, num_procs, job_manager)
     else:
         for i in params:
-            tmp.append(parallel_minit(i[0],i[1],i[2],i[3]))
-
+            tmp.append(parallel_minit(i[0], i[1], i[2], i[3]))
 
     # Save energy into MyMol object, and get a list of just those objects.
     contnr_list_not_empty = set([])  # To keep track of which container lists
-                                     # are not empty. These are the ones
-                                     # you'll be repopulating with better
-                                     # optimized structures.
+    # are not empty. These are the ones
+    # you'll be repopulating with better
+    # optimized structures.
     results = []  # Will contain MyMol.MyMol objects, with the saved energies
-                  # inside.
+    # inside.
     for mol in tmp:
         mol.mol_props["Energy"] = mol.conformers[0].energy
         results.append(mol)
@@ -108,10 +118,9 @@ def minimize_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, sec
     for contnr in contnrs:
         for mol in contnr.mols:
             if mol.rdkit_mol == "":
-                mol.genealogy.append(
-                    "(WARNING: Could not optimize 3D geometry)"
-                )
+                mol.genealogy.append("(WARNING: Could not optimize 3D geometry)")
                 mol.conformers = []
+
 
 def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
     """Minimizes the geometries of a MyMol.MyMol object. Meant to be run
@@ -141,10 +150,7 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
     """
 
     # Not minimizing. Just adding the conformers.
-    mol.add_conformers(
-        thoroughness * max_variants_per_compound,
-        0.1, False
-    )
+    mol.add_conformers(thoroughness * max_variants_per_compound, 0.1, False)
 
     if len(mol.conformers) > 0:
         # Because it is possible to find a molecule that has no
@@ -170,8 +176,10 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
         # Save to the genealogy record.
         new_mol.genealogy = mol.genealogy[:]
         new_mol.genealogy.append(
-            new_mol.smiles(True) + " (optimized conformer: " +
-            str(best_energy) + " kcal/mol)"
+            new_mol.smiles(True)
+            + " (optimized conformer: "
+            + str(best_energy)
+            + " kcal/mol)"
         )
 
         # Save best conformation. For some reason molecular properties

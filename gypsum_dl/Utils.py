@@ -23,6 +23,7 @@ import textwrap
 import random
 import string
 
+
 def group_mols_by_container_index(mol_lst):
     """Take a list of MyMol.MyMol objects, and place them in lists according to
     their associated contnr_idx values. These lists are accessed via
@@ -55,6 +56,7 @@ def group_mols_by_container_index(mol_lst):
 
     return grouped_results
 
+
 def random_sample(lst, num, msg_if_cut=""):
     """Randomly selects elements from a list.
 
@@ -85,6 +87,7 @@ def random_sample(lst, num, msg_if_cut=""):
             log(msg_if_cut)
     return lst
 
+
 def log(txt):
     """Prints a message to the screen.
 
@@ -92,11 +95,16 @@ def log(txt):
     :type txt: str
     """
 
-    whitespace_before = txt[:len(txt) - len(txt.lstrip())].replace("\t", "    ")
-    print(textwrap.fill(
-        txt.strip(), width = 80, initial_indent = whitespace_before,
-        subsequent_indent = whitespace_before + "    "
-    ))
+    whitespace_before = txt[: len(txt) - len(txt.lstrip())].replace("\t", "    ")
+    print(
+        textwrap.fill(
+            txt.strip(),
+            width=80,
+            initial_indent=whitespace_before,
+            subsequent_indent=whitespace_before + "    ",
+        )
+    )
+
 
 def fnd_contnrs_not_represntd(contnrs, results):
     """Identify containers that have no representative elements in results.
@@ -119,7 +127,7 @@ def fnd_contnrs_not_represntd(contnrs, results):
     # Get a dictionary of all the input smiles. Keys are indexes, values are
     # smiles.
     idx_to_smi = {}
-    for idx in range(0,len(contnrs)):
+    for idx in range(0, len(contnrs)):
         contnr = contnrs[idx]
         if not idx in idx_to_smi:
             idx_to_smi[idx] = contnrs[idx].orig_smi_deslt
@@ -134,6 +142,7 @@ def fnd_contnrs_not_represntd(contnrs, results):
     # Return just the container indexes (the keys).
     return list(idx_to_smi.keys())
 
+
 def print_current_smiles(contnrs):
     """Prints the smiles of the current containers. Helpful for debugging.
 
@@ -147,6 +156,7 @@ def print_current_smiles(contnrs):
         log("\t\tMolContainer #" + str(i) + " (" + mol_cont.name + ")")
         for i, s in enumerate(mol_cont.all_can_noh_smiles()):
             log("\t\t\tMol #" + str(i) + ": " + s)
+
 
 def exception(msg):
     """Prints an error to the screen and raises an exception.
@@ -163,6 +173,7 @@ def exception(msg):
     log("=" * 79)
     log("")
     raise Exception(msg)
+
 
 def slug(strng):
     """Converts a string to one that is appropriate for a filename.

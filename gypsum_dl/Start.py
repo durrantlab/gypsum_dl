@@ -66,10 +66,17 @@ def prepare_molecules(args):
 
     # A list of command-line parameters that will be ignored if using a json
     # file.
-    json_warning_list = ['source', 'output_folder', 'num_processors',
-                         'min_ph', 'max_ph', 'delta_ph_increment',
-                         'thoroughness', 'max_variants_per_compound',
-                         'pka_precision']
+    json_warning_list = [
+        "source",
+        "output_folder",
+        "num_processors",
+        "min_ph",
+        "max_ph",
+        "delta_ph_increment",
+        "thoroughness",
+        "max_variants_per_compound",
+        "pka_precision",
+    ]
 
     # Whether to warn the user that the above parameters, if specified, will
     # be ignored.
@@ -78,7 +85,7 @@ def prepare_molecules(args):
     if "json" in args:
         # "json" is one of the parameters, so we'll be ignoring the rest.
         try:
-            params = json.load(open(args['json']))
+            params = json.load(open(args["json"]))
         except:
             Utils.exception("Is your input json file properly formed?")
 
@@ -93,7 +100,9 @@ def prepare_molecules(args):
     # If running in serial mode, make sure only one processor is used.
     if params["job_manager"] == "serial":
         if params["num_processors"] != 1:
-            Utils.log("Because --job_manager was set to serial, this will be run on a single processor.")
+            Utils.log(
+                "Because --job_manager was set to serial, this will be run on a single processor."
+            )
         params["num_processors"] = 1
 
     # Handle mpi errors if mpi4py isn't installed
@@ -103,7 +112,7 @@ def prepare_molecules(args):
         # We must check that it is being run with the "-m mpi4py" runpy flag
         sys_modules = sys.modules
         if "runpy" not in sys_modules.keys():
-            printout ="\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+            printout = "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
             print(printout)
             Utils.exception(printout)
 
@@ -111,7 +120,7 @@ def prepare_molecules(args):
         try:
             import mpi4py
         except:
-            printout ="\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
+            printout = "\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
             print(printout)
             Utils.exception(printout)
 
@@ -121,30 +130,36 @@ def prepare_molecules(args):
 
         if mpi4py_version[0] == 2:
             if mpi4py_version[1] < 1:
-                printout ="\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
+                printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
                 print(printout)
                 Utils.exception(printout)
         elif mpi4py_version[0] < 2:
-            printout ="\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
+            printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
             print(printout)
             Utils.exception(printout)
 
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":
-        Utils.log("WARNING: Multiprocessing is not supported on Windows. Tasks will be run in Serial mode.")
+        Utils.log(
+            "WARNING: Multiprocessing is not supported on Windows. Tasks will be run in Serial mode."
+        )
         params["num_processors"] = 1
         params["job_manager"] = "serial"
 
     # Launch mpi workers if that's what's specified.
-    if params["job_manager"] == 'mpi':
-        params["Parallelizer"] = Parallelizer(params["job_manager"], params["num_processors"])
+    if params["job_manager"] == "mpi":
+        params["Parallelizer"] = Parallelizer(
+            params["job_manager"], params["num_processors"]
+        )
     else:
         # Lower-level mpi (i.e. making a new Parallelizer within an mpi) has
         # problems with importing the MPI environment and mpi4py. So we will
         # flag it to skip the MPI mode and just go to multiprocess/serial.
         # This is a saftey precaution
-        params["Parallelizer"] = Parallelizer(params["job_manager"], params["num_processors"], True)
+        params["Parallelizer"] = Parallelizer(
+            params["job_manager"], params["num_processors"], True
+        )
 
     # Let the user know that their command-line parameters will be ignored, if
     # they have specified a json file.
@@ -153,12 +168,16 @@ def prepare_molecules(args):
 
     # If running in mpi mode, separate_output_files must be set to true.
     if params["job_manager"] == "mpi" and params["separate_output_files"] == False:
-        Utils.log("WARNING: Running in mpi mode, but separate_output_files is not set to True. Setting separate_output_files to True anyway.")
+        Utils.log(
+            "WARNING: Running in mpi mode, but separate_output_files is not set to True. Setting separate_output_files to True anyway."
+        )
         params["separate_output_files"] = True
 
     # Outputing HTML files not supported in mpi mode.
     if params["job_manager"] == "mpi" and params["add_html_output"] == True:
-        Utils.log("WARNING: Running in mpi mode, but add_html_output is set to True. HTML output is not supported in mpi mode.")
+        Utils.log(
+            "WARNING: Running in mpi mode, but add_html_output is set to True. HTML output is not supported in mpi mode."
+        )
         params["add_html_output"] = False
 
     # Load SMILES data
@@ -195,28 +214,36 @@ def prepare_molecules(args):
     # Make the molecule containers.
     contnrs = []
     idx_counter = 0
-    for i in range(0,len(smiles_data)):
+    for i in range(0, len(smiles_data)):
         try:
             smiles, name, props = smiles_data[i]
         except:
-            msg = "Unexpected error. Does your \"source\" parameter specify a "
+            msg = 'Unexpected error. Does your "source" parameter specify a '
             msg = msg + "filename that ends in a .can, .smi, or .sdf extension?"
             Utils.exception(msg)
 
         if detect_unassigned_bonds(smiles) is None:
-            Utils.log("WARNING: Throwing out SMILES because of unassigned bonds: " + smiles)
+            Utils.log(
+                "WARNING: Throwing out SMILES because of unassigned bonds: " + smiles
+            )
             continue
 
         new_contnr = MolContainer(smiles, name, idx_counter, props)
-        if new_contnr.orig_smi_canonical==None or type(new_contnr.orig_smi_canonical) !=str:
-            Utils.log("WARNING: Throwing out SMILES because of it couldn't convert to mol: " + smiles)
+        if (
+            new_contnr.orig_smi_canonical == None
+            or type(new_contnr.orig_smi_canonical) != str
+        ):
+            Utils.log(
+                "WARNING: Throwing out SMILES because of it couldn't convert to mol: "
+                + smiles
+            )
             continue
 
         contnrs.append(new_contnr)
         idx_counter += 1
 
     # Remove None types from failed conversion
-    contnrs = [x for x in contnrs if x.orig_smi_canonical!=None]
+    contnrs = [x for x in contnrs if x.orig_smi_canonical != None]
     if len(contnrs) != idx_counter:
         Utils.exception("There is a corrupted container")
 
@@ -260,6 +287,7 @@ def prepare_molecules(args):
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["job_manager"])
 
+
 def execute_gypsum_dl(contnrs, params):
     """A function for doing all of the manipulations to each molecule.
 
@@ -289,6 +317,7 @@ def execute_gypsum_dl(contnrs, params):
     # Process the output.
     proccess_output(contnrs, params)
 
+
 def detect_unassigned_bonds(smiles):
     """Detects whether a give smiles string has unassigned bonds.
 
@@ -308,6 +337,7 @@ def detect_unassigned_bonds(smiles):
             return None
     return smiles
 
+
 def set_parameters(params_unicode):
     """Set the parameters that will control this ConfGenerator object.
 
@@ -320,35 +350,37 @@ def set_parameters(params_unicode):
     """
 
     # Set the default values.
-    default = OrderedDict({
-        "source" : "",
-        "output_folder" : "./",
-        "separate_output_files" : False,
-        "add_pdb_output": False,
-        "add_html_output": False,
-        "num_processors" : -1,
-        "start_time" : 0,
-        "end_time" : 0,
-        "run_time" : 0,
-        "min_ph" : 6.4,
-        "max_ph" : 8.4,
-        "pka_precision" : 1.0,
-        "thoroughness" : 3,
-        "max_variants_per_compound" : 5,
-        "second_embed" : False,
-        "2d_output_only" : False,
-        "skip_optimize_geometry" : False,
-        "skip_alternate_ring_conformations" : False,
-        "skip_adding_hydrogen" : False,
-        "skip_making_tautomers" : False,
-        "skip_enumerate_chiral_mol" : False,
-        "skip_enumerate_double_bonds" : False,
-        "let_tautomers_change_chirality": False,
-        "use_durrant_lab_filters": False,
-        "job_manager" : "multiprocessing",
-        "cache_prerun": False,
-        "test": False
-    })
+    default = OrderedDict(
+        {
+            "source": "",
+            "output_folder": "./",
+            "separate_output_files": False,
+            "add_pdb_output": False,
+            "add_html_output": False,
+            "num_processors": -1,
+            "start_time": 0,
+            "end_time": 0,
+            "run_time": 0,
+            "min_ph": 6.4,
+            "max_ph": 8.4,
+            "pka_precision": 1.0,
+            "thoroughness": 3,
+            "max_variants_per_compound": 5,
+            "second_embed": False,
+            "2d_output_only": False,
+            "skip_optimize_geometry": False,
+            "skip_alternate_ring_conformations": False,
+            "skip_adding_hydrogen": False,
+            "skip_making_tautomers": False,
+            "skip_enumerate_chiral_mol": False,
+            "skip_enumerate_double_bonds": False,
+            "let_tautomers_change_chirality": False,
+            "use_durrant_lab_filters": False,
+            "job_manager": "multiprocessing",
+            "cache_prerun": False,
+            "test": False,
+        }
+    )
 
     # Modify params so that they keys are always lower case.
     # Also, rdkit doesn't play nice with unicode, so convert to ascii
@@ -379,6 +411,7 @@ def set_parameters(params_unicode):
 
     return final_params
 
+
 def merge_parameters(default, params):
     """Add default values if missing from parameters.
 
@@ -397,9 +430,7 @@ def merge_parameters(default, params):
     for param in params:
         # Throw an error if there's an unrecognized parameter.
         if param not in default:
-            Utils.log(
-                "Parameter \"" + str(param) + "\" not recognized!"
-            )
+            Utils.log('Parameter "' + str(param) + '" not recognized!')
             Utils.log("Here are the options:")
             Utils.log(" ".join(sorted(list(default.keys()))))
             Utils.exception("Unrecognized parameter: " + str(param))
@@ -413,13 +444,19 @@ def merge_parameters(default, params):
             else:
                 # Seems to be a type mismatch.
                 Utils.exception(
-                    "The parameter \"" + param + "\" must be of " +
-                    "type " + str(type_dict[param]) + ", but it is of type " +
-                    str(type(params[param])) + "."
+                    'The parameter "'
+                    + param
+                    + '" must be of '
+                    + "type "
+                    + str(type_dict[param])
+                    + ", but it is of type "
+                    + str(type(params[param]))
+                    + "."
                 )
 
         # Update the parameter value with the user-defined one.
         default[param] = params[param]
+
 
 def make_type_dict(dictionary):
     """Creates a types dictionary from an existant dictionary. Keys are
@@ -445,12 +482,14 @@ def make_type_dict(dictionary):
         # The value ha san unacceptable type. Throw an error.
         if key not in type_dict:
             Utils.exception(
-                "ERROR: There appears to be an error in your parameter " +
-                "JSON file. No value can have type " + str(type(val)) +
-                "."
+                "ERROR: There appears to be an error in your parameter "
+                + "JSON file. No value can have type "
+                + str(type(val))
+                + "."
             )
 
     return type_dict
+
 
 def finalize_params(params):
     """Checks and updates parameters to their final values.
@@ -465,9 +504,9 @@ def finalize_params(params):
     # Throw an error if there's a missing parameter.
     if params["source"] == "":
         Utils.exception(
-            "Missing parameter \"source\". You need to specify " +
-            "the source of the input molecules (probably a SMI or SDF " +
-            "file)."
+            'Missing parameter "source". You need to specify '
+            + "the source of the input molecules (probably a SMI or SDF "
+            + "file)."
         )
 
     # Note on parameter "source", the data source. If it's a string that
@@ -505,6 +544,7 @@ def finalize_params(params):
 
     return params
 
+
 def add_mol_id_props(contnrs):
     """Once all molecules have been generated, go through each and add the
        name and a unique id (for writing to the SDF file, for example).
@@ -519,6 +559,7 @@ def add_mol_id_props(contnrs):
             cont_id = cont_id + 1
             mol.set_rdkit_mol_prop("UniqueID", str(cont_id))
             mol.set_all_rdkit_mol_props()
+
 
 def deal_with_failed_molecules(contnrs, params):
     """Removes and logs failed molecules.
@@ -538,13 +579,11 @@ def deal_with_failed_molecules(contnrs, params):
 
     # Let the user know if there's more than one failed molecule.
     if len(failed_ones) > 0:
-        Utils.log(
-            "\n3D models could not be generated for the following entries:"
-        )
+        Utils.log("\n3D models could not be generated for the following entries:")
         Utils.log("\n".join(failed_ones))
         Utils.log("\n")
 
         # Write the failures to an smi file.
-        outfile = open(params["output_folder"] + os.sep + "gypsum_dl_failed.smi", 'w')
+        outfile = open(params["output_folder"] + os.sep + "gypsum_dl_failed.smi", "w")
         outfile.write("\n".join(failed_ones))
         outfile.close()

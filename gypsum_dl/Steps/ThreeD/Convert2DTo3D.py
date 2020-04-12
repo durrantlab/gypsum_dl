@@ -30,7 +30,15 @@ try:
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
-def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs, job_manager, parallelizer_obj):
+
+def convert_2d_to_3d(
+    contnrs,
+    max_variants_per_compound,
+    thoroughness,
+    num_procs,
+    job_manager,
+    parallelizer_obj,
+):
     """Converts the 1D smiles strings into 3D small-molecule models.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
@@ -66,7 +74,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs
 
     # Run the parallelizer
     tmp = []
-    if parallelizer_obj !=  None:
+    if parallelizer_obj != None:
         tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, job_manager)
     else:
         for i in params:
@@ -80,6 +88,7 @@ def convert_2d_to_3d(contnrs, max_variants_per_compound, thoroughness, num_procs
     ChemUtils.bst_for_each_contnr_no_opt(
         contnrs, clear, max_variants_per_compound, thoroughness, False
     )
+
 
 def parallel_make_3d(mol):
     """Does the 2D to 3D conversion. Meant to run within parallelizer.
@@ -107,9 +116,7 @@ def parallel_make_3d(mol):
             # If there are some conformations, make note of that in the
             # genealogy record.
             if len(mol.conformers) > 0:
-                mol.genealogy.append(
-                    mol.smiles(True) + " (3D coordinates assigned)"
-                )
+                mol.genealogy.append(mol.smiles(True) + " (3D coordinates assigned)")
                 return mol
             else:
                 # No conformers? Show an error. Something's gone wrong.
@@ -118,9 +125,12 @@ def parallel_make_3d(mol):
     if show_error_msg:
         # Something's gone wrong, so show this error.
         Utils.log(
-            "\tWARNING: Could not generate 3D geometry for " +
-            str(mol.smiles()) + " (" + mol.name + "). Molecule " +
-            "discarded."
+            "\tWARNING: Could not generate 3D geometry for "
+            + str(mol.smiles())
+            + " ("
+            + mol.name
+            + "). Molecule "
+            + "discarded."
         )
 
     # If you get here, something's gone wrong...
