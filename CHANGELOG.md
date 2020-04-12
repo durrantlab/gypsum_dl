@@ -12,6 +12,8 @@ Some durrantlab filters are applied immediately after desalting (to avoid very l
 
 NOTE DONE BUT YOU SHOULD DO IT: Make ChemUtils.bst_for_each_contnr_no_opt parallel. It's currently a pretty substantial bottleneck.
 
+Minor spelling corrections.
+
 1.1.2
 -----
 
