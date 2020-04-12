@@ -1,4 +1,4 @@
-# Gypsum-DL 1.1.2
+# Gypsum-DL 1.1.3
 
 Gypsum-DL is a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
