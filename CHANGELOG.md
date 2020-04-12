@@ -13,9 +13,8 @@ Changes
   add-hydrogens step, specifically when Gypsum-DL generates the 3D structures
   required to rank conformers. Removing these compounds before adding
   hydrogens avoids the problem.
+* Improved code formatting.
 * Made minor spelling corrections to the output.
-
-NOTE DONE BUT YOU SHOULD DO IT: Make ChemUtils.bst_for_each_contnr_no_opt parallel. It's currently a pretty substantial bottleneck.
 
 1.1.2
 -----
