@@ -1,4 +1,4 @@
-# Copyright 2018 Jacob D. Durrant
+# Copyright 2020 Jacob D. Durrant
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,19 +30,25 @@ except ImportError:
     # Python3
     from io import StringIO
 
-# Always let the user know a help file is available.
-print("\nFor help, use: python dimorphite_dl.py --help")
+def print_header():
+    """Prints out header information."""
+    # Always let the user know a help file is available.
+    print("\nFor help, use: python dimorphite_dl.py --help")
 
-# And always report citation information.
-print("\nIf you use Dimorphite-DL in your research, please cite:")
-print("Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An")
-print("open-source program for enumerating the ionization states of drug-like small")
-print("molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.\n")
+    # And always report citation information.
+    print("\nIf you use Dimorphite-DL in your research, please cite:")
+    print("Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An")
+    print("open-source program for enumerating the ionization states of drug-like small")
+    print("molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.\n")
 
 try:
     import rdkit
     from rdkit import Chem
     from rdkit.Chem import AllChem
+
+    # Disable the unnecessary RDKit warnings
+    from rdkit import RDLogger
+    RDLogger.DisableLog("rdApp.*")
 except:
     msg = "Dimorphite-DL requires RDKit. See https://www.rdkit.org/"
     print(msg)
@@ -61,6 +67,8 @@ def main(params=None):
 
     parser = ArgParseFuncs.get_args()
     args = vars(parser.parse_args())
+    if not args["silent"]:
+        print_header()
 
     # Add in any parameters in params.
     if params is not None:
@@ -69,10 +77,11 @@ def main(params=None):
 
     # If being run from the command line, print out all parameters.
     if __name__ == "__main__":
-        print("\nPARAMETERS:\n")
-        for k in sorted(args.keys()):
-            print(k.rjust(13) + ": " + str(args[k]))
-        print("")
+        if not args["silent"]:
+            print("\nPARAMETERS:\n")
+            for k in sorted(args.keys()):
+                print(k.rjust(13) + ": " + str(args[k]))
+            print("")
 
     if args["test"]:
         # Run tests.
@@ -137,9 +146,9 @@ class ArgParseFuncs:
         :return: A parser object.
         """
 
-        parser = MyParser(description="Dimorphite 1.2.2: Creates models of " +
+        parser = MyParser(description="Dimorphite 1.2.3: Creates models of " +
                                       "appropriately protonated small moleucles. " +
-                                      "Apache 2.0 License. Copyright 2018 Jacob D. " +
+                                      "Apache 2.0 License. Copyright 2020 Jacob D. " +
                                       "Durrant.")
         parser.add_argument('--min_ph', metavar='MIN', type=float, default=6.4,
                             help='minimum pH to consider (default: 6.4)')
@@ -158,6 +167,8 @@ class ArgParseFuncs:
         parser.add_argument('--label_states', action="store_true",
                             help='label protonated SMILES with target state ' + \
                                 '(i.e., "DEPROTONATED", "PROTONATED", or "BOTH").')
+        parser.add_argument('--silent', action="store_true",
+                            help='do not print any messages to the screen')
         parser.add_argument('--test', action="store_true",
                             help='run unit tests (for debugging)')
 
@@ -711,6 +722,7 @@ class ProtSubstructFuncs:
                            "PROTONATED": [0],
                            "BOTH": [-1, 0]}
 
+
         charges = state_to_charge[target_prot_state]
 
         # Now make the actual smiles match the target protonation state.
@@ -740,7 +752,7 @@ class ProtSubstructFuncs:
         for charge in charges:
             # The charge for Nitrogens is 1 higher than others (i.e.,
             # protonated state is positively charged).
-            nitro_charge = charge + 1
+            nitrogen_charge = charge + 1
 
             # But there are a few nitrogen moieties where the acidic group is
             # the neutral one. Amides are a good example. I gave some thought
@@ -748,7 +760,7 @@ class ProtSubstructFuncs:
             # nitrogen-containing moieties where the acidic group is neutral
             # (rather than positively charged) will have "*" in the name.
             if "*" in prot_site_name:
-                nitro_charge = nitro_charge - 1  # Undo what was done previously.
+                nitrogen_charge = nitrogen_charge - 1  # Undo what was done previously.
 
             for mol in mols:
                 # Make a copy of the molecule.
@@ -763,20 +775,46 @@ class ProtSubstructFuncs:
 
                 atom = mol_copy.GetAtomWithIdx(idx)
 
+                explicit_bond_order_total = sum([b.GetBondTypeAsDouble() for b in atom.GetBonds()])
+
                 # Assign the protonation charge, with special care for
                 # nitrogens
                 element = atom.GetAtomicNum()
                 if element == 7:
-                    atom.SetFormalCharge(nitro_charge)
+                    atom.SetFormalCharge(nitrogen_charge)
+
+                    # Need to figure out how many hydrogens to add.
+                    if nitrogen_charge == 1 and explicit_bond_order_total == 1:
+                        atom.SetNumExplicitHs(3)
+                    elif nitrogen_charge == 1 and explicit_bond_order_total == 2:
+                        atom.SetNumExplicitHs(2)
+                    elif nitrogen_charge == 1 and explicit_bond_order_total == 3:
+                        atom.SetNumExplicitHs(1)
+                    elif nitrogen_charge == 0 and explicit_bond_order_total == 1:
+                        atom.SetNumExplicitHs(2)
+                    elif nitrogen_charge == 0 and explicit_bond_order_total == 2:
+                        atom.SetNumExplicitHs(1)
+                    elif nitrogen_charge == -1 and explicit_bond_order_total == 2:
+                        atom.SetNumExplicitHs(0)
+                    elif nitrogen_charge == -1 and explicit_bond_order_total == 1:
+                        atom.SetNumExplicitHs(1)
+                    #### JDD
                 else:
                     atom.SetFormalCharge(charge)
+                    if element == 8 or element == 16:  # O and S
+                        if charge == 0 and explicit_bond_order_total == 1:
+                            atom.SetNumExplicitHs(1)
+                        elif charge == -1 and explicit_bond_order_total == 1:
+                            atom.SetNumExplicitHs(0)
+                        # import pdb; pdb.set_trace()
 
                 # Deprotonating protonated aromatic nitrogen gives [nH-]. Change this
                 # to [n-].
                 if "[nH-]" in Chem.MolToSmiles(mol_copy):
                     atom.SetNumExplicitHs(0)
 
-                mol_copy.UpdatePropertyCache()
+                mol_copy.UpdatePropertyCache(strict=False)
+                # prod.UpdatePropertyCache(strict=False)
 
                 output.append(mol_copy)
 
@@ -925,6 +963,7 @@ class TestFuncs:
             args["smiles"] = smi
             TestFuncs.test_check(args, [protonated], ["PROTONATED"])
 
+        # Test phosphates separately
         for smi, protonated, mix, deprotonated, category in smis_phos:
             args["smiles"] = smi
             TestFuncs.test_check(args, [protonated], ["PROTONATED"])

@@ -1,6 +1,15 @@
 Changes
 =======
 
+1.2.3
+-----
+
+* Updated protonation of nitrogen, oxygen, and sulfur atoms to be compatible
+  with the latest version of RDKit, which broke backwards compatibility.
+* Added "silent" option to suppress all output.
+* Added code to suppress unnecessary RDKit warnings.
+* Updated copyright to 2020.
+
 1.2.2
 -----
 

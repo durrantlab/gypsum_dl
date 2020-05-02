@@ -1,6 +1,12 @@
 Changes
 =======
 
+WIP
+---
+
+NOTE DONE BUT YOU SHOULD DO IT: Make ChemUtils.bst_for_each_contnr_no_opt parallel. It's currently a pretty substantial bottleneck.
+
+
 1.1.3
 -----
 
