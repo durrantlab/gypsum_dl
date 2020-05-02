@@ -4,7 +4,10 @@ Changes
 1.1.4
 -----
 
-* Updated dimorphite-DL to 1.2.3.
+* Updated Dimorphite-DL to 1.2.3.
+* Added `sys.stdout.flush()` commands to ParallelMPI.run in
+  `$PATH/gypsum_dl/gypsum_dl/Parallelizer.py`. These should help
+  to ensure that print statements properly output in large MPI runs.
 
 1.1.3
 -----

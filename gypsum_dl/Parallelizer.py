@@ -591,6 +591,8 @@ class ParallelMPI(object):
 
         # perform the calculation and get results
         result_chunk = [func(*arg) for arg in args_chunk]
+        sys.stdout.flush()
+
         result_chunk = self.COMM.gather(result_chunk, root=0)
 
         if type(result_chunk) != list:
@@ -607,7 +609,7 @@ class ParallelMPI(object):
             raise Exception("results needs to be a list")
 
         results = [x for x in results if type(x) != type(self.Empty_object)]
-
+        sys.stdout.flush()
         return results
 
 
