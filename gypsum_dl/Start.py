@@ -180,8 +180,20 @@ def prepare_molecules(args):
         )
         params["add_html_output"] = False
 
+    # Warn the user if he or she is not using the Durrant lab filters.
+    if params["use_durrant_lab_filters"] ==- False:
+        Utils.log(
+            "WARNING: Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated " +
+            "variants, we have identified a number of substructures that, though technically possible, strike us " +
+            "as improbable or otherwise poorly suited for virtual screening. We strongly recommend removing these " +
+            "by running Gypsum-DL with the --use_durrant_lab_filters option.",
+            trailing_whitespace="\n"
+        )
+
     # Load SMILES data
     if isinstance(params["source"], str):
+        Utils.log("Loading molecules from " + os.path.basename(params["source"]) + "...")
+
         # Smiles must be array of strs.
         src = params["source"]
         if src.lower().endswith(".smi") or src.lower().endswith(".can"):

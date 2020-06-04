@@ -88,11 +88,14 @@ def random_sample(lst, num, msg_if_cut=""):
     return lst
 
 
-def log(txt):
+def log(txt, trailing_whitespace=""):
     """Prints a message to the screen.
 
     :param txt: The message to print.
     :type txt: str
+    :param trailing_whitespace: White space to add to the end of the
+        message, after the trim. "" by default.
+    :type trailing_whitespace: string
     """
 
     whitespace_before = txt[: len(txt) - len(txt.lstrip())].replace("\t", "    ")
@@ -102,7 +105,7 @@ def log(txt):
             width=80,
             initial_indent=whitespace_before,
             subsequent_indent=whitespace_before + "    ",
-        )
+        ) + trailing_whitespace
     )
 
 

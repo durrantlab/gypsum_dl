@@ -6,6 +6,16 @@ Changes
 
 * Updated Dimorphite-DL to 1.2.4. Now better handles compounds with
   polyphosphate chains (e.g., ATP).
+* Minor updates to the Durrant-lab filters:
+  * When running Gypsum-DL without the `--use_durrant_lab_filters` parameter,
+    Gypsum-DL now displays a warning. We strongly recommend using these
+    filters, but we choose not to turn them on by default in order to maintain
+    backwards compatibility.
+  * Added filter to compensate for a phosphate-related bug in MolVS, one of
+    Gypsum-DL's dependencies. MolVS sometimes tautomerizes `[O]P(O)([O])=O` to
+    `[O][PH](=O)([O])=O`, so the Durrant-lab filters now remove any tautomers
+    with substructures that match the SMARTS string `O=[PH](=O)([#8])([#8])`.
+  * Added filter to remove molecules containing `[Bi]`.
 
 1.1.4
 -----
