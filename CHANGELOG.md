@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.1.5
+-----
+
+* Updated Dimorphite-DL to 1.2.4. Now better handles compounds with
+  polyphosphate chains (e.g., ATP).
+
 1.1.4
 -----
 

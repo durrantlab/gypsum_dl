@@ -30,6 +30,7 @@ except ImportError:
     # Python3
     from io import StringIO
 
+
 def print_header():
     """Prints out header information."""
     # Always let the user know a help file is available.
@@ -38,8 +39,11 @@ def print_header():
     # And always report citation information.
     print("\nIf you use Dimorphite-DL in your research, please cite:")
     print("Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An")
-    print("open-source program for enumerating the ionization states of drug-like small")
+    print(
+        "open-source program for enumerating the ionization states of drug-like small"
+    )
     print("molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.\n")
+
 
 try:
     import rdkit
@@ -48,11 +52,13 @@ try:
 
     # Disable the unnecessary RDKit warnings
     from rdkit import RDLogger
+
     RDLogger.DisableLog("rdApp.*")
 except:
     msg = "Dimorphite-DL requires RDKit. See https://www.rdkit.org/"
     print(msg)
     raise Exception(msg)
+
 
 def main(params=None):
     """The main definition run when you call the script from the commandline.
@@ -67,6 +73,7 @@ def main(params=None):
 
     parser = ArgParseFuncs.get_args()
     args = vars(parser.parse_args())
+
     if not args["silent"]:
         print_header()
 
@@ -100,6 +107,7 @@ def main(params=None):
             for protonated_smi in Protonate(args):
                 print(protonated_smi)
 
+
 class MyParser(argparse.ArgumentParser):
     """Overwrite default parse so it displays help file on error. See
     https://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu"""
@@ -126,14 +134,17 @@ class MyParser(argparse.ArgumentParser):
         if file is None:
             file = sys.stdout
         self._print_message(self.format_help(), file)
-        print("""
+        print(
+            """
 examples:
   python dimorphite_dl.py --smiles_file sample_molecules.smi
   python dimorphite_dl.py --smiles "CCC(=O)O" --min_ph -3.0 --max_ph -2.0
   python dimorphite_dl.py --smiles "CCCN" --min_ph -3.0 --max_ph -2.0 --output_file output.smi
   python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
-  python dimorphite_dl.py --test""")
+  python dimorphite_dl.py --test"""
+        )
         print("")
+
 
 class ArgParseFuncs:
     """A namespace for storing functions that are useful for processing
@@ -146,31 +157,69 @@ class ArgParseFuncs:
         :return: A parser object.
         """
 
-        parser = MyParser(description="Dimorphite 1.2.3: Creates models of " +
-                                      "appropriately protonated small moleucles. " +
-                                      "Apache 2.0 License. Copyright 2020 Jacob D. " +
-                                      "Durrant.")
-        parser.add_argument('--min_ph', metavar='MIN', type=float, default=6.4,
-                            help='minimum pH to consider (default: 6.4)')
-        parser.add_argument('--max_ph', metavar='MAX', type=float, default=8.4,
-                            help='maximum pH to consider (default: 8.4)')
-        parser.add_argument('--pka_precision', metavar='PRE', type=float, default=1.0,
-                            help='pKa precision factor (number of standard devations, default: 1.0)')
-        parser.add_argument('--smiles', metavar='SMI', type=str,
-                            help='SMILES string to protonate')
-        parser.add_argument('--smiles_file', metavar="FILE", type=str,
-                            help='file that contains SMILES strings to protonate')
-        parser.add_argument('--output_file', metavar="FILE", type=str,
-                            help='output file to write protonated SMILES (optional)')
-        parser.add_argument('--max_variants', metavar="MXV", type=int, default=128,
-                            help='limit number of variants per input compound (default: 128)')
-        parser.add_argument('--label_states', action="store_true",
-                            help='label protonated SMILES with target state ' + \
-                                '(i.e., "DEPROTONATED", "PROTONATED", or "BOTH").')
-        parser.add_argument('--silent', action="store_true",
-                            help='do not print any messages to the screen')
-        parser.add_argument('--test', action="store_true",
-                            help='run unit tests (for debugging)')
+        parser = MyParser(
+            description="Dimorphite 1.2.4: Creates models of "
+            + "appropriately protonated small moleucles. "
+            + "Apache 2.0 License. Copyright 2020 Jacob D. "
+            + "Durrant."
+        )
+        parser.add_argument(
+            "--min_ph",
+            metavar="MIN",
+            type=float,
+            default=6.4,
+            help="minimum pH to consider (default: 6.4)",
+        )
+        parser.add_argument(
+            "--max_ph",
+            metavar="MAX",
+            type=float,
+            default=8.4,
+            help="maximum pH to consider (default: 8.4)",
+        )
+        parser.add_argument(
+            "--pka_precision",
+            metavar="PRE",
+            type=float,
+            default=1.0,
+            help="pKa precision factor (number of standard devations, default: 1.0)",
+        )
+        parser.add_argument(
+            "--smiles", metavar="SMI", type=str, help="SMILES string to protonate"
+        )
+        parser.add_argument(
+            "--smiles_file",
+            metavar="FILE",
+            type=str,
+            help="file that contains SMILES strings to protonate",
+        )
+        parser.add_argument(
+            "--output_file",
+            metavar="FILE",
+            type=str,
+            help="output file to write protonated SMILES (optional)",
+        )
+        parser.add_argument(
+            "--max_variants",
+            metavar="MXV",
+            type=int,
+            default=128,
+            help="limit number of variants per input compound (default: 128)",
+        )
+        parser.add_argument(
+            "--label_states",
+            action="store_true",
+            help="label protonated SMILES with target state "
+            + '(i.e., "DEPROTONATED", "PROTONATED", or "BOTH").',
+        )
+        parser.add_argument(
+            "--silent",
+            action="store_true",
+            help="do not print any messages to the screen",
+        )
+        parser.add_argument(
+            "--test", action="store_true", help="run unit tests (for debugging)"
+        )
 
         return parser
 
@@ -183,12 +232,14 @@ class ArgParseFuncs:
         :raises Exception: No SMILES in params.
         """
 
-        defaults = {'min_ph' : 6.4,
-                    'max_ph' : 8.4,
-                    'pka_precision' : 1.0,
-                    'label_states' : False,
-                    'test' : False,
-                    'max_variants': 128}
+        defaults = {
+            "min_ph": 6.4,
+            "max_ph": 8.4,
+            "pka_precision": 1.0,
+            "label_states": False,
+            "test": False,
+            "max_variants": 128,
+        }
 
         for key in defaults:
             if key not in args:
@@ -208,11 +259,12 @@ class ArgParseFuncs:
         # object.
         if "smiles" in args:
             if isinstance(args["smiles"], str):
-                args["smiles_file"]  = StringIO(args["smiles"])
+                args["smiles_file"] = StringIO(args["smiles"])
 
-        args["smiles_and_data"] = LoadSMIFile(args["smiles_file"])
+        args["smiles_and_data"] = LoadSMIFile(args["smiles_file"], args)
 
         return args
+
 
 class UtilFuncs:
     """A namespace to store functions for manipulating mol objects. To keep
@@ -229,17 +281,35 @@ class UtilFuncs:
 
         # Get the reaction data
         rxn_data = [
-            ['[Ov1-1:1]', '[Ov2+0:1]-[H]'],  # To handle O- bonded to only one atom (add hydrogen).
-            ['[#7v4+1:1]-[H]', '[#7v3+0:1]'],  # To handle N+ bonded to a hydrogen (remove hydrogen).
-            ['[Ov2-:1]', '[Ov2+0:1]'],  # To handle O- bonded to two atoms. Should not be Negative.
-            ['[#7v3+1:1]', '[#7v3+0:1]'],  # To handle N+ bonded to three atoms. Should not be positive.
-            ['[#7v2-1:1]', '[#7+0:1]-[H]'],  # To handle N- Bonded to two atoms. Add hydrogen.
+            [
+                "[Ov1-1:1]",
+                "[Ov2+0:1]-[H]",
+            ],  # To handle O- bonded to only one atom (add hydrogen).
+            [
+                "[#7v4+1:1]-[H]",
+                "[#7v3+0:1]",
+            ],  # To handle N+ bonded to a hydrogen (remove hydrogen).
+            [
+                "[Ov2-:1]",
+                "[Ov2+0:1]",
+            ],  # To handle O- bonded to two atoms. Should not be Negative.
+            [
+                "[#7v3+1:1]",
+                "[#7v3+0:1]",
+            ],  # To handle N+ bonded to three atoms. Should not be positive.
+            [
+                "[#7v2-1:1]",
+                "[#7+0:1]-[H]",
+            ],  # To handle N- Bonded to two atoms. Add hydrogen.
             # ['[N:1]=[N+0:2]=[N:3]-[H]', '[N:1]=[N+1:2]=[N+0:3]-[H]'],  # To handle bad azide. Must be
-                                                                         # protonated. (Now handled
-                                                                         # elsewhere, before SMILES
-                                                                         # converted to Mol object.)
-            ['[H]-[N:1]-[N:2]#[N:3]', '[N:1]=[N+1:2]=[N:3]-[H]']  # To handle bad azide. R-N-N#N should
-                                                                  # be R-N=[N+]=N
+            # protonated. (Now handled
+            # elsewhere, before SMILES
+            # converted to Mol object.)
+            [
+                "[H]-[N:1]-[N:2]#[N:3]",
+                "[N:1]=[N+1:2]=[N:3]-[H]",
+            ]  # To handle bad azide. R-N-N#N should
+            # be R-N=[N+]=N
         ]
 
         # Add substructures and reactions (initially none)
@@ -256,10 +326,15 @@ class UtilFuncs:
             current_rxn_str = None
 
             for i, rxn_datum in enumerate(rxn_data):
-                reactant_smarts, product_smarts, substruct_match_mol, rxn_placeholder = rxn_datum
+                (
+                    reactant_smarts,
+                    product_smarts,
+                    substruct_match_mol,
+                    rxn_placeholder,
+                ) = rxn_datum
                 if mol.HasSubstructMatch(substruct_match_mol):
                     if rxn_placeholder is None:
-                        current_rxn_str = reactant_smarts + '>>' + product_smarts
+                        current_rxn_str = reactant_smarts + ">>" + product_smarts
                         current_rxn = AllChem.ReactionFromSmarts(current_rxn_str)
                         rxn_data[i][3] = current_rxn  # Update the placeholder.
                     else:
@@ -277,10 +352,10 @@ class UtilFuncs:
         # need to resanitize them. Make sure aromatic rings are shown as such
         # This catches all RDKit Errors. without the catchError and
         # sanitizeOps the Chem.SanitizeMol can crash the program.
-        sanitize_string =  Chem.SanitizeMol(
+        sanitize_string = Chem.SanitizeMol(
             mol,
             sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
-            catchErrors = True
+            catchErrors=True,
         )
 
         return mol if sanitize_string.name == "SANITIZE_NONE" else None
@@ -335,16 +410,19 @@ class UtilFuncs:
 
         print(*args, file=sys.stderr, **kwargs)
 
+
 class LoadSMIFile(object):
     """A generator class for loading in the SMILES strings from a file, one at
     a time."""
 
-    def __init__(self, filename):
+    def __init__(self, filename, args):
         """Initializes this class.
 
         :param filename: The filename or file object (i.e., StringIO).
         :type filename: str or StringIO
         """
+
+        self.args = args
 
         if type(filename) is str:
             # It's a filename
@@ -402,36 +480,46 @@ class LoadSMIFile(object):
             # into a canonical form. Filter if failed.
             mol = UtilFuncs.convert_smiles_str_to_mol(smiles_str)
             if mol is None:
-                UtilFuncs.eprint("WARNING: Skipping poorly formed SMILES string: " + line)
+                if "silent" in self.args and not self.args["silent"]:
+                    UtilFuncs.eprint(
+                        "WARNING: Skipping poorly formed SMILES string: " + line
+                    )
                 return self.next()
 
             # Handle nuetralizing the molecules. Filter if failed.
             mol = UtilFuncs.neutralize_mol(mol)
             if mol is None:
-                UtilFuncs.eprint("WARNING: Skipping poorly formed SMILES string: " + line)
+                if "silent" in self.args and not self.args["silent"]:
+                    UtilFuncs.eprint(
+                        "WARNING: Skipping poorly formed SMILES string: " + line
+                    )
                 return self.next()
 
             # Remove the hydrogens.
             try:
                 mol = Chem.RemoveHs(mol)
             except:
-                UtilFuncs.eprint("WARNING: Skipping poorly formed SMILES string: " + line)
+                if "silent" in self.args and not self.args["silent"]:
+                    UtilFuncs.eprint(
+                        "WARNING: Skipping poorly formed SMILES string: " + line
+                    )
                 return self.next()
 
             if mol is None:
-                UtilFuncs.eprint("WARNING: Skipping poorly formed SMILES string: " + line)
+                if "silent" in self.args and not self.args["silent"]:
+                    UtilFuncs.eprint(
+                        "WARNING: Skipping poorly formed SMILES string: " + line
+                    )
                 return self.next()
 
             # Regenerate the smiles string (to standardize).
             new_mol_string = Chem.MolToSmiles(mol, isomericSmiles=True)
 
-            return {
-                "smiles": new_mol_string,
-                "data": splits[1:]
-            }
+            return {"smiles": new_mol_string, "data": splits[1:]}
         else:
             # Blank line? Go to next one.
             return self.next()
+
 
 class Protonate(object):
     """A generator class for protonating SMILES strings, one at a time."""
@@ -452,6 +540,9 @@ class Protonate(object):
 
         # Clean and normalize the args
         self.args = ArgParseFuncs.clean_args(args)
+
+        # Make sure functions in ProtSubstructFuncs have access to the args.
+        ProtSubstructFuncs.args = args
 
         # Load the substructures that can be protonated.
         self.subs = ProtSubstructFuncs.load_protonation_substructs_calc_state_for_ph(
@@ -503,10 +594,18 @@ class Protonate(object):
             # There are no more input smiles strings...
             raise StopIteration()
 
+        # Keep track of the original smiles string for reporting, starting the
+        # protonation process, etc.
         orig_smi = smile_and_datum["smiles"]
-        data = smile_and_datum["data"]  # Everything on SMILES line but the
-                                        # SMILES string itself (e.g., the
-                                        # molecule name).
+
+        # Dimorphite-DL may protonate some sites in ways that produce invalid
+        # SMILES. We need to keep track of all smiles so we can "rewind" to
+        # the last valid one, should things go south.
+        properly_formed_smi_found = [orig_smi]
+
+        # Everything on SMILES line but the SMILES string itself (e.g., the
+        # molecule name).
+        data = smile_and_datum["data"]
 
         # Collect the data associated with this smiles (e.g., the molecule
         # name).
@@ -517,49 +616,77 @@ class Protonate(object):
         # the site SHOULD be in (not the one it IS in per the SMILES string).
         # It's calculated based on the probablistic distributions obtained
         # during training.
-        sites, mol_used_to_idx_sites = ProtSubstructFuncs.get_prot_sites_and_target_states(orig_smi, self.subs)
+        (
+            sites,
+            mol_used_to_idx_sites,
+        ) = ProtSubstructFuncs.get_prot_sites_and_target_states(orig_smi, self.subs)
 
         new_mols = [mol_used_to_idx_sites]
-        if (len(sites) > 0):
+        if len(sites) > 0:
             for site in sites:
                 # Make a new smiles with the correct protonation state. Note that
                 # new_smis is a growing list. This is how multiple protonation
                 # sites are handled.
                 new_mols = ProtSubstructFuncs.protonate_site(new_mols, site)
                 if len(new_mols) > self.args["max_variants"]:
-                    new_mols = new_mols[:self.args["max_variants"]]
-                    UtilFuncs.eprint("WARNING: Limited number of variants to " +
-                                     str(self.args["max_variants"]) + ": " +
-                                     orig_smi)
+                    new_mols = new_mols[: self.args["max_variants"]]
+                    if "silent" in self.args and not self.args["silent"]:
+                        UtilFuncs.eprint(
+                            "WARNING: Limited number of variants to "
+                            + str(self.args["max_variants"])
+                            + ": "
+                            + orig_smi
+                        )
+
+                # Go through each of these new molecules and add them to the
+                # properly_formed_smi_found, in case you generate a poorly
+                # formed SMILES in the future and have to "rewind."
+                properly_formed_smi_found += [Chem.MolToSmiles(m) for m in new_mols]
         else:
             # Deprotonate the mols (because protonate_site never called to do
             # it).
             mol_used_to_idx_sites = Chem.RemoveHs(mol_used_to_idx_sites)
             new_mols = [mol_used_to_idx_sites]
 
+            # Go through each of these new molecules and add them to the
+            # properly_formed_smi_found, in case you generate a poorly formed
+            # SMILES in the future and have to "rewind."
+            properly_formed_smi_found.append(Chem.MolToSmiles(mol_used_to_idx_sites))
+
         # In some cases, the script might generate redundant molecules.
         # Phosphonates, when the pH is between the two pKa values and the
         # stdev value is big enough, for example, will generate two identical
         # BOTH states. Let's remove this redundancy.
-        new_smis = list(set([
-            Chem.MolToSmiles(m, isomericSmiles=True, canonical=True) for m in new_mols
-        ]))
+        new_smis = list(
+            set(
+                [
+                    Chem.MolToSmiles(m, isomericSmiles=True, canonical=True)
+                    for m in new_mols
+                ]
+            )
+        )
 
         # Sometimes Dimorphite-DL generates molecules that aren't actually
         # possible. Simply convert these to mol objects to eliminate the bad
         # ones (that are None).
-        new_smis = [s for s in new_smis if UtilFuncs.convert_smiles_str_to_mol(s) is not None]
+        new_smis = [
+            s for s in new_smis if UtilFuncs.convert_smiles_str_to_mol(s) is not None
+        ]
 
         # If there are no smi left, return the input one at the very least.
         # All generated forms have apparently been judged
         # inappropriate/malformed.
         if len(new_smis) == 0:
-            new_smis = [orig_smi]
+            properly_formed_smi_found.reverse()
+            for smi in properly_formed_smi_found:
+                if UtilFuncs.convert_smiles_str_to_mol(smi) is not None:
+                    new_smis = [smi]
+                    break
 
         # If the user wants to see the target states, add those to the ends of
         # each line.
         if self.args["label_states"]:
-            states = '\t'.join([x[1] for x in sites])
+            states = "\t".join([x[1] for x in sites])
             new_lines = [x + "\t" + tag + "\t" + states for x in new_smis]
         else:
             new_lines = [x + "\t" + tag for x in new_smis]
@@ -568,52 +695,73 @@ class Protonate(object):
 
         return self.next()
 
+
 class ProtSubstructFuncs:
     """A namespace to store functions for loading the substructures that can
     be protonated. To keep things organized."""
 
+    args = {}
+
     @staticmethod
-    def load_protonation_substructs_calc_state_for_ph(min_ph=6.4, max_ph=8.4, pka_std_range=1):
+    def load_substructre_smarts_file():
+        """Loads the substructure smarts file. Similar to just using readlines,
+        except it filters out comments (lines that start with "#").
+
+        :return: A list of the lines in the site_substructures.smarts file,
+                 except blank lines and lines that start with "#"
+        """
+
+        pwd = os.path.dirname(os.path.realpath(__file__))
+        site_structures_file = "{}/{}".format(pwd, "site_substructures.smarts")
+        lines = [
+            l
+            for l in open(site_structures_file, "r")
+            if l.strip() != "" and not l.startswith("#")
+        ]
+
+        return lines
+
+    @staticmethod
+    def load_protonation_substructs_calc_state_for_ph(
+        min_ph=6.4, max_ph=8.4, pka_std_range=1
+    ):
         """A pre-calculated list of R-groups with protonation sites, with their
         likely pKa bins.
 
         :param float min_ph:  The lower bound on the pH range, defaults to 6.4.
         :param float max_ph:  The upper bound on the pH range, defaults to 8.4.
         :param pka_std_range: Basically the precision (stdev from predicted pKa to
-                            consider), defaults to 1.
+                              consider), defaults to 1.
         :return: A dict of the protonation substructions for the specified pH
-                range.
+                 range.
         """
 
         subs = []
-        pwd = os.path.dirname(os.path.realpath(__file__))
 
-        site_structures_file = "{}/{}".format(pwd, "site_substructures.smarts")
-        with open(site_structures_file, 'r') as substruct:
-            for line in substruct:
-                line = line.strip()
-                sub = {}
-                if line is not "":
-                    splits = line.split()
-                    sub["name"] = splits[0]
-                    sub["smart"] = splits[1]
-                    sub["mol"] = Chem.MolFromSmarts(sub["smart"])
+        for line in ProtSubstructFuncs.load_substructre_smarts_file():
+            line = line.strip()
+            sub = {}
+            if line is not "":
+                splits = line.split()
+                sub["name"] = splits[0]
+                sub["smart"] = splits[1]
+                sub["mol"] = Chem.MolFromSmarts(sub["smart"])
 
-                    pka_ranges = [splits[i:i+3] for i in range(2, len(splits)-1, 3)]
+                pka_ranges = [splits[i : i + 3] for i in range(2, len(splits) - 1, 3)]
 
-                    prot = []
-                    for pka_range in pka_ranges:
-                        site = pka_range[0]
-                        std = float(pka_range[2]) * pka_std_range
-                        mean = float(pka_range[1])
-                        protonation_state = ProtSubstructFuncs.define_protonation_state(
-                            mean, std, min_ph, max_ph
-                        )
+                prot = []
+                for pka_range in pka_ranges:
+                    site = pka_range[0]
+                    std = float(pka_range[2]) * pka_std_range
+                    mean = float(pka_range[1])
+                    protonation_state = ProtSubstructFuncs.define_protonation_state(
+                        mean, std, min_ph, max_ph
+                    )
 
-                        prot.append([site, protonation_state])
+                    prot.append([site, protonation_state])
 
-                    sub["prot_states_for_pH"] = prot
-                    subs.append(sub)
+                sub["prot_states_for_pH"] = prot
+                subs.append(sub)
         return subs
 
     @staticmethod
@@ -635,11 +783,11 @@ class ProtSubstructFuncs:
         # This needs to be reassigned, and 'ERROR' should never make it past
         # the next set of checks.
         if min_pka <= max_ph and min_ph <= max_pka:
-            protonation_state = 'BOTH'
+            protonation_state = "BOTH"
         elif mean > max_ph:
-            protonation_state = 'PROTONATED'
+            protonation_state = "PROTONATED"
         else:
-            protonation_state = 'DEPROTONATED'
+            protonation_state = "DEPROTONATED"
 
         return protonation_state
 
@@ -698,9 +846,7 @@ class ProtSubstructFuncs:
                             # Because sites must be unique.
                             protonation_sites.append(new_site)
 
-                    ProtectUnprotectFuncs.protect_molecule(
-                        mol_used_to_idx_sites, match
-                    )
+                    ProtectUnprotectFuncs.protect_molecule(mol_used_to_idx_sites, match)
 
         return protonation_sites, mol_used_to_idx_sites
 
@@ -718,10 +864,7 @@ class ProtSubstructFuncs:
         # site tuple
         idx, target_prot_state, prot_site_name = site
 
-        state_to_charge = {"DEPROTONATED": [-1],
-                           "PROTONATED": [0],
-                           "BOTH": [-1, 0]}
-
+        state_to_charge = {"DEPROTONATED": [-1], "PROTONATED": [0], "BOTH": [-1, 0]}
 
         charges = state_to_charge[target_prot_state]
 
@@ -770,12 +913,18 @@ class ProtSubstructFuncs:
                 try:
                     mol_copy = Chem.RemoveHs(mol_copy)
                 except:
-                    UtilFuncs.eprint("WARNING: Skipping poorly formed SMILES string: " + Chem.MolToSmiles(mol_copy))
+                    if "silent" in ProtSubstructFuncs.args and not ProtSubstructFuncs.args["silent"]:
+                        UtilFuncs.eprint(
+                            "WARNING: Skipping poorly formed SMILES string: "
+                            + Chem.MolToSmiles(mol_copy)
+                        )
                     continue
 
                 atom = mol_copy.GetAtomWithIdx(idx)
 
-                explicit_bond_order_total = sum([b.GetBondTypeAsDouble() for b in atom.GetBonds()])
+                explicit_bond_order_total = sum(
+                    [b.GetBondTypeAsDouble() for b in atom.GetBonds()]
+                )
 
                 # Assign the protonation charge, with special care for
                 # nitrogens
@@ -806,7 +955,6 @@ class ProtSubstructFuncs:
                             atom.SetNumExplicitHs(1)
                         elif charge == -1 and explicit_bond_order_total == 1:
                             atom.SetNumExplicitHs(0)
-                        # import pdb; pdb.set_trace()
 
                 # Deprotonating protonated aromatic nitrogen gives [nH-]. Change this
                 # to [n-].
@@ -819,6 +967,7 @@ class ProtSubstructFuncs:
                 output.append(mol_copy)
 
         return output
+
 
 class ProtectUnprotectFuncs:
     """A namespace for storing functions that are useful for protecting and
@@ -835,7 +984,7 @@ class ProtectUnprotectFuncs:
         """
 
         for atom in mol.GetAtoms():
-            atom.SetProp('_protected', '0')
+            atom.SetProp("_protected", "0")
 
     @staticmethod
     def protect_molecule(mol, match):
@@ -849,7 +998,7 @@ class ProtectUnprotectFuncs:
 
         for idx in match:
             atom = mol.GetAtomWithIdx(idx)
-            atom.SetProp('_protected', '1')
+            atom.SetProp("_protected", "1")
 
     @staticmethod
     def get_unprotected_matches(mol, substruct):
@@ -885,6 +1034,7 @@ class ProtectUnprotectFuncs:
                 return False
         return True
 
+
 class TestFuncs:
     """A namespace for storing functions that perform tests on the code. To
     keep things organized."""
@@ -893,8 +1043,9 @@ class TestFuncs:
     def test():
         """Tests all the 38 groups."""
 
+        # fmt: off
         smis = [
-            # [input smiles, pka, protonated, deprotonated, category]
+            # input smiles,            protonated,                  deprotonated,               category
             ["C#CCO",                  "C#CCO",                     "C#CC[O-]",                 "Alcohol"],
             ["C(=O)N",                 "NC=O",                      "[NH-]C=O",                 "Amide"],
             ["CC(=O)NOC(C)=O",         "CC(=O)NOC(C)=O",            "CC(=O)[N-]OC(C)=O",        "Amide_electronegative"],
@@ -931,17 +1082,33 @@ class TestFuncs:
             ["C(C)(C)(C)(S)",          "CC(C)(C)S",                 "CC(C)(C)[S-]",             "Thiol"],
             ["Brc1cc[nH+]cc1",         "Brc1cc[nH+]cc1",            "Brc1ccncc1",               "Aromatic_nitrogen_unprotonated"],
             ["C=C(O)c1c(C)cc(C)cc1C",  "C=C(O)c1c(C)cc(C)cc1C",     "C=C([O-])c1c(C)cc(C)cc1C", "Vinyl_alcohol"],
-            ["CC(=O)ON",               "CC(=O)O[NH3+]",             "CC(=O)ON",                 "Primary_hydroxyl_amine"]
+            ["CC(=O)ON",               "CC(=O)O[NH3+]",             "CC(=O)ON",                 "Primary_hydroxyl_amine"],
+            # Note testing Internal_phosphate_polyphos_chain and
+            # Initial_phosphate_like_in_ATP_ADP here because no way to
+            # generate monoprotic compounds to test them. See Other tests
+            # people...
         ]
 
         smis_phos = [
+            # [input smiles,   protonated,       deprotonated1,       deprotonated2,          category]
             ["O=P(O)(O)OCCCC", "CCCCOP(=O)(O)O", "CCCCOP(=O)([O-])O", "CCCCOP(=O)([O-])[O-]", "Phosphate"],
-            ["CC(P(O)(O)=O)C", "CC(C)P(=O)(O)O", "CC(C)P(=O)([O-])O", "CC(C)P(=O)([O-])[O-]", "Phosphonate"]
+            ["CC(P(O)(O)=O)C", "CC(C)P(=O)(O)O", "CC(C)P(=O)([O-])O", "CC(C)P(=O)([O-])[O-]", "Phosphonate"],
         ]
+        # fmt: on
+
+        cats_with_two_prot_sites = [inf[4] for inf in smis_phos]
 
         # Load the average pKa values.
-        average_pkas = {l.split()[0].replace("*", ""):float(l.split()[3]) for l in open("site_substructures.smarts") if l.split()[0] not in ["Phosphate", "Phosphonate"]}
-        average_pkas_phos = {l.split()[0].replace("*", ""):[float(l.split()[3]), float(l.split()[6])] for l in open("site_substructures.smarts") if l.split()[0] in ["Phosphate", "Phosphonate"]}
+        average_pkas = {
+            l.split()[0].replace("*", ""): float(l.split()[3])
+            for l in ProtSubstructFuncs.load_substructre_smarts_file()
+            if l.split()[0] not in cats_with_two_prot_sites
+        }
+        average_pkas_phos = {
+            l.split()[0].replace("*", ""): [float(l.split()[3]), float(l.split()[6])]
+            for l in ProtSubstructFuncs.load_substructre_smarts_file()
+            if l.split()[0] in cats_with_two_prot_sites
+        }
 
         print("Running Tests")
         print("=============")
@@ -956,7 +1123,8 @@ class TestFuncs:
             "max_ph": -10000000,
             "pka_precision": 0.5,
             "smiles": "",
-            "label_states": True
+            "label_states": True,
+            "silent": True
         }
 
         for smi, protonated, deprotonated, category in smis:
@@ -1011,14 +1179,20 @@ class TestFuncs:
             args["min_ph"] = avg_pka
             args["max_ph"] = avg_pka
 
-            TestFuncs.test_check(args, [mix, deprotonated], ["DEPROTONATED", "DEPROTONATED"])
+            TestFuncs.test_check(
+                args, [mix, deprotonated], ["DEPROTONATED", "DEPROTONATED"]
+            )
 
-            avg_pka = 0.5 * (average_pkas_phos[category][0] + average_pkas_phos[category][1])
+            avg_pka = 0.5 * (
+                average_pkas_phos[category][0] + average_pkas_phos[category][1]
+            )
             args["min_ph"] = avg_pka
             args["max_ph"] = avg_pka
             args["pka_precision"] = 5  # Should give all three
 
-            TestFuncs.test_check(args, [mix, deprotonated, protonated], ["BOTH", "BOTH"])
+            TestFuncs.test_check(
+                args, [mix, deprotonated, protonated], ["BOTH", "BOTH"]
+            )
 
         print("")
         print("Other Tests")
@@ -1026,13 +1200,8 @@ class TestFuncs:
         print("")
 
         # Make sure no carbanion (old bug).
-        smi = 'Cc1nc2cc(-c3[nH]c4cc5ccccc5c5c4c3CCN(C(=O)O)[C@@H]5O)cc3c(=O)[nH][nH]c(n1)c23'
-        output = list(
-            Protonate({
-                'smiles': smi,
-                'test': False
-            })
-        )
+        smi = "Cc1nc2cc(-c3[nH]c4cc5ccccc5c5c4c3CCN(C(=O)O)[C@@H]5O)cc3c(=O)[nH][nH]c(n1)c23"
+        output = list(Protonate({"smiles": smi, "test": False, "silent": True}))
 
         if "[C-]" in "".join(output).upper():
             msg = "Processing " + smi + " produced a molecule with a carbanion!"
@@ -1041,18 +1210,88 @@ class TestFuncs:
             print("(CORRECT) No carbanion: " + smi)
 
         # Make sure max number of variants is limited (old bug).
-        smi = 'CCCC[C@@H](C(=O)N)NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](C(C)C)NC(=O)[C@@H](NC(=O)[C@H](Cc1c[nH]c2c1cccc2)NC(=O)[C@@H](NC(=O)[C@@H](Cc1ccc(cc1)O)N)CCC(=O)N)C)C)Cc1nc[nH]c1)Cc1ccccc1'
-        output = list(
-            Protonate({
-                'smiles': smi,
-                'test': False
-            })
-        )
+        smi = "CCCC[C@@H](C(=O)N)NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](C(C)C)NC(=O)[C@@H](NC(=O)[C@H](Cc1c[nH]c2c1cccc2)NC(=O)[C@@H](NC(=O)[C@@H](Cc1ccc(cc1)O)N)CCC(=O)N)C)C)Cc1nc[nH]c1)Cc1ccccc1"
+        output = list(Protonate({"smiles": smi, "test": False, "silent": True}))
         if len(output) != 128:
             msg = "Processing " + smi + " produced more than 128 variants!"
             raise Exception(msg)
         else:
             print("(CORRECT) Produced 128 variants: " + smi)
+
+        # Make sure ATP and NAD work at different pHs (because can't test
+        # Internal_phosphate_polyphos_chain and
+        # Initial_phosphate_like_in_ATP_ADP with monoprotic examples.
+        specific_examples = [
+            [
+                "O=P(O)(OP(O)(OP(O)(OCC1OC(C(C1O)O)N2C=NC3=C2N=CN=C3N)=O)=O)O",  # input, ATP
+                (
+                    0.5,
+                    "[NH3+]c1[nH+]c[nH+]c2c1[nH+]cn2C1OC(COP(=O)(O)OP(=O)(O)OP(=O)(O)O)C(O)C1O",
+                ),
+                (
+                    1.0,
+                    "[NH3+]c1[nH+]c[nH+]c2c1[nH+]cn2C1OC(COP(=O)(O)OP(=O)([O-])OP(=O)(O)O)C(O)C1O",
+                ),
+                (
+                    2.6,
+                    "[NH3+]c1[nH+]c[nH+]c2c1[nH+]cn2C1OC(COP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O)C(O)C1O",
+                ),
+                (
+                    7.0,
+                    "Nc1ncnc2c1ncn2C1OC(COP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-])C(O)C1O",
+                ),
+            ],
+            [
+                "O=P(O)(OP(O)(OCC1C(O)C(O)C(N2C=NC3=C(N)N=CN=C32)O1)=O)OCC(O4)C(O)C(O)C4[N+]5=CC=CC(C(N)=O)=C5",  # input, NAD
+                (
+                    0.5,
+                    "NC(=O)c1ccc[n+](C2OC(COP(=O)(O)OP(=O)(O)OCC3OC(n4cnc5c([NH3+])ncnc54)C(O)C3O)C(O)C2O)c1",
+                ),
+                (
+                    2.5,
+                    "NC(=O)c1ccc[n+](C2OC(COP(=O)([O-])OP(=O)([O-])OCC3OC(n4cnc5c([NH3+])ncnc54)C(O)C3O)C(O)C2O)c1",
+                ),
+                (
+                    7.4,
+                    "NC(=O)c1ccc[n+](C2OC(COP(=O)([O-])OP(=O)([O-])OCC3OC(n4cnc5c(N)ncnc54)C(O)C3O)C(O)C2O)c1",
+                ),
+            ],
+        ]
+        for example in specific_examples:
+            smi = example[0]
+            for ph, expected_output in example[1:]:
+                output = list(
+                    Protonate(
+                        {
+                            "smiles": smi,
+                            "test": False,
+                            "min_ph": ph,
+                            "max_ph": ph,
+                            "pka_precision": 0,
+                            "silent": True
+                        }
+                    )
+                )
+                if output[0].strip() == expected_output:
+                    print(
+                        "(CORRECT) "
+                        + smi
+                        + " at pH "
+                        + str(ph)
+                        + " is "
+                        + output[0].strip()
+                    )
+                else:
+                    msg = (
+                        smi
+                        + " at pH "
+                        + str(ph)
+                        + " should be "
+                        + expected_output
+                        + ", but it is "
+                        + output[0].strip()
+                    )
+                    raise Exception(msg)
 
     @staticmethod
     def test_check(args, expected_output, labels):
@@ -1072,28 +1311,56 @@ class TestFuncs:
 
         num_states = len(expected_output)
 
-        if (len(output) != num_states):
-            msg = args["smiles"] + " should have " + str(num_states) + \
-                " states at at pH " + str(args["min_ph"]) + ": " + str(output)
+        if len(output) != num_states:
+            msg = (
+                args["smiles"]
+                + " should have "
+                + str(num_states)
+                + " states at at pH "
+                + str(args["min_ph"])
+                + ": "
+                + str(output)
+            )
             UtilFuncs.eprint(msg)
             raise Exception(msg)
 
-        if (len(set([l[0] for l in output]) - set(expected_output)) != 0):
-            msg = args["smiles"] + " is not " + " AND ".join(expected_output) + \
-                " at pH " + str(args["min_ph"]) + " - " + str(args["max_ph"]) + \
-                "; it is " + " AND ".join([l[0] for l in output])
+        if len(set([l[0] for l in output]) - set(expected_output)) != 0:
+            msg = (
+                args["smiles"]
+                + " is not "
+                + " AND ".join(expected_output)
+                + " at pH "
+                + str(args["min_ph"])
+                + " - "
+                + str(args["max_ph"])
+                + "; it is "
+                + " AND ".join([l[0] for l in output])
+            )
             UtilFuncs.eprint(msg)
             raise Exception(msg)
 
-        if (len(set([l[1] for l in output]) - set(labels)) != 0):
-            msg = args["smiles"] + " not labeled as " + " AND ".join(labels) + \
-                "; it is " + " AND ".join([l[1] for l in output])
+        if len(set([l[1] for l in output]) - set(labels)) != 0:
+            msg = (
+                args["smiles"]
+                + " not labeled as "
+                + " AND ".join(labels)
+                + "; it is "
+                + " AND ".join([l[1] for l in output])
+            )
             UtilFuncs.eprint(msg)
             raise Exception(msg)
 
         ph_range = sorted(list(set([args["min_ph"], args["max_ph"]])))
         ph_range_str = "(" + " - ".join("{0:.2f}".format(n) for n in ph_range) + ")"
-        print("(CORRECT) " + ph_range_str.ljust(10) + " " + args["smiles"] + " => " + " AND ".join([l[0] for l in output]))
+        print(
+            "(CORRECT) "
+            + ph_range_str.ljust(10)
+            + " "
+            + args["smiles"]
+            + " => "
+            + " AND ".join([l[0] for l in output])
+        )
+
 
 def run(**kwargs):
     """A helpful, importable function for those who want to call Dimorphite-DL
@@ -1109,6 +1376,7 @@ def run(**kwargs):
 
     # Run the main function with the specified arguments.
     main(kwargs)
+
 
 def run_with_mol_list(mol_lst, **kwargs):
     """A helpful, importable function for those who want to call Dimorphite-DL
@@ -1128,10 +1396,13 @@ def run_with_mol_list(mol_lst, **kwargs):
     # Do a quick check to make sure the user input makes sense.
     for bad_arg in ["smiles", "smiles_file", "output_file", "test"]:
         if bad_arg in kwargs:
-            msg = "You're using Dimorphite-DL's run_with_mol_list(mol_lst, " + \
-                   "**kwargs) function, but you also passed the \"" + \
-                   bad_arg + "\" argument. Did you mean to use the " + \
-                   "run(**kwargs) function instead?"
+            msg = (
+                "You're using Dimorphite-DL's run_with_mol_list(mol_lst, "
+                + '**kwargs) function, but you also passed the "'
+                + bad_arg
+                + '" argument. Did you mean to use the '
+                + "run(**kwargs) function instead?"
+            )
             UtilFuncs.eprint(msg)
             raise Exception(msg)
 
@@ -1167,9 +1438,15 @@ def run_with_mol_list(mol_lst, **kwargs):
                     m.SetProp(prop, str(val))
             mols.append(m)
         else:
-            UtilFuncs.eprint("WARNING: Could not process molecule with SMILES string " + s + " and properties " + str(props))
+            UtilFuncs.eprint(
+                "WARNING: Could not process molecule with SMILES string "
+                + s
+                + " and properties "
+                + str(props)
+            )
 
     return mols
+
 
 if __name__ == "__main__":
     main()

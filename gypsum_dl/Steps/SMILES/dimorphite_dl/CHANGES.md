@@ -1,6 +1,30 @@
 Changes
 =======
 
+1.2.4
+-----
+
+* Dimorphite-DL now better protonates compounds with polyphosphate chains
+  (e.g., ATP). See `site_substructures.smarts` for the rationale behind the
+  added pKa values.
+* Added test cases for ATP and NAD.
+* `site_substructures.smarts` now allows comments (lines that start with `#`).
+* Fixed a bug that affected how Dimorphite-DL deals with new protonation
+    states that yield invalid SMILES strings.
+  * Previously, it simply returned the original input SMILES in these rare
+    cases (better than nothing). Now, it instead returns the last valid SMILES
+    produced, not necessarily the original SMILES.
+  * Consider `O=C(O)N1C=CC=C1` at pH 3.5 as an example.
+    * Dimorphite-DL first deprotonates the carboxyl group, producing
+      `O=C([O-])n1cccc1` (a valid SMILES).
+    * It then attempts to protonate the aromatic nitrogen, producing
+      `O=C([O-])[n+]1cccc1`, an invalid SMILES.
+    * Previously, it would output the original SMILES, `O=C(O)N1C=CC=C1`. Now
+      it outputs the last valid SMILES, `O=C([O-])n1cccc1`.
+* Improved suport for the `--silent` option.
+* Reformatted code per the [*Black* Python code
+  formatter](https://github.com/psf/black).
+
 1.2.3
 -----
 

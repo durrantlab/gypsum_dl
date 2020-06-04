@@ -10,8 +10,30 @@ Carboxyl	[C:1](=[O:2])-[O:3]-[H]	2	3.456652971502591	1.2871420886834017
 Thioic_acid	[C,c,N,n:1](=[O,S:2])-[SX2,OX2:3]-[H]	2	0.678267	1.497048763660801
 Phenyl_Thiol	[c,n:1]-[SX2:2]-[H]	1	4.978235294117647	2.6137000480499806
 Thiol	[C,N:1]-[SX2:2]-[H]	1	9.12448275862069	1.3317968158171463
+
+# [*]OP(=O)(O[H])O[H]. Note that this matches terminal phosphate of ATP, ADP, AMP.
 Phosphate	[PX4:1](=[O:2])(-[OX2:3]-[H])(-[O+0:4])-[OX2:5]-[H]	2	2.4182608695652172	1.1091177991945305	5	6.5055	0.9512787792174668
+
+# Note that Internal_phosphate_polyphos_chain and
+# Initial_phosphate_like_in_ATP_ADP were added on 6/2/2020 to better detail with
+# molecules that have polyphosphate chains (e.g., ATP, ADP, NADH, etc.). Unlike
+# the other protonation states, these two were not determined by analyzing a set
+# of many compounds with experimentally determined pKa values.
+
+# For Internal_phosphate_polyphos_chain, we use a mean pKa value of 0.9, per
+# DOI: 10.7554/eLife.38821. For the precision value we use 1.0, which is roughly
+# the precision of the two ionizable hydroxyls from Phosphate (see above). Note
+# that when using recursive SMARTS strings, RDKit considers only the first atom
+# to be a match. Subsequent atoms define the environment.
+Internal_phosphate_polyphos_chain	[$([PX4:1](=O)([OX2][PX4](=O)([OX2])(O[H]))([OX2][PX4](=O)(O[H])([OX2])))][O:2]-[H]	1	0.9	1.0
+
+# For Initial_phosphate_like_in_ATP_ADP, we use the same values found for the
+# lower-pKa hydroxyl of Phosphate (above).
+Initial_phosphate_like_in_ATP_ADP	[$([PX4:1]([OX2][C,c,N,n])(=O)([OX2][PX4](=O)([OX2])(O[H])))]O-[H]	1	2.4182608695652172	1.1091177991945305
+
+# [*]P(=O)(O[H])O[H]. Cannot match terminal phosphate of ATP because O not among [C,c,N,n]
 Phosphonate	[PX4:1](=[O:2])(-[OX2:3]-[H])(-[C,c,N,n:4])-[OX2:5]-[H]	2	1.8835714285714287	0.5925999820080644	5	7.247254901960784	0.8511476450801531
+
 Phenol	[c,n,o:1]-[O:2]-[H]	1	7.065359866910526	3.277356122295936
 Peroxide1	[O:1]([$(C=O),$(C[Cl]),$(CF),$(C[Br]),$(CC#N):2])-[O:3]-[H]	2	8.738888888888889	0.7562592839596507
 Peroxide2	[C:1]-[O:2]-[O:3]-[H]	2	11.978235294117647	0.8697645895163075
@@ -31,9 +53,17 @@ Anilines_secondary	[c:1]-[NX3+0:2]([H:3])[!H:4]	1	4.335408163265306	2.1768842022
 Anilines_tertiary	[c:1]-[NX3+0:2]([!H:3])[!H:4]	1	4.16690685045614	2.005865735782679
 Aromatic_nitrogen_unprotonated	[n+0&H0:1]	0	4.3535441240733945	2.0714072661859584
 Amines_primary_secondary_tertiary	[C:1]-[NX3+0:2]	1	8.159107682388349	2.5183597445318147
+
+# e.g., [*]P(=O)(O[H])[*]. Note that cannot match the internal phosphates of ATP, because
+# oxygen is not among [C,c,N,n,F,Cl,Br,I]
 Phosphinic_acid	[PX4:1](=[O:2])(-[C,c,N,n,F,Cl,Br,I:3])(-[C,c,N,n,F,Cl,Br,I:4])-[OX2:5]-[H]	4	2.9745	0.6867886750744557
+
+# e.g., [*]OP(=O)(O[H])O[*]. Cannot match ATP because P not among [C,c,N,n,F,Cl,Br,I]
 Phosphate_diester	[PX4:1](=[O:2])(-[OX2:3]-[C,c,N,n,F,Cl,Br,I:4])(-[O+0:5]-[C,c,N,n,F,Cl,Br,I:4])-[OX2:6]-[H]	6	2.7280434782608696	2.5437448856908316
+
+# e.g., [*]P(=O)(O[H])O[*]. Cannot match ATP because O not among [C,c,N,n,F,Cl,Br,I].
 Phosphonate_ester	[PX4:1](=[O:2])(-[OX2:3]-[C,c,N,n,F,Cl,Br,I:4])(-[C,c,N,n,F,Cl,Br,I:5])-[OX2:6]-[H]	5	2.0868	0.4503028610465036
+
 Primary_hydroxyl_amine	[C,c:1]-[O:2]-[NH2:3]	2	4.035714285714286	0.8463816543155368
 *Indole_pyrrole	[c;R:1]1[c;R:2][c;R:3][c;R:4][n;R:5]1[H]	4	14.52875	4.06702491591416
 *Aromatic_nitrogen_protonated	[n:1]-[H]	0	7.17	2.94602395490212
