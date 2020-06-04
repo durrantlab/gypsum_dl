@@ -229,6 +229,7 @@ otherwise poorly suited for virtual screening. Here are some examples:
 * `[!#7]~[#7+]~[#7-]~[!#7]`
 * `[#5]` (boron)
 * `O=[PH](=O)([#8])([#8])`
+* `N=c1cc[#7]c[#7]1`
 * Metals
 
 If you'd like to discard molecular variants with substructures such as these,

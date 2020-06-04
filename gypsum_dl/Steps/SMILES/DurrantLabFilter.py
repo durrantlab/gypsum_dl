@@ -39,7 +39,9 @@ prohibited_smi_substrs_for_substruc = [
     "[!#7]~[#7+]~[#7-]~[!#7]",  # Doesn't hit azide.
     # Vina can't process boron anyway...
     "[#5]",  # B
-    "O=[PH](=O)([#8])([#8])"  # molvs does odd tautomer: OP(O)(O)=O => O=[PH](=O)(O)O
+    "O=[PH](=O)([#8])([#8])",  # molvs does odd tautomer: OP(O)(O)=O => O=[PH](=O)(O)O
+    "[#7]=C1[#7]=C[#7]C=C1",  # Prevents an odd tautomer sometimes seen with adenine.
+    "N=c1cc[#7]c[#7]1"  # Variant of above
 ]
 
 # Get the substrings you won't permit (per substring matching)

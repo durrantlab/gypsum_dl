@@ -96,10 +96,11 @@ def remove_highly_charged_molecules(mol_lst):
     charge_closest_to_neutral = charges[idx_of_closest_to_neutral]
 
     # Now create a new mol list, where the charges deviation from the most
-    # neutral by no more than 2.
+    # neutral by no more than 4. Note that this used to be 2, but I increased
+    # it to 4 to accommodate ATP.
     new_mol_lst = []
     for i, charge in enumerate(charges):
-        if abs(charge - charge_closest_to_neutral) <= 2:
+        if abs(charge - charge_closest_to_neutral) <= 4:
             new_mol_lst.append(mol_lst[i])
         else:
             Utils.log(

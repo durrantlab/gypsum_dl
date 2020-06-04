@@ -15,7 +15,14 @@ Changes
     Gypsum-DL's dependencies. MolVS sometimes tautomerizes `[O]P(O)([O])=O` to
     `[O][PH](=O)([O])=O`, so the Durrant-lab filters now remove any tautomers
     with substructures that match the SMARTS string `O=[PH](=O)([#8])([#8])`.
+  * Added filters to compensate for frequently seen, unusual MolVS
+    tautomerization of adenine. The Durrant-lab filters now remove tautomers
+    with substructures that match `[#7]=C1[#7]=C[#7]C=C1` and
+    `N=c1cc[#7]c[#7]1`.
   * Added filter to remove molecules containing `[Bi]`.
+* Gypsum-DL now outputs molecules with total charges between -4e and +4e.
+  Before, the cutoff was -2e to 2e. We expanded the range to permit ATP and
+  other similar molecules.
 
 1.1.4
 -----
