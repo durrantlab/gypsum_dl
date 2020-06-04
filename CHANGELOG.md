@@ -19,6 +19,11 @@ Changes
     tautomerization of adenine. The Durrant-lab filters now remove tautomers
     with substructures that match `[#7]=C1[#7]=C[#7]C=C1` and
     `N=c1cc[#7]c[#7]1`.
+  * Added filter to remove terminal iminols. While amide-iminol
+    tautomerization is valid, amides are far more common, and accounting for
+    this tautomerization produces many improbable iminol componds. The
+    Durrant-lab filters now remove compounds with substructures that match
+    `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`.
   * Added filter to remove molecules containing `[Bi]`.
 * Gypsum-DL now outputs molecules with total charges between -4e and +4e.
   Before, the cutoff was -2e to 2e. We expanded the range to permit ATP and
