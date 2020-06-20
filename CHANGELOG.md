@@ -1,6 +1,11 @@
 Changes
 =======
 
+WIP
+---
+
+Fixed testing scripts, now that Durrant-lab filters remove iminols.
+
 1.1.5
 -----
 

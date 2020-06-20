@@ -118,8 +118,10 @@ def run_test():
     # times, because different ring conformations of the same model.
     target_smiles |= set(["CC(C)(C)[C@H]1CC[C@@H](C(C)(C)C)CC1"])
 
-    # There should be no =[N-] if Durrant lab filters are turned on.
-    target_smiles |= set(["CC([NH-])=O", "CC(=N)O", "CC(N)=O"])
+    # There should be no =[N-] if Durrant lab filters are turned on. Note:
+    # Removed "CC(=N)O" from below list because durrant lab filters now remove
+    # iminols.
+    target_smiles |= set(["CC([NH-])=O", "CC(N)=O"])
 
     # There should be no [N-]C=[N+] (CC(=O)[N-]C=[N+](C)C).
     target_smiles |= set(
@@ -173,9 +175,13 @@ def run_test():
     # Python2. But they are just different representations of the same thing.
     # Let's make the switch to the Python2 form for this test.
     all_smiles = set(["CN=[N+]=N" if s == "[H]N=[N+]=NC" else s for s in all_smiles])
-    all_smiles = set(
-        ["CC(=N)O" if s in [r"[H]/N=C(\C)O", "[H]/N=C(/C)O"] else s for s in all_smiles]
-    )
+
+    # Note: Commented out below because durrant lab filters now remove
+    # iminols.
+    # all_smiles = set(
+    #     ["CC(=N)O" if s in [r"[H]/N=C(\C)O", "[H]/N=C(/C)O"] else s for s in all_smiles]
+    # )
+
     all_smiles = set(
         [
             r"C/C(O)=N\N=C(/C)O"
@@ -202,6 +208,10 @@ def run_test():
     )
 
     if len(all_smiles ^ target_smiles) > 0:
+        print(all_smiles)
+        print(target_smiles)
+        import pdb; pdb.set_trace()
+
         Utils.exception(
             "FAILED. "
             + "Got some SMILES I didn't expect (either in output or target list): "
