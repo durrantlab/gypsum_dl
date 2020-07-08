@@ -324,7 +324,7 @@ def execute_gypsum_dl(contnrs, params):
     Utils.print_current_smiles(contnrs)
 
     # Write any mols that fail entirely to a file.
-    deal_with_failed_molecules(contnrs, params)
+    deal_with_failed_molecules(contnrs, params)  ####
 
     # Process the output.
     proccess_output(contnrs, params)

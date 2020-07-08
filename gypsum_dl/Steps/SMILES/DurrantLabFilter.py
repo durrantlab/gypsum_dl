@@ -42,7 +42,7 @@ prohibited_smi_substrs_for_substruc = [
     "O=[PH](=O)([#8])([#8])",  # molvs does odd tautomer: OP(O)(O)=O => O=[PH](=O)(O)O
     "[#7]=C1[#7]=C[#7]C=C1",  # Prevents an odd tautomer sometimes seen with adenine.
     "N=c1cc[#7]c[#7]1",  # Variant of above
-    "[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]"  # Terminal iminol
+    "[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]",  # Terminal iminol
 ]
 
 # Get the substrings you won't permit (per substring matching)
@@ -132,12 +132,13 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     mols = []
     for contnr in results:
         mols.extend(contnr.mols)
-        # contnr.mols = []  # Necessary because ones are being removed...
+
+    # Also clear contnrs, because they will be re-added using
+    # bst_for_each_contnr_no_opt below.
+    for contnr in contnrs:
+        contnr.mols = []
 
     # contnrs = results
-
-    # print([c.orig_smi for c in results])
-    # import pdb; pdb.set_trace()
 
     # Using this function just to make the changes. Doesn't do energy
     # minimization or anything (as it does later) because max variants
@@ -179,7 +180,9 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
                 )
 
                 contnr.mols[mi] = None
-                continue
+
+                # continue # JDD: this was wrong, wasn't it?
+                break  # On to next mol in mols.
 
     # Now go back and remove those Nones
     contnr.mols = Parallelizer.strip_none(contnr.mols)

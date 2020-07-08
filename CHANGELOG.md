@@ -1,10 +1,12 @@
 Changes
 =======
 
-WIP
----
+1.1.6
+-----
 
-Fixed testing scripts, now that Durrant-lab filters remove iminols.
+* Corrected minor bug that caused Durrant-lab filters to inappropriately
+  retain some compounds when running in multiprocessing mode.
+* Fixed testing scripts, now that Durrant-lab filters remove iminols.
 
 1.1.5
 -----
@@ -26,7 +28,7 @@ Fixed testing scripts, now that Durrant-lab filters remove iminols.
     `N=c1cc[#7]c[#7]1`.
   * Added filter to remove terminal iminols. While amide-iminol
     tautomerization is valid, amides are far more common, and accounting for
-    this tautomerization produces many improbable iminol componds. The
+    this tautomerization produces many improbable iminol compounds. The
     Durrant-lab filters now remove compounds with substructures that match
     `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`.
   * Added filter to remove molecules containing `[Bi]`.
