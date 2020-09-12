@@ -1,6 +1,11 @@
 Changes
 =======
 
+WIP
+---
+
+* Updated the `README.md` file, specifically the `Important Caveats` section.
+
 1.1.6
 -----
 

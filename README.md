@@ -196,7 +196,7 @@ Where `myparams.json` might look like:
 Gypsum-DL is designed to process drug-like molecules. Generating 3D structures
 for larger molecules takes a very long time. For example, in our tests it
 takes Gypsum-DL a very long time to process this molecule:
-CCCC[C@@H](C(N[C@H]1CC(NCCCC[C@H](NC([C@@H](NC([C@@H](NC([C@@H](NC([C@@H]2CCCN2C1=O)=O)Cc3ccccc3)=O)CCCNC(N)=N)=O)Cc(c[nH]4)c5c4cccc5)=O)C(N6CCC[C@H]6C(N[C@@H](C(C)C)C(N)=O)=O)=O)=O)=O)NC(C)=O
+`CCCC[C@@H](C(N[C@H]1CC(NCCCC[C@H](NC([C@@H](NC([C@@H](NC([C@@H](NC([C@@H]2CCCN2C1=O)=O)Cc3ccccc3)=O)CCCNC(N)=N)=O)Cc(c[nH]4)c5c4cccc5)=O)C(N6CCC[C@H]6C(N[C@@H](C(C)C)C(N)=O)=O)=O)=O)=O)NC(C)=O`
 
 You may wish to run your compounds through a drug-like filter before
 processing them with Gypsum-DL.
@@ -235,6 +235,22 @@ otherwise poorly suited for virtual screening. Here are some examples:
 
 If you'd like to discard molecular variants with substructures such as these,
 use the `--use_durrant_lab_filters` flag.
+
+### Highly Constrained Ring Systems
+
+Some users have reported that Gypsum-DL fails to produce 3D models when
+processing molecules with highly constrained ring systems, such as amantadine
+compounds (e.g., this molecule from ChemBridge:
+`CC1=CC=CN2N=CC(C(=O)NC34CC5CC(C3)CC(C5)(C4)N3C=NC=N3)=C12`). We were not able
+to reproduce this error using Gypsum-DL 1.1.6, Python 3.6.7, RDKit 2019.03.3,
+but wanted to make the community aware of this possible problem.
+
+### Memory Considerations
+
+When processing large libraries, Gypsum-DL requires substantial memory. Some
+users have reported that the program suddenly stops in these situations. To
+correct the problem, either increase the available memory, or divide your
+library into several smaller files and processes them sequentially.
 
 ### Advanced Methods for Eliminating Problematic Compounds
 
