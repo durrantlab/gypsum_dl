@@ -241,9 +241,8 @@ use the `--use_durrant_lab_filters` flag.
 Some users have reported that Gypsum-DL fails to produce 3D models when
 processing molecules with highly constrained ring systems, such as amantadine
 compounds (e.g., this molecule from ChemBridge:
-`CC1=CC=CN2N=CC(C(=O)NC34CC5CC(C3)CC(C5)(C4)N3C=NC=N3)=C12`). We were not able
-to reproduce this error using Gypsum-DL 1.1.6, Python 3.6.7, RDKit 2019.03.3,
-but wanted to make the community aware of this possible problem.
+`CC1=CC=CN2N=CC(C(=O)NC34CC5CC(C3)CC(C5)(C4)N3C=NC=N3)=C12`). Increasing the
+`thoroughness` parameter may help in these cases.
 
 ### Memory Considerations
 
