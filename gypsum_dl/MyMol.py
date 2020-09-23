@@ -31,9 +31,10 @@ import operator
 import gypsum_dl.Utils as Utils
 import gypsum_dl.MolObjectHandling as MOH
 
-#Disable the unnecessary RDKit warnings
+# Disable the unnecessary RDKit warnings
 from rdkit import RDLogger
-RDLogger.DisableLog('rdApp.*')
+
+RDLogger.DisableLog("rdApp.*")
 
 try:
     import rdkit
@@ -47,6 +48,7 @@ try:
     from gypsum_dl.molvs import standardize_smiles as ssmiles
 except:
     Utils.exception("You need to install molvs and its dependencies.")
+
 
 class MyMol:
     """
@@ -71,7 +73,9 @@ class MyMol:
             smiles = starter
         else:
             # So it's an rdkit mol object.
-            self.rdkit_mol = starter  # No need to regenerate this, since already provided.
+            self.rdkit_mol = (
+                starter  # No need to regenerate this, since already provided.
+            )
 
             # Get the smiles too from the rdkit mol object.
             try:
@@ -88,8 +92,10 @@ class MyMol:
                 self.can_smi = False
                 id_to_print = name if name != "" else str(starter)
                 Utils.log(
-                    "\tERROR: Could not generate one of the structures " +
-                    "for (" + id_to_print + ")."
+                    "\tERROR: Could not generate one of the structures "
+                    + "for ("
+                    + id_to_print
+                    + ")."
                 )
 
         self.can_smi_noh = ""
@@ -126,9 +132,7 @@ class MyMol:
         try:
             self.stdrd_smiles = ssmiles(self.smiles())
         except:
-            Utils.log(
-                "\tCould not standardize " + self.smiles(True) + ". Skipping."
-            )
+            Utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
             self.stdrd_smiles = self.smiles()
 
         return self.stdrd_smiles
@@ -242,7 +246,7 @@ class MyMol:
                 m = Chem.MolFromSmiles(self.orig_smi_deslt, sanitize=False)
             except:
                 m = None
-        else: # If given a RDKit Mol Obj
+        else:  # If given a RDKit Mol Obj
             m = self.rdkit_mol
 
         if m is not None:
@@ -263,8 +267,8 @@ class MyMol:
             # It's already been done.
             return
 
-        # Add hydrogens. JDD: I don't think this undoes dimorphite-dl, but we
-        # need to check that.
+        # Add hydrogens. This adds explicit hydrogens, while respecting
+        # Dimorphite-DL protonation states.
         self.rdkit_mol = MOH.try_reprotanation(self.rdkit_mol)
 
         # Add a single conformer. RMSD cutoff very small so all conformers
@@ -299,10 +303,16 @@ class MyMol:
                     # Sometimes this conversion just can't happen. Happened
                     # once with this beast, for example:
                     # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
-                    Utils.log("Warning: Couldn't put " + self.orig_smi + " (" +
-                            self.name + ") in canonical form. Got this error: " +
-                            str(sys.exc_info()[0]) + ". This molecule will be " +
-                            "discarded.")
+                    Utils.log(
+                        "Warning: Couldn't put "
+                        + self.orig_smi
+                        + " ("
+                        + self.name
+                        + ") in canonical form. Got this error: "
+                        + str(sys.exc_info()[0])
+                        + ". This molecule will be "
+                        + "discarded."
+                    )
                     self.can_smi = None
                     return None
 
@@ -408,8 +418,7 @@ class MyMol:
 
         unasignd = []
         for b in self.rdkit_mol.GetBonds():
-            if (b.GetBondTypeAsDouble() == 2 and
-                b.GetStereo() is BondStereo.STEREONONE):
+            if b.GetBondTypeAsDouble() == 2 and b.GetStereo() is BondStereo.STEREONONE:
 
                 unasignd.append(b.GetIdx())
         return unasignd
@@ -433,7 +442,7 @@ class MyMol:
 
         # These are substrutures that can't be easily corrected using
         # fix_common_errors() below.
-        #, "[C+]", "[C-]", "[c+]", "[c-]", "[n-]", "[N-]"] # ,
+        # , "[C+]", "[C-]", "[c+]", "[c-]", "[n-]", "[N-]"] # ,
         # "[*@@H]1(~[*][*]~2)~[*]~[*]~[*@@H]2~[*]~[*]~1",
         # "[*@@H]1~2~*~*~[*@@H](~*~*2)~*1",
         # "[*@@H]1~2~*~*~*~[*@@H](~*~*2)~*1",
@@ -444,12 +453,22 @@ class MyMol:
         # Note that C(O)=N, C and N mean they are aliphatic. Does not match
         # c(O)n, when aromatic. So this form is acceptable if in aromatic
         # structure.
-        prohibited_substructures = ["O(=*)-*"] #, "C(O)=N"]
-        prohibited_substructures.append("C(=[CH2])[OH]")  # Enol forms with terminal alkenes are unlikely.
-        prohibited_substructures.append("C(=[CH2])[O-]")  # Enol forms with terminal alkenes are unlikely.
-        prohibited_substructures.append("C=C([OH])[OH]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
-        prohibited_substructures.append("C=C([O-])[OH]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
-        prohibited_substructures.append("C=C([O-])[O-]")  # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures = ["O(=*)-*"]  # , "C(O)=N"]
+        prohibited_substructures.append(
+            "C(=[CH2])[OH]"
+        )  # Enol forms with terminal alkenes are unlikely.
+        prohibited_substructures.append(
+            "C(=[CH2])[O-]"
+        )  # Enol forms with terminal alkenes are unlikely.
+        prohibited_substructures.append(
+            "C=C([OH])[OH]"
+        )  # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append(
+            "C=C([O-])[OH]"
+        )  # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append(
+            "C=C([O-])[O-]"
+        )  # A geminal vinyl diol is not a tautomer of a carboxylate group.
         prohibited_substructures.append("[C-]")  # No carbanions.
         prohibited_substructures.append("[c-]")  # No carbanions.
 
@@ -547,7 +566,7 @@ class MyMol:
            MyMol.MyMol object to the MyMol.rdkit_mol object."""
 
         self.set_rdkit_mol_prop("SMILES", self.smiles(True))
-        #self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
+        # self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
         for prop in list(self.mol_props.keys()):
             self.set_rdkit_mol_prop(prop, self.mol_props[prop])
         genealogy = "\n".join(self.genealogy)
@@ -588,7 +607,7 @@ class MyMol:
                 conf.minimize()  # Won't reminimize if it's already been done.
 
         # Automatically sort by the energy.
-        self.conformers.sort(key=operator.attrgetter('energy'))
+        self.conformers.sort(key=operator.attrgetter("energy"))
 
         # Remove ones that are very structurally similar.
         self.eliminate_structurally_similar_conformers(rmsd_cutoff)
@@ -611,9 +630,7 @@ class MyMol:
                         )
 
                         # Calculate the RMSD.
-                        rmsd = self.conformers[i1].rmsd_to_me(
-                            self.conformers[i2]
-                        )
+                        rmsd = self.conformers[i1].rmsd_to_me(self.conformers[i2])
 
                         # Replace the second one with None if it's too similar
                         # to the first.
@@ -636,7 +653,9 @@ class MyMol:
         total_hydrogens_counted = 0
         for atom in self.rdkit_mol.GetAtoms():
             if atom.GetSymbol() == "C":
-                total_hydrogens_counted = total_hydrogens_counted + atom.GetTotalNumHs(includeNeighbors=True)
+                total_hydrogens_counted = total_hydrogens_counted + atom.GetTotalNumHs(
+                    includeNeighbors=True
+                )
 
         return total_hydrogens_counted
 
@@ -648,13 +667,16 @@ class MyMol:
         for conformer in self.conformers:
             self.rdkit_mol.AddConformer(conformer.conformer())
 
+
 class MyConformer:
     """A wrapper around a rdkit Conformer object. Allows me to associate extra
     values with conformers. These are 3D coordinate sets for a given
     MyMol.MyMol object (different molecule conformations).
     """
 
-    def __init__(self, mol, conformer=None, second_embed=False, use_random_coordinates=False):
+    def __init__(
+        self, mol, conformer=None, second_embed=False, use_random_coordinates=False
+    ):
         """Create a MyConformer objects.
 
         :param mol: The MyMol.MyMol associated with this conformer.
@@ -705,14 +727,14 @@ class MyConformer:
 
             # Set a max number of times it will try to calculate the 3D
             # coordinates. Will save a little time.
-            params.maxIterations = 0   # This should be the default but lets
-                                       # set it anyway
+            params.maxIterations = 0  # This should be the default but lets
+            # set it anyway
 
             # Also set whether to start from random coordinates.
             params.useRandomCoords = use_random_coordinates
 
             # AllChem.EmbedMolecule uses geometry to create inital molecule
-            # coordinates. This sometimes takes a very long time
+            # coordinates. This sometimes takes a very long time.
             AllChem.EmbedMolecule(self.mol, params)
 
             # On rare occasions, the new conformer generating algorithm fails
@@ -728,9 +750,7 @@ class MyConformer:
             # assigned, try that one. Parameters must have second_embed set to
             # True for this to happen.
             if second_embed == True and self.mol.GetNumConformers() == 0:
-                AllChem.EmbedMolecule(
-                    self.mol, useRandomCoords=use_random_coordinates
-                )
+                AllChem.EmbedMolecule(self.mol, useRandomCoords=use_random_coordinates)
 
             # On rare occasions, both methods fail. For example,
             # O=c1cccc2[C@H]3C[NH2+]C[C@@H](C3)Cn21 Another example:
@@ -748,14 +768,17 @@ class MyConformer:
                 ff = AllChem.UFFGetMoleculeForceField(self.mol)
                 self.energy = ff.CalcEnergy()
             except:
-                Utils.log("Warning: Could not calculate energy for molecule " +
-                          Chem.MolToSmiles(self.mol))
+                Utils.log(
+                    "Warning: Could not calculate energy for molecule "
+                    + Chem.MolToSmiles(self.mol)
+                )
                 # Example of smiles that cause problem here without try...catch:
                 # NC1=NC2=C(N[C@@H]3[C@H](N2)O[C@@H](COP(O)(O)=O)C2=C3S[Mo](S)(=O)(=O)S2)C(=O)N1
                 self.energy = 9999
             self.minimized = False
-            self.ids_hvy_atms = [a.GetIdx() for a in self.mol.GetAtoms()
-                                 if a.GetAtomicNum() != 1]
+            self.ids_hvy_atms = [
+                a.GetIdx() for a in self.mol.GetAtoms() if a.GetAtomicNum() != 1
+            ]
 
     def conformer(self, conf=None):
         """Get or set the conformer. An optional variable can specify the
@@ -788,8 +811,10 @@ class MyConformer:
             ff.Minimize()
             self.energy = ff.CalcEnergy()
         except:
-            Utils.log("Warning: Could not calculate energy for molecule " +
-                      Chem.MolToSmiles(self.mol))
+            Utils.log(
+                "Warning: Could not calculate energy for molecule "
+                + Chem.MolToSmiles(self.mol)
+            )
             self.energy = 9999
         self.minimized = True
 
@@ -806,7 +831,7 @@ class MyConformer:
         self.mol.AddConformer(other_conf.conformer(), assignId=True)
 
         # Align them.
-        AllChem.AlignMolConformers(self.mol, atomIds = self.ids_hvy_atms)
+        AllChem.AlignMolConformers(self.mol, atomIds=self.ids_hvy_atms)
 
         # Reset the conformer of the other MyConformer object.
         last_conf = self.mol.GetConformers()[-1]
@@ -852,7 +877,7 @@ class MyConformer:
         # Return the RMSD.
         amol = MOH.try_deprotanation(amol)
         rmsd = AllChem.GetConformerRMS(
-            amol, first_conf.GetId(), last_conf.GetId(), prealigned = True
+            amol, first_conf.GetId(), last_conf.GetId(), prealigned=True
         )
 
         return rmsd

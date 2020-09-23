@@ -62,8 +62,8 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     # Now get the energies
     data = []
     for i, mol in enumerate(mols_3d):
-        mol.make_first_3d_conf_no_min()  # Make sure at least one conformer
-        # exists.
+        mol.make_first_3d_conf_no_min()  # Make sure at least one conformer exists.
+
         if len(mol.conformers) > 0:
             energy = mol.conformers[0].energy
             data.append((energy, i))

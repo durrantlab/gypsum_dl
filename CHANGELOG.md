@@ -1,10 +1,15 @@
 Changes
 =======
 
-WIP
----
+1.1.7
+-----
 
 * Updated the `README.md` file, specifically the `Important Caveats` section.
+* Modest speed improvements when enumerating compounds with many chiral
+  centers. (No need to enumerate far more compounds than will ultimately be
+  used, given the values of the `thoroughness` and `max_variants_per_compound`
+  user parameters.) This update should also allow Gypsum-DL to more
+  efficiently use available memory.
 
 1.1.6
 -----

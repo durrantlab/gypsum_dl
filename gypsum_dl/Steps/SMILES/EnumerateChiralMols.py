@@ -159,6 +159,13 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
         starting = [["R"], ["S"]]
         options = [["R"], ["S"]]
         for i in range(num - 1):
+            if len(options) > thoroughness * max_variants_per_compound:
+                # Unfortunately, this section lends itself to a combinatorial
+                # explosion if there are many chiral centers. Necessary to
+                # control that or it can become problematic. So truncate early
+                # if you already have a enough (so some will unfortunately
+                # never be evaluated).
+                break
             options = list(itertools.product(options, starting))
             options = [list(itertools.chain(c[0], c[1])) for c in options]
 
@@ -169,13 +176,21 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
         + " ("
         + mol.name
         + ") has "
-        + str(len(options))
+        # + str(len(options))
+        + str(2 ** num)
         + " enantiomers when chiral centers with "
         + "no specified chirality are systematically varied."
+        + (
+            " (Systematically varied only "
+            + str(len(options))
+            + " centers to save time.)"
+            if len(options) != num
+            else ""
+        )
     )
 
     # Randomly select a few of the chiral combinations to examine. This is to
-    # reduce the potential  combinatorial explosion.
+    # reduce the potential combinatorial explosion.
     num_to_keep_initially = thoroughness * max_variants_per_compound
     options = Utils.random_sample(options, num_to_keep_initially, "")
 
