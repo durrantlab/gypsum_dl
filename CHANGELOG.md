@@ -10,6 +10,8 @@ Changes
   used, given the values of the `thoroughness` and `max_variants_per_compound`
   user parameters.) This update should also allow Gypsum-DL to more
   efficiently use available memory.
+* Similar speed and memory improvements when enumerating compounds with many
+  double bonds that have unspecified stereochemistries.
 
 1.1.6
 -----

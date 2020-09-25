@@ -26,6 +26,7 @@ import gypsum_dl.Parallelizer as Parallelizer
 import gypsum_dl.Utils as Utils
 import gypsum_dl.ChemUtils as ChemUtils
 import gypsum_dl.MyMol as MyMol
+import math
 
 try:
     from rdkit import Chem
@@ -77,7 +78,7 @@ def enumerate_double_bonds(
     params = []
     for contnr in contnrs:
         for mol in contnr.mols:
-            params.append(tuple([mol, max_variants_per_compound]))
+            params.append(tuple([mol, max_variants_per_compound, thoroughness]))
     params = tuple(params)
 
     # Ruin it through the parallelizer.
@@ -88,7 +89,7 @@ def enumerate_double_bonds(
         )
     else:
         for i in params:
-            tmp.append(parallel_get_double_bonded(i[0], i[1]))
+            tmp.append(parallel_get_double_bonded(i[0], i[1], i[2]))
 
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)
@@ -122,7 +123,7 @@ def enumerate_double_bonds(
     )
 
 
-def parallel_get_double_bonded(mol, max_variants_per_compound):
+def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating double bonds.
 
     :param mol: The molecule with a potentially unspecified double bond.
@@ -131,6 +132,14 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
        only this number of variants (molecules) will be advanced to the next
        step.
     :type max_variants_per_compound: int
+    :param thoroughness: How many molecules to generate per variant (molecule)
+       retained, for evaluation. For example, perhaps you want to advance five
+       molecules (max_variants_per_compound = 5). You could just generate five
+       and advance them all. Or you could generate ten and advance the best
+       five (so thoroughness = 2). Using thoroughness > 1 increases the
+       computational expense, but it also increases the chances of finding good
+       molecules.
+    :type thoroughness: int
     :return: [description]
     :rtype: [type]
     """
@@ -173,7 +182,16 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
         if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(7)
     ]
 
-    # Get a list of all the single bonds that come of each double-bond atom.
+    # Previously, I fully enumerated all double bonds. When there are many
+    # such bonds, that leads to a combinatorial explosion that causes problems
+    # in terms of speed and memory. Now, enumerate only enough bonds to make
+    # sure you generate at least thoroughness * max_variants_per_compound.
+    unasignd_dbl_bnd_idxs_orig_count = len(unasignd_dbl_bnd_idxs)
+    num_bonds_to_keep = math.ceil(math.log(thoroughness * max_variants_per_compound, 2))
+    random.shuffle(unasignd_dbl_bnd_idxs)
+    unasignd_dbl_bnd_idxs = sorted(unasignd_dbl_bnd_idxs[:num_bonds_to_keep])
+
+    # Get a list of all the single bonds that come off each double-bond atom.
     all_sngl_bnd_idxs = set([])
     dbl_bnd_count = 0
     for dbl_bnd_idx in unasignd_dbl_bnd_idxs:
@@ -212,12 +230,24 @@ def parallel_get_double_bonded(mol, max_variants_per_compound):
 
     # Let the user know.
     if dbl_bnd_count > 0:
+        # num_used = len(all_sngl_bnd_idxs)
         Utils.log(
             "\t"
             + mol.smiles(True)
             + " has "
-            + str(dbl_bnd_count)
+            # + str(dbl_bnd_count)
+            + str(
+                # Not exactly right, I think, because should be dbl_bnd_count, but ok.
+                unasignd_dbl_bnd_idxs_orig_count
+            )
             + " double bond(s) with unspecified stereochemistry."
+            # + (
+            #     ""
+            #     if dbl_bnd_count == num_used
+            #     else " (Systematically varied only "
+            #     + str(num_used)
+            #     + " bonds to save time.)"
+            # )
         )
 
     # Go through and consider each of the retained combinations.
