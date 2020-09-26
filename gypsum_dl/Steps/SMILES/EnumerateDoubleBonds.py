@@ -230,7 +230,6 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
 
     # Let the user know.
     if dbl_bnd_count > 0:
-        # num_used = len(all_sngl_bnd_idxs)
         Utils.log(
             "\t"
             + mol.smiles(True)
@@ -241,13 +240,6 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
                 unasignd_dbl_bnd_idxs_orig_count
             )
             + " double bond(s) with unspecified stereochemistry."
-            # + (
-            #     ""
-            #     if dbl_bnd_count == num_used
-            #     else " (Systematically varied only "
-            #     + str(num_used)
-            #     + " bonds to save time.)"
-            # )
         )
 
     # Go through and consider each of the retained combinations.

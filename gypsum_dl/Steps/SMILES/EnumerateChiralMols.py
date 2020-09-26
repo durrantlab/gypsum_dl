@@ -180,13 +180,6 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
         + str(2 ** num)
         + " enantiomers when chiral centers with "
         + "no specified chirality are systematically varied."
-        # + (
-        #     " (Systematically varied only "
-        #     + str(len(options))
-        #     + " centers to save time.)"
-        #     if len(options) != num
-        #     else ""
-        # )
     )
 
     # Randomly select a few of the chiral combinations to examine. This is to
