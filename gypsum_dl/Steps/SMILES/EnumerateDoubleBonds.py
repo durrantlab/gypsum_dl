@@ -187,7 +187,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     # in terms of speed and memory. Now, enumerate only enough bonds to make
     # sure you generate at least thoroughness * max_variants_per_compound.
     unasignd_dbl_bnd_idxs_orig_count = len(unasignd_dbl_bnd_idxs)
-    num_bonds_to_keep = math.ceil(math.log(thoroughness * max_variants_per_compound, 2))
+    num_bonds_to_keep = int(math.ceil(math.log(thoroughness * max_variants_per_compound, 2)))
     random.shuffle(unasignd_dbl_bnd_idxs)
     unasignd_dbl_bnd_idxs = sorted(unasignd_dbl_bnd_idxs[:num_bonds_to_keep])
 
