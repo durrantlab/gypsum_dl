@@ -1,4 +1,4 @@
-# Gypsum-DL 1.1.7
+# Gypsum-DL 1.1.8
 
 Gypsum-DL is a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
@@ -28,6 +28,16 @@ manager. We suggest using Anaconda to manage packages:
 
 ```bash
 conda install -c rdkit rdkit numpy scipy mpi4py
+```
+
+If you encounter an error like `ImportError: libboost_python3.so.1.65.1:
+cannot open shared object file: No such file or directory`, [a helpful
+user](https://durrantlab.pitt.edu/forums/topic/importerror-libboost_python3-so-1-65-1-solved/)
+suggested installing RDKit this way instead:
+
+```bash
+conda create -c conda-forge --name gypsum_dl_env rdkit numpy scipy mpi4py -y
+conda activate gypsum_dl_env
 ```
 
 ## Command-Line Parameters

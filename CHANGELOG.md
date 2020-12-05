@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.1.8
+-----
+
+Updated `README.md` to help some users who were having trouble installing
+RDKit.
+
 1.1.7
 -----
 
