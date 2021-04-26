@@ -1,4 +1,4 @@
-# Gypsum-DL 1.1.8
+# Gypsum-DL 1.1.9
 
 Gypsum-DL is a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
@@ -51,7 +51,9 @@ Gypsum-DL accepts the following command-line parameters:
                         Overrides all other arguments specified at the
                         commandline.
   --source input.smi, -s input.smi
-                        Name of the source file (e.g., input.smi).
+                        Name of the source file (e.g., input.smi). Note:
+                        support for SMI (SMILES) files is better than support
+                        for SDF files, though Gypsum-DL can handle both.
   --output_folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
                         The path to an existing folder where the Gypsum-DL
                         output file(s) will be saved.

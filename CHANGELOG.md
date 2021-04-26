@@ -1,6 +1,16 @@
 Changes
 =======
 
+1.1.9
+-----
+
+* Improved error handling when loading SDF files that are poorly formatted
+  (e.g., that do not specify charged nitrogen atoms). Gypsum-DL depends on
+  RDKit for SDF loading, and RDKit apparently cannot handle these errors. If
+  you find that Gypsum-DL skips many of your compounds with a `Warning: Could
+  not convert some SDF-formatted files to SMILES...` error, consider using an
+  SMI (SMILES) file instead.
+
 1.1.8
 -----
 

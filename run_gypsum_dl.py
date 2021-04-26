@@ -15,7 +15,7 @@
 # limitations under the License.
 
 """
-Gypsum-DL 1.1.8 is a conversion script to transform smiles strings and 2D SDFs
+Gypsum-DL 1.1.9 is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
 
@@ -73,7 +73,7 @@ from gypsum_dl import Utils
 PARSER = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="""
-Gypsum-DL 1.1.8, a free, open-source program for preparing 3D small-molecule
+Gypsum-DL 1.1.9, a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
 alternate ionization, tautomeric, chiral, cis/trans isomeric, and
 ring-conformational forms.""",
@@ -159,7 +159,7 @@ PARSER.add_argument(
     "-s",
     type=str,
     metavar="input.smi",
-    help="Name of the source file (e.g., input.smi).",
+    help="Name of the source file (e.g., input.smi). Note: support for SMI (SMILES) files is better than support for SDF files, though Gypsum-DL can handle both.",
 )
 PARSER.add_argument(
     "--output_folder",

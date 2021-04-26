@@ -125,7 +125,7 @@ def load_sdf_file(filename):
         if mol:
             smiles = Chem.MolToSmiles(mol, isomericSmiles=True, canonical=True)
         else:
-            Utils.log("\tWarning: Could not convert some SDF-formatted files to SMILES. Consider using an SMI file instead.")
+            Utils.log("\tWarning: Could not convert some SDF-formatted files to SMILES. Consider using an SMI (SMILES) file instead.")
             continue
 
         try:
