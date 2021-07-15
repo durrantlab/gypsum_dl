@@ -1,6 +1,15 @@
 Changes
 =======
 
+1.2.0 WIP
+---------
+
+* Added to the Durrant-lab filters to compensate for an amide-related bug in
+  MolVS, one of Gypsum-DL's dependencies. MolVS sometimes tautomerizes
+  `NC(=O)C[*]` to `N\C(O)=C\[*]`, so the Durrant-lab filters now remove any
+  tautomers with substructures that match the SMARTS string
+  `[$([NX2H1]),$([NX3H2])]C(=C)[$([OH]),$([O-])]`.
+
 1.1.9
 -----
 
