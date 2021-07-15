@@ -8,7 +8,11 @@ Changes
   MolVS, one of Gypsum-DL's dependencies. MolVS sometimes tautomerizes
   `NC(=O)C[*]` to `N\C(O)=C\[*]`, so the Durrant-lab filters now remove any
   tautomers with substructures that match the SMARTS string
-  `[$([NX2H1]),$([NX3H2])]C(=C)[$([OH]),$([O-])]`.
+  `[$(N)]C(=C)[$([OH]),$([O-])]`.
+* Previously, the Durrant-lab filters only removed terminal iminols, which are
+  improbable tautomers of terminal amides. According to
+  [DataWarrior](https://openmolecules.org/datawarrior/), internal iminols (e.g.,
+  `C\N=C(\C)O`) are also improbable, so these are now removed as well.
 
 1.1.9
 -----

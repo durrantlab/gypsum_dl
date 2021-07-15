@@ -126,11 +126,11 @@ def run_test():
     # There should be no [N-]C=[N+] (CC(=O)[N-]C=[N+](C)C).
     target_smiles |= set(
         [
-            r"C/C(O)=N\C=[N+](C)C",
+            # r"C/C(O)=N\C=[N+](C)C",  # no longer allowing internal iminols
             r"CC(=O)/N=C\[NH+](C)C",
             "CC(=O)/N=C/[NH+](C)C",
             "CC(=O)NC=[N+](C)C",
-            "C/C(O)=N/C=[N+](C)C",
+            # "C/C(O)=N/C=[N+](C)C",  # no longer allowing internal iminols
         ]
     )
 
@@ -151,7 +151,7 @@ def run_test():
             # r"CC(=O)N/N=C(\C)O",
             # r"CC(=O)[N-]/N=C(/C)O",
             # r"C/C(O)=N/N=C(\C)O",
-            r"C/C(O)=N\N=C(/C)O",
+            # r"C/C(O)=N\N=C(/C)O",  # No longer allowing internal iminols
             # r"CC(=O)[N-]/N=C(\C)O",
             # "CC(=O)[N-]NC(C)=O",
             # "CC(=O)N/N=C(/C)O"

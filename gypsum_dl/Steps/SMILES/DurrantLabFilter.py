@@ -42,8 +42,9 @@ prohibited_smi_substrs_for_substruc = [
     "O=[PH](=O)([#8])([#8])",  # molvs does odd tautomer: OP(O)(O)=O => O=[PH](=O)(O)O
     "[#7]=C1[#7]=C[#7]C=C1",  # Prevents an odd tautomer sometimes seen with adenine.
     "N=c1cc[#7]c[#7]1",  # Variant of above
-    "[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]",  # Terminal iminol
-    "[$([NX2H1]),$([NX3H2])]C(=C)[$([OH]),$([O-])]",  # A mistaken amide tautomer that sometimes arises
+    # "[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]",  # Terminal iminol
+    "[$(N)]=C[$([OH]),$([O-])]",  # iminol (including internal)
+    "[$(N)]C(=C)[$([OH]),$([O-])]",  # A mistaken amide tautomer that sometimes arises
 ]
 
 # Get the substrings you won't permit (per substring matching)
