@@ -1,8 +1,8 @@
 Changes
 =======
 
-1.2.0 WIP
----------
+1.2.0
+-----
 
 * Added to the Durrant-lab filters to compensate for an amide-related bug in
   MolVS, one of Gypsum-DL's dependencies. MolVS sometimes tautomerizes
