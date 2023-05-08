@@ -715,6 +715,7 @@ class MyConformer:
             try:
                 # Try to use ETKDGv2, but it is only present in the python 3.6
                 # version of RDKit.
+                print("HI")
                 params = AllChem.ETKDGv3()
                 # params = AllChem.ETKDGv2()
             except:
