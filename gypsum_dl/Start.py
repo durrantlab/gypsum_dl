@@ -1,16 +1,16 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 Contains the prepare_molecules definition which reads, prepares, and writes
@@ -119,7 +119,7 @@ def prepare_molecules(args):
         # Check mpi4py import
         try:
             import mpi4py
-        except:
+        except Exception:
             printout = "\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
             print(printout)
             Utils.exception(printout)
@@ -181,18 +181,20 @@ def prepare_molecules(args):
         params["add_html_output"] = False
 
     # Warn the user if he or she is not using the Durrant lab filters.
-    if params["use_durrant_lab_filters"] ==- False:
+    if params["use_durrant_lab_filters"] == -False:
         Utils.log(
-            "WARNING: Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated " +
-            "variants, we have identified a number of substructures that, though technically possible, strike us " +
-            "as improbable or otherwise poorly suited for virtual screening. We strongly recommend removing these " +
-            "by running Gypsum-DL with the --use_durrant_lab_filters option.",
-            trailing_whitespace="\n"
+            "WARNING: Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated "
+            + "variants, we have identified a number of substructures that, though technically possible, strike us "
+            + "as improbable or otherwise poorly suited for virtual screening. We strongly recommend removing these "
+            + "by running Gypsum-DL with the --use_durrant_lab_filters option.",
+            trailing_whitespace="\n",
         )
 
     # Load SMILES data
     if isinstance(params["source"], str):
-        Utils.log("Loading molecules from " + os.path.basename(params["source"]) + "...")
+        Utils.log(
+            "Loading molecules from " + os.path.basename(params["source"]) + "..."
+        )
 
         # Smiles must be array of strs.
         src = params["source"]
@@ -229,7 +231,7 @@ def prepare_molecules(args):
     for i in range(0, len(smiles_data)):
         try:
             smiles, name, props = smiles_data[i]
-        except:
+        except Exception:
             msg = 'Unexpected error. Does your "source" parameter specify a '
             msg = msg + "filename that ends in a .can, .smi, or .sdf extension?"
             Utils.exception(msg)
@@ -401,7 +403,7 @@ def set_parameters(params_unicode):
     # usecases here.
     params = {}
     if sys.version_info < (3,):
-        # For Python3
+        # For Python2
         for param in params_unicode:
             val = params_unicode[param]
             if isinstance(val, unicode):
@@ -409,7 +411,7 @@ def set_parameters(params_unicode):
             key = param.lower().encode("utf8")
             params[key] = val
     else:
-        # For Python2
+        # For Python3
         for param in params_unicode:
             val = params_unicode[param]
             key = param.lower()
@@ -419,9 +421,7 @@ def set_parameters(params_unicode):
     merge_parameters(default, params)
 
     # Checks and prepares the final parameter list.
-    final_params = finalize_params(default)
-
-    return final_params
+    return finalize_params(default)
 
 
 def merge_parameters(default, params):
@@ -442,10 +442,10 @@ def merge_parameters(default, params):
     for param in params:
         # Throw an error if there's an unrecognized parameter.
         if param not in default:
-            Utils.log('Parameter "' + str(param) + '" not recognized!')
+            Utils.log(f'Parameter "{str(param)}" not recognized!')
             Utils.log("Here are the options:")
             Utils.log(" ".join(sorted(list(default.keys()))))
-            Utils.exception("Unrecognized parameter: " + str(param))
+            Utils.exception(f"Unrecognized parameter: {str(param)}")
 
         # Throw an error if the input parameter has a different type than
         # the default one.
@@ -531,12 +531,12 @@ def finalize_params(params):
     # Check some required variables.
     try:
         params["source"] = os.path.abspath(params["source"])
-    except:
+    except Exception:
         Utils.exception("Source file doesn't exist.")
     source_dir = params["source"].strip(os.path.basename(params["source"]))
 
     if params["output_folder"] == "" and params["source"] != "":
-        params["output_folder"] = source_dir + "output" + str(os.sep)
+        params["output_folder"] = f"{source_dir}output{str(os.sep)}"
 
     if params["add_pdb_output"] == True and params["output_folder"] == "":
         Utils.exception("To output files as .pdbs, specify the output_folder.")
@@ -583,19 +583,20 @@ def deal_with_failed_molecules(contnrs, params):
     :type params: dict
     """
 
-    failed_ones = []  # To keep track of failed molecules
-    for contnr in contnrs:
-        if len(contnr.mols) == 0:
-            astr = contnr.orig_smi + "\t" + contnr.name
-            failed_ones.append(astr)
-
+    # To keep track of failed molecules
+    failed_ones = [
+        contnr.orig_smi + "\t" + contnr.name
+        for contnr in contnrs
+        if len(contnr.mols) == 0
+    ]
     # Let the user know if there's more than one failed molecule.
-    if len(failed_ones) > 0:
+    if failed_ones:
         Utils.log("\n3D models could not be generated for the following entries:")
         Utils.log("\n".join(failed_ones))
         Utils.log("\n")
 
         # Write the failures to an smi file.
-        outfile = open(params["output_folder"] + os.sep + "gypsum_dl_failed.smi", "w")
-        outfile.write("\n".join(failed_ones))
-        outfile.close()
+        with open(
+            params["output_folder"] + os.sep + "gypsum_dl_failed.smi", "w"
+        ) as outfile:
+            outfile.write("\n".join(failed_ones))

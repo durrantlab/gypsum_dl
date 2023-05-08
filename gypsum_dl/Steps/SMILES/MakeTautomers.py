@@ -1,20 +1,21 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 This module makes alternate tautomeric states, using MolVS.
 """
+
 
 import __future__
 
@@ -28,12 +29,12 @@ import gypsum_dl.MolObjectHandling as MOH
 
 try:
     from rdkit import Chem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     from gypsum_dl.molvs import tautomer
-except:
+except Exception:
     Utils.exception("You need to install molvs and its dependencies.")
 
 
@@ -86,17 +87,18 @@ def make_tauts(
     # Create the parameters to feed into the parallelizer object.
     params = []
     for contnr in contnrs:
-        for mol_index, mol in enumerate(contnr.mols):
-            params.append(tuple([contnr, mol_index, max_variants_per_compound]))
+        params.extend(
+            (contnr, mol_index, max_variants_per_compound)
+            for mol_index, mol in enumerate(contnr.mols)
+        )
     params = tuple(params)
 
     # Run the tautomizer through the parallel object.
     tmp = []
-    if parallelizer_obj != None:
-        tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, job_manager)
+    if parallelizer_obj is None:
+        tmp.extend(parallel_make_taut(i[0], i[1], i[2]) for i in params)
     else:
-        for i in params:
-            tmp.append(parallel_make_taut(i[0], i[1], i[2]))
+        tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, job_manager)
 
     # Flatten the resulting list of lists.
     none_data = tmp
@@ -193,7 +195,7 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
         tm.name = mol.name
 
         if tm.smiles() != mol.smiles():
-            tm.genealogy.append(tm.smiles(True) + " (tautomer)")
+            tm.genealogy.append(f"{tm.smiles(True)} (tautomer)")
 
         results.append(tm)
 
@@ -229,24 +231,21 @@ def tauts_no_break_arom_rngs(
             if contnr.contnr_idx == taut_mol.contnr_idx:
                 container = contnr
 
-        params.append(tuple([taut_mol, container]))
+        params.append((taut_mol, container))
     params = tuple(params)
 
     # Run it through the parallelizer to remove non-aromatic rings.
 
     tmp = []
-    if parallelizer_obj != None:
+    if parallelizer_obj is None:
+        tmp.extend(parallel_check_nonarom_rings(i[0], i[1]) for i in params)
+    else:
         tmp = parallelizer_obj.run(
             params, parallel_check_nonarom_rings, num_procs, job_manager
         )
-    else:
-        for i in params:
-            tmp.append(parallel_check_nonarom_rings(i[0], i[1]))
 
     # Stripping out None values (failed).
-    results = Parallelizer.strip_none(tmp)
-
-    return results
+    return Parallelizer.strip_none(tmp)
 
 
 def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelizer_obj):
@@ -279,23 +278,20 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
             if contnr.contnr_idx == taut_mol.contnr_idx:
                 container = contnr
 
-        params.append(tuple([taut_mol, container]))
+        params.append((taut_mol, container))
     params = tuple(params)
 
     # Run it through the parallelizer.
     tmp = []
-    if parallelizer_obj != None:
+    if parallelizer_obj is None:
+        tmp.extend(parallel_check_chiral_centers(i[0], i[1]) for i in params)
+    else:
         tmp = parallelizer_obj.run(
             params, parallel_check_chiral_centers, num_procs, job_manager
         )
-    else:
-        for i in params:
-            tmp.append(parallel_check_chiral_centers(i[0], i[1]))
 
     # Stripping out None values
-    results = [x for x in tmp if x != None]
-
-    return results
+    return [x for x in tmp if x != None]
 
 
 def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
@@ -321,25 +317,18 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
     """
 
     # Group the taut_data by container to run it through the parallelizer.
-    params = []
-    for taut_mol in taut_data:
-        params.append(tuple([taut_mol, contnrs[taut_mol.contnr_idx]]))
+    params = [(taut_mol, contnrs[taut_mol.contnr_idx]) for taut_mol in taut_data]
     params = tuple(params)
 
     # Run it through the parallelizer.
     tmp = []
-    if parallelizer_obj != None:
+    if parallelizer_obj is None:
+        tmp.extend(parallel_check_carbon_hydrogens(i[0], i[1]) for i in params)
+    else:
         tmp = parallelizer_obj.run(
             params, parallel_check_carbon_hydrogens, num_procs, job_manager
         )
-    else:
-        for i in params:
-            tmp.append(parallel_check_carbon_hydrogens(i[0], i[1]))
-
-    # Strip out the None values.
-    results = [x for x in tmp if x != None]
-
-    return results
+    return [x for x in tmp if x != None]
 
 
 def parallel_check_nonarom_rings(taut, contnr):

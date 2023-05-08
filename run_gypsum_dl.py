@@ -15,7 +15,7 @@
 # limitations under the License.
 
 """
-Gypsum-DL 1.2.0 is a conversion script to transform smiles strings and 2D SDFs
+Gypsum-DL 1.2.1 is a conversion script to transform smiles strings and 2D SDFs
 into 3D models.
 """
 
@@ -31,24 +31,16 @@ def print_gypsum_citation():
     import sys
 
     # And always report citation information.
-    citation_print = "\nIf you use Gypsum-DL in your research, please cite:\n\n"
     citation_print = (
-        citation_print
+        "\nIf you use Gypsum-DL in your research, please cite:\n\n"
         + "Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,\n"
     )
-    citation_print = (
-        citation_print
-        + "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
+    citation_print += "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
+    citation_print += "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
+    citation_print += (
+        "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
     )
-    citation_print = (
-        citation_print
-        + "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
-    )
-    citation_print = (
-        citation_print
-        + "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
-    )
-    citation_print = citation_print + "\ndoi:10.1186/s13321-019-0358-3.\n"
+    citation_print += "\ndoi:10.1186/s13321-019-0358-3.\n"
 
     try:
         from mpi4py import MPI
@@ -57,7 +49,7 @@ def print_gypsum_citation():
         rank = comm.rank
         if rank == 0:
             print(citation_print)
-    except:
+    except Exception:
         print(citation_print)
 
 
@@ -73,7 +65,7 @@ from gypsum_dl import Utils
 PARSER = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="""
-Gypsum-DL 1.2.0, a free, open-source program for preparing 3D small-molecule
+Gypsum-DL 1.2.1, a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
 alternate ionization, tautomeric, chiral, cis/trans isomeric, and
 ring-conformational forms.""",

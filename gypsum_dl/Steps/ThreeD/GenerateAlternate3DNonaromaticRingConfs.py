@@ -18,6 +18,9 @@ since most modern docking programs (e.g., Vina) can't consider alternate ring
 conformations.
 """
 
+
+
+
 import __future__
 
 import copy
@@ -31,17 +34,17 @@ from gypsum_dl.MyMol import MyConformer
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     import numpy
-except:
+except Exception:
     Utils.exception("You need to install numpy and its dependencies.")
 
 try:
     from scipy.cluster.vq import kmeans2
-except:
+except Exception:
     Utils.exception("You need to install scipy and its dependencies.")
 
 
@@ -103,10 +106,10 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     for contnr_idx, contnr in enumerate(contnrs):
         if contnr.num_nonaro_rngs > 0:
             ones_with_nonaro_rngs.add(contnr_idx)
-            for mol in contnr.mols:
-                params.append(
-                    tuple([mol, max_variants_per_compound, thoroughness, second_embed])
-                )
+            params.extend(
+                (mol, max_variants_per_compound, thoroughness, second_embed)
+                for mol in contnr.mols
+            )
     params = tuple(params)
 
     # If there are no compounds with non-aromatic rings, no need to continue.
@@ -201,10 +204,10 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
     rings = mol.get_idxs_of_nonaro_rng_atms()
 
     # Convert that into the bond indecies.
-    
+
     # A list of lists, where each inner list has the indexes of the bonds that
     # comprise a ring.
-    rings_by_bond_indexes = []  
+    rings_by_bond_indexes = []
     for ring_atom_indecies in rings:
         bond_indexes = []
         for ring_atm_idx in ring_atom_indecies:

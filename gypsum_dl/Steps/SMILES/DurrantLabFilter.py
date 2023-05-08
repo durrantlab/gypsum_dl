@@ -1,21 +1,22 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 This module removes molecules with prohibited substructures, per Durrant-lab
 filters.
 """
+
 
 import __future__
 
@@ -25,7 +26,7 @@ import gypsum_dl.ChemUtils as ChemUtils
 
 try:
     from rdkit import Chem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 # Get the substructures you won't permit (per substructure matching, not
@@ -85,10 +86,7 @@ def durrant_lab_contains_bad_substr(smiles):
     :rtype: boolean
     """
 
-    for s in prohibited_smi_substrs_for_substr:
-        if s in smiles:
-            return True
-    return False
+    return any(s in smiles for s in prohibited_smi_substrs_for_substr)
 
 
 def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
@@ -116,14 +114,15 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
 
     # Run the tautomizer through the parallel object.
     tmp = []
-    if parallelizer_obj != None:
+    if parallelizer_obj is None:
+        tmp.extend(
+            parallel_durrant_lab_filter(c, prohibited_substructs)
+            for c in params
+        )
+    else:
         tmp = parallelizer_obj.run(
             params, parallel_durrant_lab_filter, num_procs, job_manager
         )
-    else:
-        for c in params:
-            tmp.append(parallel_durrant_lab_filter(c, prohibited_substructs))
-
     # Note that results is a list of containers.
 
     # Stripping out None values (failed).
@@ -190,8 +189,4 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
     contnr.mols = Parallelizer.strip_none(contnr.mols)
 
     # If there are no molecules, mark this container for deletion.
-    if len(contnr.mols) == 0:
-        return None
-
-    # Return the container
-    return contnr
+    return None if len(contnr.mols) == 0 else contnr

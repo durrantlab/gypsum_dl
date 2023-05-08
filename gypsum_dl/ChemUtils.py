@@ -1,20 +1,21 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 The module includes definitions to manipulate the molecules.
 """
+
 
 import __future__
 
@@ -23,7 +24,7 @@ import gypsum_dl.Utils as Utils
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 
@@ -74,10 +75,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     data = data[:num]
 
     # Keep just the mols there.
-    new_mols_list = [mol_lst[d[1]] for d in data]
-
-    # Return those molecules.
-    return new_mols_list
+    return [mol_lst[d[1]] for d in data]
 
 
 def remove_highly_charged_molecules(mol_lst):
@@ -217,7 +215,7 @@ def uniq_mols_in_list(mol_lst):
     uniq_mols = []
     for m in mol_lst:
         smi = m.smiles()
-        if not smi in can_smiles_already_set:
+        if smi not in can_smiles_already_set:
             uniq_mols.append(m)
         can_smiles_already_set.add(smi)
 

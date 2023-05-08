@@ -1,20 +1,21 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 A module for generating alternate chiralities.
 """
+
 
 import __future__
 
@@ -29,7 +30,7 @@ import gypsum_dl.MyMol as MyMol
 
 try:
     from rdkit import Chem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 
@@ -76,17 +77,17 @@ def enumerate_chiral_molecules(
     # Group the molecules so you can feed them to parallelizer.
     params = []
     for contnr in contnrs:
-        for mol in contnr.mols:
-            params.append(tuple([mol, thoroughness, max_variants_per_compound]))
+        params.extend(
+            (mol, thoroughness, max_variants_per_compound) for mol in contnr.mols
+        )
     params = tuple(params)
 
     # Run it through the parallelizer.
     tmp = []
-    if parallelizer_obj != None:
-        tmp = parallelizer_obj.run(params, parallel_get_chiral, num_procs, job_manager)
+    if parallelizer_obj is None:
+        tmp.extend(parallel_get_chiral(i[0], i[1], i[2]) for i in params)
     else:
-        for i in params:
-            tmp.append(parallel_get_chiral(i[0], i[1], i[2]))
+        tmp = parallelizer_obj.run(params, parallel_get_chiral, num_procs, job_manager)
 
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)
@@ -156,9 +157,9 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
         options = ["R", "S"]
     else:
         # There are multiple chiral centers.
-        starting = [["R"], ["S"]]
         options = [["R"], ["S"]]
-        for i in range(num - 1):
+        starting = [["R"], ["S"]]
+        for _ in range(num - 1):
             if len(options) > thoroughness * max_variants_per_compound:
                 # Unfortunately, this section lends itself to a combinatorial
                 # explosion if there are many chiral centers. Necessary to
@@ -213,7 +214,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
             new_mol.contnr_idx = mol.contnr_idx
             new_mol.name = mol.name
             new_mol.genealogy = mol.genealogy[:]
-            new_mol.genealogy.append(new_mol.smiles(True) + " (chirality)")
+            new_mol.genealogy.append(f"{new_mol.smiles(True)} (chirality)")
             results.append(new_mol)
 
     # Return the results.

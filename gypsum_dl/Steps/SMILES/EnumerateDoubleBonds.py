@@ -1,20 +1,21 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 Module for enumerating unspecified double bonds (cis vs. trans).
 """
+
 
 import __future__
 
@@ -30,7 +31,7 @@ import math
 
 try:
     from rdkit import Chem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 
@@ -77,19 +78,19 @@ def enumerate_double_bonds(
     # Group the molecule containers so they can be passed to the parallelizer.
     params = []
     for contnr in contnrs:
-        for mol in contnr.mols:
-            params.append(tuple([mol, max_variants_per_compound, thoroughness]))
+        params.extend(
+            (mol, max_variants_per_compound, thoroughness) for mol in contnr.mols
+        )
     params = tuple(params)
 
     # Ruin it through the parallelizer.
     tmp = []
-    if parallelizer_obj != None:
+    if parallelizer_obj is None:
+        tmp.extend(parallel_get_double_bonded(i[0], i[1], i[2]) for i in params)
+    else:
         tmp = parallelizer_obj.run(
             params, parallel_get_double_bonded, num_procs, job_manager
         )
-    else:
-        for i in params:
-            tmp.append(parallel_get_double_bonded(i[0], i[1], i[2]))
 
     # Remove Nones (failed molecules)
     clean = Parallelizer.strip_none(tmp)
@@ -187,7 +188,9 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     # in terms of speed and memory. Now, enumerate only enough bonds to make
     # sure you generate at least thoroughness * max_variants_per_compound.
     unasignd_dbl_bnd_idxs_orig_count = len(unasignd_dbl_bnd_idxs)
-    num_bonds_to_keep = int(math.ceil(math.log(thoroughness * max_variants_per_compound, 2)))
+    num_bonds_to_keep = int(
+        math.ceil(math.log(thoroughness * max_variants_per_compound, 2))
+    )
     random.shuffle(unasignd_dbl_bnd_idxs)
     unasignd_dbl_bnd_idxs = sorted(unasignd_dbl_bnd_idxs[:num_bonds_to_keep])
 
@@ -265,7 +268,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
             smiles_to_consider.add(
                 Chem.MolToSmiles(a_rd_mol, isomericSmiles=True, canonical=True)
             )
-        except:
+        except Exception:
             # Some molecules still give troubles. Unfortunate, but these are
             # rare cases. Let's just skip these. Example:
             # CN1C2=C(C=CC=C2)C(C)(C)[C]1=[C]=[CH]C3=CC(=C(O)C(=C3)I)I
@@ -277,7 +280,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     # Get the maximum number of / + \ in any string.
     cnts = [s.count("/") + s.count("\\") for s in smiles_to_consider]
 
-    if len(cnts) == 0:
+    if not cnts:
         # There are no appropriate double bonds. Move on...
         return [mol]
 
@@ -293,19 +296,20 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
         # Make a new MyMol.MyMol object with the specified smiles.
         new_mol = MyMol.MyMol(smile_to_consider)
 
-        if new_mol.can_smi != False and new_mol.can_smi != None:
-            # Sometimes you get an error if there's a bad structure otherwise.
-
-            # Add the new molecule to the list of results, if it does not have
-            # a bizarre substructure.
-            if not new_mol.remove_bizarre_substruc():
-                new_mol.contnr_idx = mol.contnr_idx
-                new_mol.name = mol.name
-                new_mol.genealogy = mol.genealogy[:]
-                new_mol.genealogy.append(
-                    new_mol.smiles(True) + " (cis-trans isomerization)"
-                )
-                results.append(new_mol)
+        # Sometimes you get an error if there's a bad structure otherwise. Add
+        # the new molecule to the list of results, if it does not have a bizarre
+        # substructure.
+        if (
+            new_mol.can_smi not in [False, None]
+            and not new_mol.remove_bizarre_substruc()
+        ):
+            new_mol.contnr_idx = mol.contnr_idx
+            new_mol.name = mol.name
+            new_mol.genealogy = mol.genealogy[:]
+            new_mol.genealogy.append(
+                f"{new_mol.smiles(True)} (cis-trans isomerization)"
+            )
+            results.append(new_mol)
 
     # Return the results.
     return results

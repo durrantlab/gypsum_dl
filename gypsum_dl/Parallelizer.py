@@ -1,16 +1,16 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 Parallelizer.py
@@ -18,14 +18,15 @@ Parallelizer.py
 Abstract parallel computation utility.
 
 The "parallelizer" object exposes a simple map interface that takes a function
-and a list of arguments and returns the result of applying the function to
-each argument. Internally, the parallelizer class can determine what parallel
+and a list of arguments and returns the result of applying the function to each
+argument. Internally, the parallelizer class can determine what parallel
 capabilities are present on a system and automatically pick between "mpi",
 "multiprocessing" or "serial" in order to speed up the map operation. This
 approach simplifies development and allows the same program to run on a laptop
 or a high-performance computer cluster, utilizing the full resources of each
 system. (Description provided by Harrison Green.)
 """
+
 
 import __future__
 import multiprocessing
@@ -36,7 +37,7 @@ try:
     import mpi4py
 
     MPI_installed = True
-except:
+except Exception:
     MPI_installed = False
 
 
@@ -74,7 +75,7 @@ class Parallelizer(object):
                                 a low-level program in mpi mode referenced by a top level program in mpi mode will have terrible problems. This means you can't mpi-multiprocess inside an mpi-multiprocess.
         """
 
-        if mode == "none" or mode == "None":
+        if mode in ["none", "None"]:
             mode = None
 
         self.HAS_MPI = self.test_import_MPI(mode, flag_for_low_level)
@@ -82,7 +83,7 @@ class Parallelizer(object):
         # Pick the mode
         self.pick_mode = self.pick_mode()
 
-        if mode == None:
+        if mode is None:
             if self.pick_mode == "mpi" and self.HAS_MPI == True:
                 # THIS IS TO BE RUN IN MPI
                 self.mode = "mpi"
@@ -99,7 +100,7 @@ class Parallelizer(object):
         elif mode == "multiprocessing":
             self.mode = "multiprocessing"
 
-        elif mode == "Serial" or mode == "serial":
+        elif mode in ["Serial", "serial"]:
             self.mode = "serial"
 
         else:
@@ -107,11 +108,7 @@ class Parallelizer(object):
             self.mode = "multiprocessing"
 
         # Start MPI MODE if applicable
-        if self.mode == "mpi":
-            self.parallel_obj = self.start(self.mode)
-
-        else:
-            self.parallel_obj = None
+        self.parallel_obj = self.start(self.mode) if self.mode == "mpi" else None
 
         if self.mode == "serial":
             self.num_procs = 1
@@ -161,7 +158,7 @@ class Parallelizer(object):
             # Flagged for low level and testing import mpi4py.MPI can be a problem
             return False
 
-        if mode == "mpi" or mode == "None" or mode == None:
+        if mode == "mpi" or mode == "None" or mode is None:
             # This must be either mpi or None, mpi4py can be installed and it hasn't been flagged at low level
 
             # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
@@ -175,29 +172,31 @@ class Parallelizer(object):
                 return False
 
             try:
-                import mpi4py
-                from mpi4py import MPI
-
-                mpi4py_version = mpi4py.__version__
-                mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
-
-                if mpi4py_version[0] == 2:
-                    if mpi4py_version[1] < 1:
-                        print(
-                            "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
-                        )
-                        return False
-                elif mpi4py_version[0] < 2:
-                    print(
-                        "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
-                    )
-                    return False
-
-                return True
-            except:
+                return self.check_mpi_available()
+            except Exception:
                 return False
 
         return False
+
+    # TODO Rename this here and in `test_import_MPI`
+    def check_mpi_available(self):
+        import mpi4py
+        from mpi4py import MPI
+
+        mpi4py_version = mpi4py.__version__
+        mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
+
+        if (
+            mpi4py_version[0] == 2
+            and mpi4py_version[1] < 1
+            or mpi4py_version[0] != 2
+            and mpi4py_version[0] < 2
+        ):
+            print(
+                "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
+            )
+            return False
+        return True
 
     def start(self, mode=None):
         """
@@ -221,7 +220,7 @@ class Parallelizer(object):
                             self.parallel_obj will be set to None for simpler parallization methods like serial
         """
 
-        if mode == None:
+        if mode is None:
             mode = self.mode
 
         if mode == "mpi":
@@ -230,11 +229,10 @@ class Parallelizer(object):
                 ParallelMPI_obj = ParallelMPI()
                 ParallelMPI_obj.start()
                 return ParallelMPI_obj
-            else:
-                raise Exception("mpi4py package must be available to use mpi mode")
+            
+            raise Exception("mpi4py package must be available to use mpi mode")
 
-        else:
-            return None
+        return None
 
     def end(self, mode=None):
         """
@@ -248,7 +246,7 @@ class Parallelizer(object):
                             if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
         """
 
-        if mode == None:
+        if mode is None:
             mode = self.mode
         if mode == "mpi":
 
@@ -290,35 +288,34 @@ class Parallelizer(object):
         """
 
         # determine the mode
-        if mode == None:
+        if mode is None:
             mode = self.mode
-        else:
-            if self.mode != mode:
-                if mode != "mpi" and mode != "serial" and mode != "multiprocessing":
-                    printout = (
-                        "Overriding function with a multiprocess mode which doesn't match: "
-                        + mode
-                    )
-                    raise Exception(printout)
-                if mode == "mpi":
-                    printout = (
-                        "Overriding multiprocess can't go from non-mpi to mpi mode"
-                    )
-                    raise Exception(printout)
-
-        if num_procs == None:
-            num_procs = self.num_procs
-
-        if num_procs != self.num_procs:
-            if mode == "serial":
-                printout = "Can't override num_procs in serial mode"
+        elif self.mode != mode:
+            if mode not in ["mpi", "serial", "multiprocessing"]:
+                printout = (
+                    "Overriding function with a multiprocess mode which doesn't match: "
+                    + mode
+                )
+                raise Exception(printout)
+            if mode == "mpi":
+                printout = (
+                    "Overriding multiprocess can't go from non-mpi to mpi mode"
+                )
                 raise Exception(printout)
 
+        if num_procs is None:
+            num_procs = self.num_procs
+
+        if num_procs != self.num_procs and mode == "serial":
+            printout = "Can't override num_procs in serial mode"
+            raise Exception(printout)
+
         if mode != self.mode:
-            printout = "changing mode from {} to {} for development purpose".format(
-                mode, self.mode
+            printout = (
+                f"changing mode from {mode} to {self.mode} for development purpose"
             )
             print(printout)
+
         # compute
         if mode == "mpi":
             if not self.HAS_MPI:
@@ -345,7 +342,7 @@ class Parallelizer(object):
             try:
                 if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
                     return "mpi"
-            except:
+            except Exception:
                 return "multiprocessing"
             else:
                 return "multiprocessing"
@@ -495,7 +492,7 @@ class ParallelMPI(object):
         chuck_list = []
         temp = []
         counter = 0
-        for x in range(0, len(arr)):
+        for x in range(len(arr)):
 
             # add 1 per group until remainder is removed
             if remainder != 0:
@@ -530,24 +527,22 @@ class ParallelMPI(object):
         arr = tuple(arr)
         arr = [x for x in arr if type(x) != type(self.Empty_object)]
         arr = [a for sub in arr for a in sub]
-        arr = [x for x in arr if type(x) != type(self.Empty_object)]
-        return arr
+        return [x for x in arr if type(x) != type(self.Empty_object)]
 
     def check_and_format_args(self, args):
         # Make sure args is a list of lists
-        if type(args) != list and type(args) != tuple:
+        if type(args) not in [list, tuple]:
             printout = "args must be a list of lists"
             print(printout)
             raise Exception(printout)
 
         item_type = type(args[0])
-        for i in range(0, len(args)):
+        for i in range(len(args)):
             if type(args[i]) == item_type:
                 continue
-            else:
-                printout = "all items within args must be the same type and must be either a list or tuple"
-                print(printout)
-                raise Exception(printout)
+            printout = "all items within args must be the same type and must be either a list or tuple"
+            print(printout)
+            raise Exception(printout)
         if item_type == list:
             return args
         elif item_type == tuple:
@@ -634,7 +629,6 @@ Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
 """
 
 
-
 def MultiThreading(inputs, num_procs, task_name):
     """Initialize this object.
 
@@ -657,7 +651,6 @@ def MultiThreading(inputs, num_procs, task_name):
     num_procs = count_processors(len(inputs), num_procs)
 
     tasks = []
-
 
     for index, item in enumerate(inputs):
         if not isinstance(item, tuple):
@@ -691,19 +684,19 @@ def worker(input, output):
 
 def check_and_format_inputs_to_list_of_tuples(args):
     # Make sure args is a list of tuples
-    if type(args) != list and type(args) != tuple:
+    if type(args) not in [list, tuple]:
         printout = "args must be a list of tuples"
         print(printout)
         raise Exception(printout)
 
     item_type = type(args[0])
-    for i in range(0, len(args)):
+    for i in range(len(args)):
         if type(args[i]) == item_type:
             continue
-        else:
-            printout = "all items within args must be the same type and must be either a list or tuple"
-            print(printout)
-            raise Exception(printout)
+
+        printout = "all items within args must be the same type and must be either a list or tuple"
+        print(printout)
+        raise Exception(printout)
     if item_type == tuple:
         return args
     elif item_type == list:
@@ -751,16 +744,14 @@ def start_processes(inputs, num_procs):
         task_queue.put(item)
 
     # Start worker processes
-    for i in range(num_procs):
+    for _ in range(num_procs):
         multiprocessing.Process(target=worker, args=(task_queue, done_queue)).start()
 
     # Get and print results
-    results = []
-    for i in range(len(inputs)):
-        results.append(done_queue.get())
+    results = [done_queue.get() for _ in range(len(inputs))]
 
     # Tell child processes to stop
-    for i in range(num_procs):
+    for _ in range(num_procs):
         task_queue.put("STOP")
 
     results.sort(key=lambda tup: tup[0])
@@ -781,17 +772,15 @@ def flatten_list(tier_list):
 
     :returns: A flat list of all items.
     """
+
     if tier_list is None:
         return []
-    already_flattened = False
-    for item in tier_list:
-        if type(item) != list:
-            already_flattened = True
-    if already_flattened == True:
+    already_flattened = any(type(item) != list for item in tier_list)
+    if already_flattened:
         return tier_list
 
-    flat_list = [item for sublist in tier_list for item in sublist]
-    return flat_list
+    # Return flat list
+    return [item for sublist in tier_list for item in sublist]
 
 
 def strip_none(none_list):
@@ -803,7 +792,5 @@ def strip_none(none_list):
 
     :returns: A list stripped of None items.
     """
-    if none_list is None:
-        return []
-    results = [x for x in none_list if x != None]
-    return results
+
+    return [] if none_list is None else [x for x in none_list if x is not None]

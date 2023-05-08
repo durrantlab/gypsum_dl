@@ -1,16 +1,16 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 This module describes the MolContainer, which contains different MyMol.MyMol
@@ -21,6 +21,7 @@ MyMol.MyMol. So, just to clarify:
 MolContainer.MolContainer > MyMol.MyMol > MyMol.MyConformers
 """
 
+
 import __future__
 
 import gypsum_dl.Utils as Utils
@@ -29,7 +30,7 @@ import gypsum_dl.MyMol as MyMol
 
 try:
     from rdkit import Chem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 
@@ -105,15 +106,12 @@ class MolContainer:
         # First, get the set of all cannonical smiles.
         # TODO: Probably shouldn't be generating this on the fly every time
         # you use it!
-        can_smi_in_this_container = set([m.smiles() for m in self.mols])
+        can_smi_in_this_container = {m.smiles() for m in self.mols}
 
         # Determine whether it is already in the container, and act
         # accordingly.
         amol = MyMol.MyMol(smiles)
-        if amol.smiles() in can_smi_in_this_container:
-            return True
-        else:
-            return amol
+        return True if amol.smiles() in can_smi_in_this_container else amol
 
     def add_smiles(self, smiles):
         """Adds smiles strings to this container. SMILES are always isomeric
@@ -158,12 +156,8 @@ class MolContainer:
         :rtype: str
         """
 
-        smiles = []
-        for m in self.mols:
-            if m.rdkit_mol is not None:
-                smiles.append(m.smiles(True))  # True means noh
-
-        return smiles
+        # True means noh
+        return [m.smiles(True) for m in self.mols if m.rdkit_mol is not None]
 
     def get_frags_of_orig_smi(self):
         """Gets a list of the fragments found in the original smiles string

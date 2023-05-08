@@ -1,21 +1,22 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 Desalts the input SMILES strings. If an input SMILES string contains to
 molecule, keep the larger one.
 """
+
 
 import __future__
 
@@ -26,7 +27,7 @@ import gypsum_dl.MyMol as MyMol
 
 try:
     from rdkit import Chem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 
@@ -55,13 +56,13 @@ def desalt_orig_smi(
     # Go through each contnr and update the orig_smi_deslt. If we update it,
     # also add a note in the genealogy record.
     tmp = Parallelizer.strip_none(tmp)
-    for idx in range(0, len(tmp)):
+    for idx in range(len(tmp)):
         desalt_mol = tmp[idx]
         # idx = desalt_mol.contnr_idx
         cont = contnrs[idx]
 
-        if contnrs[idx].orig_smi != desalt_mol.orig_smi:
-            desalt_mol.genealogy.append(desalt_mol.orig_smi_deslt + " (desalted)")
+        if cont.orig_smi != desalt_mol.orig_smi:
+            desalt_mol.genealogy.append(f"{desalt_mol.orig_smi_deslt} (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)
 
         cont.add_mol(desalt_mol)
@@ -83,31 +84,25 @@ def desalter(contnr):
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
         return contnr.mol_orig_frm_inp_smi
-    else:
-        Utils.log(
-            "\tMultiple fragments found in "
-            + contnr.orig_smi
-            + " ("
-            + contnr.name
-            + ")"
-        )
+    Utils.log(
+        "\tMultiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
+    )
 
-        # Find the biggest fragment
-        num_heavy_atoms = []
-        num_heavy_atoms_to_frag = {}
+    # Find the biggest fragment
+    num_heavy_atoms = []
+    num_heavy_atoms_to_frag = {}
 
-        for i, f in enumerate(frags):
-            num = f.GetNumHeavyAtoms()
-            num_heavy_atoms.append(num)
-            num_heavy_atoms_to_frag[num] = f
+    for f in frags:
+        num = f.GetNumHeavyAtoms()
+        num_heavy_atoms.append(num)
+        num_heavy_atoms_to_frag[num] = f
 
-        max_num = max(num_heavy_atoms)
-        biggest_frag = num_heavy_atoms_to_frag[max_num]
+    biggest_frag = num_heavy_atoms_to_frag[max(num_heavy_atoms)]
 
-        # Return info about that biggest fragment.
-        new_mol = MyMol.MyMol(biggest_frag)
-        new_mol.contnr_idx = contnr.contnr_idx
-        new_mol.name = contnr.name
-        new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy
-        new_mol.make_mol_frm_smiles_sanitze()  # Need to update the mol.
-        return new_mol
+    # Return info about that biggest fragment.
+    new_mol = MyMol.MyMol(biggest_frag)
+    new_mol.contnr_idx = contnr.contnr_idx
+    new_mol.name = contnr.name
+    new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy
+    new_mol.make_mol_frm_smiles_sanitze()  # Need to update the mol.
+    return new_mol

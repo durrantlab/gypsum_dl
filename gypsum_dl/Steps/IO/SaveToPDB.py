@@ -53,28 +53,21 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
 
         # Got through the variants.
         for i, m in enumerate(mols):
-            pdb_file = "{}{}__input{}__variant{}.pdb".format(
-                output_folder + os.sep,
-                Utils.slug(name),
-                contnr.contnr_idx_orig + 1,
-                i + 1,
-            )
+            pdb_file = f"{output_folder + os.sep}{Utils.slug(name)}__input{contnr.contnr_idx_orig + 1}__variant{i + 1}.pdb"
 
             # Get the conformers into the rdkit_mol object.
             m.load_conformers_into_rdkit_mol()
             mol = m.rdkit_mol
-            if mol == None:
+            if mol is None:
                 continue
-            else:
-                # Write conformers to a PDB file.
-                Chem.MolToPDBFile(mol, pdb_file, flavor=32)
 
-                # Add header to PDB file with original SMILES and final SMILES
-                printout = "REMARK Original SMILES string: {}\nREMARK Final SMILES string: {}\n".format(
-                    m.orig_smi, m.standardize_smiles()
-                )
-                with open(pdb_file) as f:
-                    printout = printout + f.read()
-                with open(pdb_file, "w") as f:
-                    f.write(printout)
-                printout = ""
+            # Write conformers to a PDB file.
+            Chem.MolToPDBFile(mol, pdb_file, flavor=32)
+
+            # Add header to PDB file with original SMILES and final SMILES
+            printout = f"REMARK Original SMILES string: {m.orig_smi}\nREMARK Final SMILES string: {m.standardize_smiles()}\n"
+            with open(pdb_file) as f:
+                printout += f.read()
+            with open(pdb_file, "w") as f:
+                f.write(printout)
+            printout = ""

@@ -82,21 +82,17 @@ def add_hydrogens(
 
     # Format the inputs for use in the parallelizer.
     inputs = tuple(
-        [
-            tuple([cont, protonation_settings])
-            for cont in contnrs
-            if type(cont.orig_smi_canonical) == str
-        ]
+        (cont, protonation_settings)
+        for cont in contnrs
+        if type(cont.orig_smi_canonical) == str
     )
 
     # Run the parallelizer and collect the results.
     results = []
-    if parallelizer_obj != None:
-        results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, job_manager)
+    if parallelizer_obj is None:
+        results.extend(parallel_add_H(i[0], i[1]) for i in inputs)
     else:
-        for i in inputs:
-            results.append(parallel_add_H(i[0], i[1]))
-
+        results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, job_manager)
     results = Parallelizer.flatten_list(results)
 
     # Dimorphite-DL might not have generated ionization states for some
@@ -120,8 +116,8 @@ def add_hydrogens(
 
         # Save this failure to the genealogy record.
         amol.genealogy = [
-            amol.orig_smi + " (source)",
-            amol.orig_smi_deslt + " (desalted)",
+            f"{amol.orig_smi} (source)",
+            f"{amol.orig_smi_deslt} (desalted)",
             "(WARNING: Gypsum-DL could not assign ionization states)",
         ]
 
@@ -150,11 +146,11 @@ def parallel_add_H(contnr, protonation_settings):
 
     # Make sure the canonical SMILES is actually a string.
     if type(contnr.orig_smi_canonical) != str:
-        Utils.log("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
+        Utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
         Utils.log(
-            "type container.orig_smi_canonical: " + str(type(contnr.orig_smi_canonical))
+            f"type container.orig_smi_canonical: {str(type(contnr.orig_smi_canonical))}"
         )
-        Utils.exception("container.orig_smi_canonical: " + contnr.orig_smi_canonical)
+        Utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
 
     # Add the SMILES string to the protonation parameters.
     protonation_settings["smiles"] = contnr.orig_smi_canonical
@@ -185,7 +181,7 @@ def parallel_add_H(contnr, protonation_settings):
         Hm.name = orig_mol.name
 
         if Hm.smiles() != orig_mol.smiles():
-            Hm.genealogy.append(Hm.smiles(True) + " (protonated)")
+            Hm.genealogy.append(f"{Hm.smiles(True)} (protonated)")
 
         return_values.append(Hm)
 

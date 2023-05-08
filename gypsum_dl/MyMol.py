@@ -1,16 +1,16 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 This module contains classes and functions for processing individual molecules
@@ -22,8 +22,11 @@ So just to clarify: MolContainer.MolContainer > MyMol.MyMol >
 MyMol.MyConformer
 """
 
+
+
 import __future__
 
+import contextlib
 import sys
 import copy
 import operator
@@ -42,12 +45,12 @@ try:
     from rdkit.Chem import AllChem
     from rdkit import Chem
     from rdkit.Chem.rdchem import BondStereo
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     from gypsum_dl.molvs import standardize_smiles as ssmiles
-except:
+except Exception:
     Utils.exception("You need to install molvs and its dependencies.")
 
 
@@ -86,7 +89,7 @@ class MyMol:
 
                 # In this case you know it's cannonical.
                 self.can_smi = smiles
-            except:
+            except Exception:
                 # Sometimes this conversion just can't happen. Happened once
                 # with this beast, for example:
                 # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
@@ -132,7 +135,7 @@ class MyMol:
 
         try:
             self.stdrd_smiles = ssmiles(self.smiles())
-        except:
+        except Exception:
             Utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
             self.stdrd_smiles = self.smiles()
 
@@ -159,10 +162,7 @@ class MyMol:
         :rtype: bool
         """
 
-        if other is None:
-            return False
-        else:
-            return self.__hash__() == other.__hash__()
+        return False if other is None else self.__hash__() == other.__hash__()
 
     def __ne__(self, other):
         """Allows you to compare MyMol.MyMol objects.
@@ -245,7 +245,7 @@ class MyMol:
             try:
                 # sanitize = False makes it respect double-bond stereochemistry
                 m = Chem.MolFromSmiles(self.orig_smi_deslt, sanitize=False)
-            except:
+            except Exception:
                 m = None
         else:  # If given a RDKit Mol Obj
             m = self.rdkit_mol
@@ -288,37 +288,26 @@ class MyMol:
         :rtype: str or None
         """
 
-        # See if it's already been calculated.
+        # See if it's already been calculated. They want the hydrogen atoms.
         if noh == False:
-            # They want the hydrogen atoms.
             if self.can_smi != "":
                 # Return previously determined canonical SMILES.
                 return self.can_smi
-            else:
-                # Need to determine canonical SMILES.
-                try:
-                    can_smi = Chem.MolToSmiles(
-                        self.rdkit_mol, isomericSmiles=True, canonical=True
-                    )
-                except:
-                    # Sometimes this conversion just can't happen. Happened
-                    # once with this beast, for example:
-                    # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
-                    Utils.log(
-                        "Warning: Couldn't put "
-                        + self.orig_smi
-                        + " ("
-                        + self.name
-                        + ") in canonical form. Got this error: "
-                        + str(sys.exc_info()[0])
-                        + ". This molecule will be "
-                        + "discarded."
-                    )
-                    self.can_smi = None
-                    return None
 
-                self.can_smi = can_smi
-                return can_smi
+            # Need to determine canonical SMILES.
+            try:
+                can_smi = Chem.MolToSmiles(
+                    self.rdkit_mol, isomericSmiles=True, canonical=True
+                )
+            except Exception:
+                Utils.log(
+                    f"Warning: Couldn't put {self.orig_smi} ({self.name}) in canonical form. Got this error: {str(sys.exc_info()[0])}. This molecule will be discarded."
+                )
+                self.can_smi = None
+                return None
+
+            self.can_smi = can_smi
+            return can_smi
         else:
             # They don't want the hydrogen atoms.
             if self.can_smi_noh != "":
@@ -417,12 +406,11 @@ class MyMol:
         if self.rdkit_mol is None:
             return []
 
-        unasignd = []
-        for b in self.rdkit_mol.GetBonds():
-            if b.GetBondTypeAsDouble() == 2 and b.GetStereo() is BondStereo.STEREONONE:
-
-                unasignd.append(b.GetIdx())
-        return unasignd
+        return [
+            b.GetIdx()
+            for b in self.rdkit_mol.GetBonds()
+            if b.GetBondTypeAsDouble() == 2 and b.GetStereo() is BondStereo.STEREONONE
+        ]
 
     def remove_bizarre_substruc(self):
         """Removes molecules with improbable substuctures, likely generated
@@ -455,38 +443,27 @@ class MyMol:
         # c(O)n, when aromatic. So this form is acceptable if in aromatic
         # structure.
         prohibited_substructures = ["O(=*)-*"]  # , "C(O)=N"]
-        prohibited_substructures.append(
-            "C(=[CH2])[OH]"
-        )  # Enol forms with terminal alkenes are unlikely.
-        prohibited_substructures.append(
-            "C(=[CH2])[O-]"
-        )  # Enol forms with terminal alkenes are unlikely.
-        prohibited_substructures.append(
-            "C=C([OH])[OH]"
-        )  # A geminal vinyl diol is not a tautomer of a carboxylate group.
-        prohibited_substructures.append(
-            "C=C([O-])[OH]"
-        )  # A geminal vinyl diol is not a tautomer of a carboxylate group.
-        prohibited_substructures.append(
-            "C=C([O-])[O-]"
-        )  # A geminal vinyl diol is not a tautomer of a carboxylate group.
+
+        # Enol forms with terminal alkenes are unlikely.
+        prohibited_substructures.append("C(=[CH2])[OH]")
+
+        # Enol forms with terminal alkenes are unlikely.
+        prohibited_substructures.append("C(=[CH2])[O-]")
+        # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append("C=C([OH])[OH]")
+
+        # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append("C=C([O-])[OH]")
+
+        # A geminal vinyl diol is not a tautomer of a carboxylate group.
+        prohibited_substructures.append("C=C([O-])[O-]")
         prohibited_substructures.append("[C-]")  # No carbanions.
         prohibited_substructures.append("[c-]")  # No carbanions.
 
         for s in prohibited_substructures:
             # First just match strings... could be faster, but not 100%
             # accurate.
-            if s in self.orig_smi:
-                Utils.log("\tDetected unusual substructure: " + s)
-                self.bizarre_substruct = True
-                return True
-
-            if s in self.orig_smi_deslt:
-                Utils.log("\tDetected unusual substructure: " + s)
-                self.bizarre_substruct = True
-                return True
-
-            if s in self.can_smi:
+            if s in self.orig_smi or s in self.orig_smi_deslt or s in self.can_smi:
                 Utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
@@ -518,7 +495,7 @@ class MyMol:
             # Already been determined...
             return self.frgs
 
-        if not "." in self.orig_smi:
+        if "." not in self.orig_smi:
             # There are no fragments. Just return this object.
             self.frgs = [self]
             return [self]
@@ -557,10 +534,8 @@ class MyMol:
         self.rdkit_mol.SetProp(key, val)
         self.rdkit_mol.SetProp(key, val)
 
-        try:
+        with contextlib.suppress(Exception):
             self.rdkit_mol.SetProp(key, val)
-        except:
-            pass
 
     def set_all_rdkit_mol_props(self):
         """Set all the stored molecular properties. Copies ones from the
@@ -786,7 +761,7 @@ class MyConformer:
             try:
                 ff = AllChem.UFFGetMoleculeForceField(self.mol)
                 self.energy = ff.CalcEnergy()
-            except:
+            except Exception:
                 Utils.log(
                     "Warning: Could not calculate energy for molecule "
                     + Chem.MolToSmiles(self.mol)
@@ -829,7 +804,7 @@ class MyConformer:
             ff = AllChem.UFFGetMoleculeForceField(self.mol)
             ff.Minimize()
             self.energy = ff.CalcEnergy()
-        except:
+        except Exception:
             Utils.log(
                 "Warning: Could not calculate energy for molecule "
                 + Chem.MolToSmiles(self.mol)
@@ -895,11 +870,7 @@ class MyConformer:
 
         # Return the RMSD.
         amol = MOH.try_deprotanation(amol)
-        rmsd = AllChem.GetConformerRMS(
-            amol, 0, 1, prealigned=True
-        )
-
-        return rmsd
+        return AllChem.GetConformerRMS(amol, 0, 1, prealigned=True)
 
     def coords(self):
         """Get the coordinates of this conformer. For debugging.
@@ -909,7 +880,7 @@ class MyConformer:
         """
 
         return self.conformer().GetPositions()
-    
+
     def write_pdb_file(self, filename: str):
         """Write this conformer to a PDB file. For debugging.
 

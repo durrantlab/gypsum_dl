@@ -4,16 +4,15 @@ Changes
 1.2.1
 -----
 
-* Fixed a bug in generating multiple ring conformations. This functionality
-  worked correctly when originally published (e.g., with rdkit 2020.03.1), but
-  due to changes made to more recent versions of rdkit, Gypsum-DL produced only
-  one ring conformation, even if multiple were reasonably possible. It now
-  produces multiple ring conformations even on recent versions of rdkit (e.g.,
-  `2023.03.1`). We recommend using the lastest version of rdkit.
+* Fixed a bug in generating multiple non-aromatic ring conformations. This
+  functionality worked correctly when Gypsum-DL was originally published (e.g.,
+  with rdkit 2020.03.1). But due to changes made to more recent versions of
+  rdkit, Gypsum-DL produced only one ring conformation, even if multiple were
+  reasonably possible. It now produces multiple ring conformations even on
+  recent versions of rdkit (e.g., `2023.03.1`). We recommend using the lastest
+  version of rdkit.
 * Gypsum-DL now uses `AllChem.ETKDGv3` if it's available.
-* Fixed minor warning:
-  `/home/jdurrant/gypsum_dl/gypsum_dl/Steps/SMILES/dimorphite_dl/dimorphite_dl.py:744:
-  SyntaxWarning: "is not" with a literal. Did you mean "!="?`
+* Modernized codebase some. Python2 no longer officially supported.
 * Updated copyright year to 2023.
 
 1.2.0
@@ -161,9 +160,8 @@ RDKit.
   Newer mpi4py versions (2.1.0 and higher) provide an alternative command line
   execution mechanism (the `-m` flag) that implements the runpy Python module.
   Gypsum-DL also requires `-m mpi4py` to run in mpi mode (e.g., `mpirun -n
-  $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...`). If you
-  experience deadlock, [please contact](mailto:durrantj@pitt.edu) us
-  immediately.
+  $NTASKS python -m mpi4py run_gypsum_dl.py ...-settings...`). If you experience
+  deadlock, [please contact](mailto:durrantj@pitt.edu) us immediately.
 
   To test your version of mpi4py, open a python window and run the following
   commands:

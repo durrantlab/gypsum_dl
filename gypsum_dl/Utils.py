@@ -1,23 +1,25 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 Some helpful utility definitions used throughout the code.
 """
 
+
 import __future__
 
+import contextlib
 import subprocess
 import textwrap
 import random
@@ -46,7 +48,7 @@ def group_mols_by_container_index(mol_lst):
 
         idx = mol.contnr_idx
 
-        if not idx in grouped_results:
+        if idx not in grouped_results:
             grouped_results[idx] = []
         grouped_results[idx].append(mol)
 
@@ -71,12 +73,10 @@ def random_sample(lst, num, msg_if_cut=""):
     :rtype: list
     """
 
-    try:
-        # Remove redundancies.
+    with contextlib.suppress(Exception):
+        # Remove redundancies. Supress because someitems lst element may be
+        # unhashable.
         lst = list(set(lst))
-    except:
-        # Because someitems lst element may be unhashable.
-        pass
 
     # Shuffle the list.
     random.shuffle(lst)
@@ -100,12 +100,15 @@ def log(txt, trailing_whitespace=""):
 
     whitespace_before = txt[: len(txt) - len(txt.lstrip())].replace("\t", "    ")
     print(
-        textwrap.fill(
-            txt.strip(),
-            width=80,
-            initial_indent=whitespace_before,
-            subsequent_indent=whitespace_before + "    ",
-        ) + trailing_whitespace
+        (
+            textwrap.fill(
+                txt.strip(),
+                width=80,
+                initial_indent=whitespace_before,
+                subsequent_indent=f"{whitespace_before}    ",
+            )
+            + trailing_whitespace
+        )
     )
 
 
@@ -122,17 +125,17 @@ def fnd_contnrs_not_represntd(contnrs, results):
     :rtype: list
     """
 
-    # Find ones that don't have any generated. In the context of ionization,
-    # for example, this is because sometimes Dimorphite-DL failes to producce
-    # valid smiles. In this case, just use the original smiles. Couldn't find
-    # a good solution to work around.
+    # Find ones that don't have any generated. In the context of ionization, for
+    # example, this is because sometimes Dimorphite-DL failes to producce valid
+    # smiles. In this case, just use the original smiles. Couldn't find a good
+    # solution to work around.
 
     # Get a dictionary of all the input smiles. Keys are indexes, values are
     # smiles.
     idx_to_smi = {}
-    for idx in range(0, len(contnrs)):
+    for idx in range(len(contnrs)):
         contnr = contnrs[idx]
-        if not idx in idx_to_smi:
+        if idx not in idx_to_smi:
             idx_to_smi[idx] = contnrs[idx].orig_smi_deslt
 
     # Now remove from those any that have associated ionized smiles strings.
@@ -189,8 +192,8 @@ def slug(strng):
 
     # See
     # https://stackoverflow.com/questions/295135/turn-a-string-into-a-valid-filename
-    valid_chars = "-_.%s%s" % (string.ascii_letters, string.digits)
     if strng == "":
         return "untitled"
-    else:
-        return "".join([c if c in valid_chars else "_" for c in strng])
+
+    valid_chars = f"-_.{string.ascii_letters}{string.digits}"
+    return "".join([c if c in valid_chars else "_" for c in strng])

@@ -1,21 +1,22 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 """
 A module to so the 2D to 3D conversion, though the actual code for that
 conversion is in MyMol.MyMol.make_first_3d_conf_no_min()
 """
+
 
 import __future__
 import copy
@@ -27,7 +28,7 @@ import gypsum_dl.ChemUtils as ChemUtils
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
-except:
+except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 
 
@@ -68,18 +69,15 @@ def convert_2d_to_3d(
     # Make the inputs to pass to the parallelizer.
     params = []
     for contnr in contnrs:
-        for mol in contnr.mols:
-            params.append(tuple([mol]))
+        params.extend((mol,) for mol in contnr.mols)
     params = tuple(params)
 
     # Run the parallelizer
     tmp = []
-    if parallelizer_obj != None:
-        tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, job_manager)
+    if parallelizer_obj is None:
+        tmp.extend(parallel_make_3d(i[0]) for i in params)
     else:
-        for i in params:
-            tmp.append(parallel_make_3d(i[0]))
-
+        tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, job_manager)
     # Remove and Nones from the output, which represent failed molecules.
     clear = Parallelizer.strip_none(tmp)
 
@@ -107,20 +105,20 @@ def parallel_make_3d(mol):
         # The rdkit mol is None. Something's gone wrong. Show an error
         # message.
         show_error_msg = True
-    else:
+    elif mol.remove_bizarre_substruc() == False:
         # Check if it has strange substructures.
-        if mol.remove_bizarre_substruc() == False:
-            # Perform the conversion.
-            mol.make_first_3d_conf_no_min()
 
-            # If there are some conformations, make note of that in the
-            # genealogy record.
-            if len(mol.conformers) > 0:
-                mol.genealogy.append(mol.smiles(True) + " (3D coordinates assigned)")
-                return mol
-            else:
-                # No conformers? Show an error. Something's gone wrong.
-                show_error_msg = True
+        # Perform the conversion.
+        mol.make_first_3d_conf_no_min()
+
+        # If there are some conformations, make note of that in the
+        # genealogy record.
+        if len(mol.conformers) > 0:
+            mol.genealogy.append(f"{mol.smiles(True)} (3D coordinates assigned)")
+            return mol
+        else:
+            # No conformers? Show an error. Something's gone wrong.
+            show_error_msg = True
 
     if show_error_msg:
         # Something's gone wrong, so show this error.

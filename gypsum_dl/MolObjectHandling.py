@@ -1,16 +1,16 @@
 # Copyright 2023 Jacob D. Durrant
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 ##### MolObjectHandling.py
 import __future__
@@ -51,41 +51,38 @@ def check_sanitization(mol):
             sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
             catchErrors=True,
         )
-    except:
+    except Exception:
         return None
 
     if sanitize_string.name == "SANITIZE_NONE":
         return mol
-    else:
-        # try to fix the nitrogen (common problem that 4 bonded Nitrogens improperly lose their + charges)
-        mol = Nitrogen_charge_adjustment(mol)
-        Chem.SanitizeMol(
-            mol,
-            sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
-            catchErrors=True,
-        )
-        sanitize_string = Chem.SanitizeMol(
-            mol,
-            sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
-            catchErrors=True,
-        )
-        if sanitize_string.name == "SANITIZE_NONE":
-            return mol
 
-    # run a  sanitation Filter 1 more time incase something slipped through
-    # ie. if there are any forms of sanition which fail ie. KEKULIZE then return None
+    # try to fix the nitrogen (common problem that 4 bonded Nitrogens improperly
+    # lose their + charges)
+    mol = Nitrogen_charge_adjustment(mol)
+    Chem.SanitizeMol(
+        mol,
+        sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
+        catchErrors=True,
+    )
     sanitize_string = Chem.SanitizeMol(
         mol,
         sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
         catchErrors=True,
     )
-    if sanitize_string.name != "SANITIZE_NONE":
-        return None
-    else:
+    if sanitize_string.name == "SANITIZE_NONE":
         return mol
 
+    # run a  sanitation Filter 1 more time incase something slipped through ie.
+    # if there are any forms of sanition which fail ie. KEKULIZE then return
+    # None
+    sanitize_string = Chem.SanitizeMol(
+        mol,
+        sanitizeOps=rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
+        catchErrors=True,
+    )
 
-#
+    return None if sanitize_string.name != "SANITIZE_NONE" else mol
 
 
 def handleHs(mol, protanate_step):
@@ -140,15 +137,10 @@ def try_deprotanation(sanitized_mol):
     """
     try:
         mol = Chem.RemoveHs(sanitized_mol, sanitize=False)
-    except:
+    except Exception:
         return None
 
-    mol_sanitized = check_sanitization(mol)
-
-    return mol_sanitized
-
-
-#
+    return check_sanitization(mol)
 
 
 def try_reprotanation(sanitized_deprotanated_mol):
@@ -163,16 +155,15 @@ def try_reprotanation(sanitized_deprotanated_mol):
                                             it returns None if H's can't be added or if sanitation fails
     """
 
-    if sanitized_deprotanated_mol is not None:
-        try:
-            mol = Chem.AddHs(sanitized_deprotanated_mol)
-        except:
-            mol = None
-
-        mol_sanitized = check_sanitization(mol)
-        return mol_sanitized
-    else:
+    if sanitized_deprotanated_mol is None:
         return None
+
+    try:
+        mol = Chem.AddHs(sanitized_deprotanated_mol)
+    except Exception:
+        mol = None
+
+    return check_sanitization(mol)
 
 
 #
@@ -200,7 +191,7 @@ def remove_atoms(mol, list_of_idx_to_remove):
     try:
         atomsToRemove = list_of_idx_to_remove
         atomsToRemove.sort(reverse=True)
-    except:
+    except Exception:
         return None
 
     try:
@@ -208,10 +199,8 @@ def remove_atoms(mol, list_of_idx_to_remove):
         for atom in atomsToRemove:
             em1.RemoveAtom(atom)
 
-        new_mol = em1.GetMol()
-
-        return new_mol
-    except:
+        return em1.GetMol()
+    except Exception:
         return None
 
 
@@ -243,7 +232,7 @@ def Nitrogen_charge_adjustment(mol):
     # makes sure its an rdkit obj
     try:
         atoms = mol.GetAtoms()
-    except:
+    except Exception:
         return None
 
     for atom in atoms:
@@ -275,7 +264,7 @@ def check_for_unassigned_atom(mol):
 
     try:
         atoms = mol.GetAtoms()
-    except:
+    except Exception:
         return None
 
     for atom in atoms:
@@ -298,7 +287,7 @@ def handle_frag_check(mol):
 
     try:
         frags = Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
-    except:
+    except Exception:
         return None
 
     if len(frags) == 1:
