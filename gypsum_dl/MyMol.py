@@ -1,4 +1,4 @@
-# Copyright 2018 Jacob D. Durrant
+# Copyright 2023 Jacob D. Durrant
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -590,7 +590,7 @@ class MyMol:
         # First, do you need to add new conformers? Some might have already
         # been added. Just add enough to meet the requested amount.
         num_new_confs = max(0, num - len(self.conformers))
-        for i in range(num_new_confs):
+        for _ in range(num_new_confs):
             if len(self.conformers) == 0:
                 # For the first one, don't start from random coordinates.
                 new_conf = MyConformer(self)
@@ -620,7 +620,7 @@ class MyMol:
         """
 
         # Eliminate redundant ones.
-        for i1 in range(0, len(self.conformers) - 1):
+        for i1 in range(len(self.conformers) - 1):
             if self.conformers[i1] is not None:
                 for i2 in range(i1 + 1, len(self.conformers)):
                     if self.conformers[i2] is not None:
@@ -715,7 +715,8 @@ class MyConformer:
             try:
                 # Try to use ETKDGv2, but it is only present in the python 3.6
                 # version of RDKit.
-                params = AllChem.ETKDGv2()
+                params = AllChem.ETKDGv3()
+                # params = AllChem.ETKDGv2()
             except:
                 # Use the original version of ETKDG if python 2.7 RDKit. This
                 # may be resolved in next RDKit update so we encased this in a
@@ -793,9 +794,9 @@ class MyConformer:
 
         if conf is None:
             return self.mol.GetConformers()[0]
-        else:
-            self.mol.RemoveAllConformers()
-            self.mol.AddConformer(conf)
+
+        self.mol.RemoveAllConformers()
+        self.mol.AddConformer(conf)
 
     def minimize(self):
         """Minimize (optimize) the geometry of the current conformer if it

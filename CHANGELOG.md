@@ -7,6 +7,11 @@ Changes
 * Fixed minor warning:
   `/home/jdurrant/gypsum_dl/gypsum_dl/Steps/SMILES/dimorphite_dl/dimorphite_dl.py:744:
   SyntaxWarning: "is not" with a literal. Did you mean "!="?`
+* Updated copyright year to 2023.
+
+https://rdkit.org/docs/BackwardsIncompatibleChanges.html#changes-to-conformer-generation (2021.03)
+
+https://www.rdkit.org/docs/Cookbook.html#conformer-generation-with-etkdg
 
 1.2.0
 -----

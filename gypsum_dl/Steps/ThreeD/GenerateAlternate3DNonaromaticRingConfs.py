@@ -1,4 +1,4 @@
-# Copyright 2018 Jacob D. Durrant
+# Copyright 2023 Jacob D. Durrant
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -110,19 +110,17 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     params = tuple(params)
 
     # If there are no compounds with non-aromatic rings, no need to continue.
-    if len(ones_with_nonaro_rngs) == 0:
+    if not ones_with_nonaro_rngs:
         return  # There are no such ligands to process.
 
     # Run it through the parallelizer
     tmp = []
-    if parallelizer_obj != None:
+    if parallelizer_obj is None:
+        tmp.extend(parallel_get_ring_confs(i[0], i[1], i[2], i[3]) for i in params)
+    else:
         tmp = parallelizer_obj.run(
             params, parallel_get_ring_confs, num_procs, job_manager
         )
-    else:
-        for i in params:
-            tmp.append(parallel_get_ring_confs(i[0], i[1], i[2], i[3]))
-
     # Flatten the results.
     results = Parallelizer.flatten_list(tmp)
 
@@ -138,14 +136,12 @@ def generate_alternate_3d_nonaromatic_ring_confs(
         # Add the mol with it's energy to the appropriate entry in grouped.
         # Make that entry if needed.
         contnr_idx = mol.contnr_idx
-        if not contnr_idx in grouped:
+        if contnr_idx not in grouped:
             grouped[contnr_idx] = []
         grouped[contnr_idx].append((energy, mol))
 
     # Now, for each container, keep only the best ones.
-    for contnr_idx in grouped:
-        lst_enrgy_mol_pairs = grouped[contnr_idx]
-
+    for contnr_idx, lst_enrgy_mol_pairs in grouped.items():
         if len(lst_enrgy_mol_pairs) != 0:
             contnrs[contnr_idx].mols = []  # Note that only affects ones that
             # had non-aromatic rings.
@@ -219,9 +215,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
                 other_atm_idx = atom_indecies[0]
                 if other_atm_idx in ring_atom_indecies:
                     bond_indexes.append(bond.GetIdx())
-        bond_indexes = list(set(bond_indexes))
-        bond_indexes.sort()
-
+        bond_indexes = sorted(set(bond_indexes))
         rings_by_bond_indexes.append(bond_indexes)
 
     # Generate a bunch of conformations, ordered from best energy to worst.
@@ -259,18 +253,17 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         else:
             num_clusters = max_variants_per_compound
 
-        # When kmeans2 runs on insufficient clusters, it can sometimes throw
-        # an error about empty clusters. This is not necessary to throw for
-        # the user and so we have supressed it here.
+        # When kmeans2 runs on insufficient clusters, it can sometimes throw an
+        # error about empty clusters. This is not necessary to throw for the
+        # user and so we have supressed it here.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             groups = kmeans2(pts, num_clusters, minit="points")[1]
 
-        # Note that you have some geometrically diverse conformations here,
-        # but there could be other versions (enantiomers, tautomers, etc.)
-        # that also contribute similar conformations. In the end, you'll be
-        # selecting from all these together, so similar ones could end up
-        # together.
+        # Note that you have some geometrically diverse conformations here, but
+        # there could be other versions (enantiomers, tautomers, etc.) that also
+        # contribute similar conformations. In the end, you'll be selecting from
+        # all these together, so similar ones could end up together.
 
         best_ones = {}  # Key is group id from kmeans (int). Values are the
         # MyMol.MyConformers objects.
