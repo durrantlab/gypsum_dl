@@ -276,7 +276,6 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
                 best_conf_per_group[grp] = mol.conformers[k]
         # best_confs has the MyMol.MyConformers objects.
         best_confs = best_conf_per_group.values()
-        print(len(best_confs))
 
         # Convert rdkit mols to MyMol.MyMol and save those MyMol.MyMol objects
         # for returning.

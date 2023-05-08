@@ -610,6 +610,18 @@ class MyMol:
         # Automatically sort by the energy.
         self.conformers.sort(key=operator.attrgetter("energy"))
 
+        # print(len(self.conformers))
+
+        # Print the coordinates of the atoms of each conformer
+        # for conf in self.conformers:
+        #     print(conf.coords())
+        #     print("")
+
+        # Save all the conformers to separate PDB files
+        # for i, conf in enumerate(self.conformers):
+        #     conf.write_pdb_file("test_" + str(i) + ".pdb")
+        #     print(conf.get_energy())
+
         # Remove ones that are very structurally similar.
         self.eliminate_structurally_similar_conformers(rmsd_cutoff)
 
@@ -878,13 +890,50 @@ class MyConformer:
         amol.AddConformer(other_conf.conformer(), assignId=True)
 
         # Get the two confs.
-        first_conf = amol.GetConformers()[0]
-        last_conf = amol.GetConformers()[-1]
+        # first_conf = amol.GetConformers()[0]
+        # last_conf = amol.GetConformers()[-1]
 
         # Return the RMSD.
         amol = MOH.try_deprotanation(amol)
         rmsd = AllChem.GetConformerRMS(
-            amol, first_conf.GetId(), last_conf.GetId(), prealigned=True
+            amol, 0, 1, prealigned=True
         )
 
         return rmsd
+
+    def coords(self):
+        """Get the coordinates of this conformer. For debugging.
+
+        :return: A list of coordinates.
+        :rtype: list
+        """
+
+        return self.conformer().GetPositions()
+    
+    def write_pdb_file(self, filename: str):
+        """Write this conformer to a PDB file. For debugging.
+
+        :param filename: The name of the file to write.
+        :type filename: str
+        """
+
+        # Make a new molecule.
+        mol = copy.deepcopy(self.mol)
+        mol.RemoveAllConformers()
+
+        # Add the conformer of the other MyConformer object.
+        mol.AddConformer(self.conformer(), assignId=True)
+
+        # Write the PDB file.
+        AllChem.MolToPDBFile(mol, filename)
+
+    def get_energy(self) -> float:
+        """Get the energy of this conformer. For debugging.
+
+        :return: The energy.
+        :rtype: float
+        """
+
+        ff = AllChem.UFFGetMoleculeForceField(self.mol)
+        return ff.CalcEnergy()
+

@@ -4,14 +4,17 @@ Changes
 1.2.1
 -----
 
+* Fixed a bug in generating multiple ring conformations. This functionality
+  worked correctly when originally published (e.g., with rdkit 2020.03.1), but
+  due to changes made to more recent versions of rdkit, Gypsum-DL produced only
+  one ring conformation, even if multiple were reasonably possible. It now
+  produces multiple ring conformations even on recent versions of rdkit (e.g.,
+  `2023.03.1`). We recommend using the lastest version of rdkit.
+* Gypsum-DL now uses `AllChem.ETKDGv3` if it's available.
 * Fixed minor warning:
   `/home/jdurrant/gypsum_dl/gypsum_dl/Steps/SMILES/dimorphite_dl/dimorphite_dl.py:744:
   SyntaxWarning: "is not" with a literal. Did you mean "!="?`
 * Updated copyright year to 2023.
-
-https://rdkit.org/docs/BackwardsIncompatibleChanges.html#changes-to-conformer-generation (2021.03)
-
-https://www.rdkit.org/docs/Cookbook.html#conformer-generation-with-etkdg
 
 1.2.0
 -----
