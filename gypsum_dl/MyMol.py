@@ -27,6 +27,7 @@ import __future__
 import sys
 import copy
 import operator
+import random
 
 import gypsum_dl.Utils as Utils
 import gypsum_dl.MolObjectHandling as MOH
@@ -713,27 +714,31 @@ class MyConformer:
             # help(AllChem.EmbedMolecule)
 
             try:
-                # Try to use ETKDGv2, but it is only present in the python 3.6
-                # version of RDKit.
-                print("HI")
+                # Newest version
+                print("HERE")
                 params = AllChem.ETKDGv3()
-                # params = AllChem.ETKDGv2()
-            except:
-                # Use the original version of ETKDG if python 2.7 RDKit. This
-                # may be resolved in next RDKit update so we encased this in a
-                # try statement.
-                params = AllChem.ETKDG()
+            except Exception:
+                try:
+                    # Try to use ETKDGv2, but it is only present in the python 3.6
+                    # version of RDKit.
+                    params = AllChem.ETKDGv2()
+                except Exception:
+                    # Use the original version of ETKDG if python 2.7 RDKit. This
+                    # may be resolved in next RDKit update so we encased this in a
+                    # try statement.
+                    params = AllChem.ETKDG()
 
             # The default, but just a sanity check.
-            params.enforcechiral = True
+            params.enforceChirality = True
 
             # Set a max number of times it will try to calculate the 3D
-            # coordinates. Will save a little time.
-            params.maxIterations = 0  # This should be the default but lets
-            # set it anyway
+            # coordinates. Will save a little time. This should be the default
+            # (0) but lets set it anyway
+            params.maxIterations = 0  
 
             # Also set whether to start from random coordinates.
             params.useRandomCoords = use_random_coordinates
+            params.randomSeed = random.randint(0, 1000000000)
 
             # AllChem.EmbedMolecule uses geometry to create inital molecule
             # coordinates. This sometimes takes a very long time.
