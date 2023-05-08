@@ -715,7 +715,7 @@ class MyConformer:
 
             try:
                 # Newest version
-                print("HERE")
+                # print("HERE")
                 params = AllChem.ETKDGv3()
             except Exception:
                 try:
@@ -734,11 +734,11 @@ class MyConformer:
             # Set a max number of times it will try to calculate the 3D
             # coordinates. Will save a little time. This should be the default
             # (0) but lets set it anyway
-            params.maxIterations = 0  
+            params.maxIterations = 0
 
             # Also set whether to start from random coordinates.
             params.useRandomCoords = use_random_coordinates
-            params.randomSeed = random.randint(0, 1000000000)
+            # params.randomSeed = random.randint(0, 1000000000)
 
             # AllChem.EmbedMolecule uses geometry to create inital molecule
             # coordinates. This sometimes takes a very long time.

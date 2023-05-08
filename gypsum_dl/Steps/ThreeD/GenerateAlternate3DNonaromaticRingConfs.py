@@ -201,9 +201,10 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
     rings = mol.get_idxs_of_nonaro_rng_atms()
 
     # Convert that into the bond indecies.
-    rings_by_bond_indexes = []  # A list of lists, where each inner list has
-    # the indexes of the bonds that comprise a
-    # ring.
+    
+    # A list of lists, where each inner list has the indexes of the bonds that
+    # comprise a ring.
+    rings_by_bond_indexes = []  
     for ring_atom_indecies in rings:
         bond_indexes = []
         for ring_atm_idx in ring_atom_indecies:
@@ -265,14 +266,17 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         # contribute similar conformations. In the end, you'll be selecting from
         # all these together, so similar ones could end up together.
 
-        best_ones = {}  # Key is group id from kmeans (int). Values are the
-        # MyMol.MyConformers objects.
+        # Key is group id from kmeans (int). Values are the MyMol.MyConformers
+        # objects.
+        best_conf_per_group = {}
+
         conformers = mol.rdkit_mol.GetConformers()
         for k, grp in enumerate(groups):
-            if not grp in list(best_ones.keys()):
-                best_ones[grp] = mol.conformers[k]
-        best_confs = best_ones.values()  # best_confs has the
-        # MyMol.MyConformers objects.
+            if grp not in list(best_conf_per_group.keys()):
+                best_conf_per_group[grp] = mol.conformers[k]
+        # best_confs has the MyMol.MyConformers objects.
+        best_confs = best_conf_per_group.values()
+        print(len(best_confs))
 
         # Convert rdkit mols to MyMol.MyMol and save those MyMol.MyMol objects
         # for returning.

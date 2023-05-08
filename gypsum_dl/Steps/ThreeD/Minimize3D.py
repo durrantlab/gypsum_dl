@@ -79,18 +79,15 @@ def minimize_3d(
             # so they can be skipped here.
             for mol in contnr.mols:
                 ones_without_nonaro_rngs.add(mol.contnr_idx)
-                params.append(
-                    tuple([mol, max_variants_per_compound, thoroughness, second_embed])
-                )
+                params.append((mol, max_variants_per_compound, thoroughness, second_embed))
     params = tuple(params)
 
     # Run the inputs through the parallelizer.
     tmp = []
-    if parallelizer_obj != None:
-        tmp = parallelizer_obj.run(params, parallel_minit, num_procs, job_manager)
+    if parallelizer_obj is None:
+        tmp.extend(parallel_minit(i[0], i[1], i[2], i[3]) for i in params)
     else:
-        for i in params:
-            tmp.append(parallel_minit(i[0], i[1], i[2], i[3]))
+        tmp = parallelizer_obj.run(params, parallel_minit, num_procs, job_manager)
 
     # Save energy into MyMol object, and get a list of just those objects.
     contnr_list_not_empty = set([])  # To keep track of which container lists
