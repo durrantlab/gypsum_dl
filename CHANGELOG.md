@@ -1,6 +1,13 @@
 Changes
 =======
 
+1.2.1
+-----
+
+* Fixed minor warning:
+  `/home/jdurrant/gypsum_dl/gypsum_dl/Steps/SMILES/dimorphite_dl/dimorphite_dl.py:744:
+  SyntaxWarning: "is not" with a literal. Did you mean "!="?`
+
 1.2.0
 -----
 

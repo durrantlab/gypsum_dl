@@ -741,7 +741,7 @@ class ProtSubstructFuncs:
         for line in ProtSubstructFuncs.load_substructre_smarts_file():
             line = line.strip()
             sub = {}
-            if line is not "":
+            if line != "":
                 splits = line.split()
                 sub["name"] = splits[0]
                 sub["smart"] = splits[1]
