@@ -117,7 +117,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     if parallelizer_obj is None:
         tmp.extend(
             parallel_durrant_lab_filter(c, prohibited_substructs)
-            for c in params
+            for c, prohibited_substructs in params
         )
     else:
         tmp = parallelizer_obj.run(
