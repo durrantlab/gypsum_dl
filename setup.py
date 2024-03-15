@@ -14,7 +14,7 @@ setup(
         "scipy",
         "mpi4py",
         "setuptools",
-        'git+https://github.com/amorehead/dimorphite_dl.git@patch-1'
+        "dimorphite_dl @ git+https://github.com/amorehead/dimorphite_dl@patch-1"
     ],
     packages=find_packages(),
 )
