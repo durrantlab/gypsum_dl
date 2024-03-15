@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 from setuptools import find_packages, setup
 
 setup(
@@ -10,4 +11,8 @@ setup(
     url="https://github.com/durrantlab/gypsum_dl",
     install_requires=["rdkit", "numpy", "scipy", "mpi4py", "setuptools"],
     packages=find_packages(),
+    package_dir = {
+        "gypsum_dl": "gypsum_dl",
+        "gypsum_dl.Steps.SMILES.dimorphite_dl": os.path.join("gypsum_dl", "Steps", "SMILES", "dimorphite_dl"),
+    },
 )
