@@ -280,8 +280,10 @@ methods allow users to exclude other potentially problematic forms:
    parameters if Gypsum-DL is producing compounds with undesired protonation
    states. Alternatively, you can delete specific protonation rules by
    modifying the
-   `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
-3. Add to the Durrant-Lab filters if there is a specific substructure you
+   `site_substructures.smarts` file in your local `dimorphite_dl`
+   installation directory
+   (e.g., `.../site-packages/dimorphite_dl/site_substructures.smarts`).
+4. Add to the Durrant-Lab filters if there is a specific substructure you
    would like to avoid (e.g., imidic acid due to amide/imidic-acid
    tautomerization). Simplify modify the
    `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.
