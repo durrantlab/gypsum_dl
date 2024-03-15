@@ -8,3 +8,4 @@ Contributors in Alphabetical Order
 * Patrick Ropp
 * Jacob Spigel
 * Jennifer Walker
+* Alex Morehead
