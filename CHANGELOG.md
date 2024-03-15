@@ -1,6 +1,15 @@
 Changes
 =======
 
+
+1.2.2 (Unreleased)
+-----
+* Added the ability to install `gypsum_dl` in a flexible way using
+  `pip install git+https://github.com/durrantlab/gypsum_dl.git`
+* Replaced the local copy of the `dimorphite_dl` repository with one
+  installed automatically using
+  `pip install git+https://github.com/durrantlab/dimorphite_dl.git`.
+
 1.2.1
 -----
 
@@ -150,7 +159,7 @@ RDKit.
 -----
 
 * Updated Dimorphite-DL dependency from version 1.0.0 to version 1.2.0. See
-  `$PATH/gypsum_dl/gypsum_dl/Steps/SMILES/dimorphite_dl/CHANGES.md` for more
+  `https://github.com/durrantlab/dimorphite_dl/CHANGES.md` for more
   information.
 * Updated MolVS dependency from version v0.1.0 to v0.1.1 2019 release. See
   `$PATH/gypsum_dl/gypsum_dl/molvs/CHANGELOG.md` for more information.
