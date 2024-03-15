@@ -25,7 +25,7 @@ import gypsum_dl.ChemUtils as ChemUtils
 import gypsum_dl.MyMol as MyMol
 import gypsum_dl.MolContainer as MolCont
 
-from gypsum_dl.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
+from dimorphite_dl import Protonate
 
 
 def add_hydrogens(
