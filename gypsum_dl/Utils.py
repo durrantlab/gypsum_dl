@@ -20,10 +20,10 @@ Some helpful utility definitions used throughout the code.
 import __future__
 
 import contextlib
-import subprocess
-import textwrap
 import random
 import string
+import subprocess
+import textwrap
 
 
 def group_mols_by_container_index(mol_lst):

@@ -120,13 +120,13 @@ Prepare a virtual library and save all 3D models to a single SDF file in the
 present directory:
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi
+gypsum-dl --source ./examples/sample_molecules.smi
 ```
 
 Instead save all 3D models to a different, existing folder:
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./examples/sample_molecules.smi \
    --output_folder /my/folder/
 ```
 
@@ -134,7 +134,7 @@ Additionally save the models associated with each input molecule to separate
 files:
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --separate_output_files
 ```
 
@@ -142,35 +142,35 @@ In addition to saving a 3D SDF file, also save 3D PDB files and an HTML file
 with 2D structures (for debugging).
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --add_pdb_output --add_html_output
 ```
 
 Save at most two variants per input molecule:
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --max_variants_per_compound 2
 ```
 
 Control how Gypsum-DL ionizes the input molecules:
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --min_ph 12 --max_ph 14 --pka_precision 1
 ```
 
 Run Gypsum-DL in serial mode (using only one processor):
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./examples/sample_molecules.smi \
     --job_manager serial
 ```
 
 Run Gypsum-DL in multiprocessing mode, using 4 processors:
 
 ```bash
-python run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./examples/sample_molecules.smi \
     --job_manager multiprocessing --num_processors 4
 ```
 
@@ -184,7 +184,7 @@ mpirun -n $NTASKS python -m mpi4py  run_gypsum_dl.py --source ./examples/sample_
 Gypsum-DL can also take parameters from a JSON file:
 
 ```bash
-python run_gypsum_dl.py --json myparams.json
+gypsum-dl --json myparams.json
 ```
 
 Where `myparams.json` might look like:
@@ -233,17 +233,17 @@ In looking over many Gypsum-DL-generated variants, we have identified a number
 of substructures that, though technically possible, strike us as improbable or
 otherwise poorly suited for virtual screening. Here are some examples:
 
-* `C=[N-]`
-* `[N-]C=[N+]`
-* `[nH+]c[n-]`
-* `[#7+]~[#7+]`
-* `[#7-]~[#7-]`
-* `[!#7]~[#7+]~[#7-]~[!#7]`
-* `[#5]` (boron)
-* `O=[PH](=O)([#8])([#8])`
-* `N=c1cc[#7]c[#7]1`
-* `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
-* Metals
+*   `C=[N-]`
+*   `[N-]C=[N+]`
+*   `[nH+]c[n-]`
+*   `[#7+]~[#7+]`
+*   `[#7-]~[#7-]`
+*   `[!#7]~[#7+]~[#7-]~[!#7]`
+*   `[#5]` (boron)
+*   `O=[PH](=O)([#8])([#8])`
+*   `N=c1cc[#7]c[#7]1`
+*   `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
+*   Metals
 
 If you'd like to discard molecular variants with substructures such as these,
 use the `--use_durrant_lab_filters` flag.
@@ -269,19 +269,19 @@ Gypsum-DL aims to enumerate many possible variant forms, including forms that
 are not necessarily probable. Beyond applying Durrant-Lab filters, several
 methods allow users to exclude other potentially problematic forms:
 
-1. Identify the steps Gypsum-DL takes to generate a given problematic form
+1.  Identify the steps Gypsum-DL takes to generate a given problematic form
    (see the "Genealogy" field of every output SDF file). Then use parameters
    such as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`,
    `--skip_adding_hydrogen`, `--skip_making_tautomers`,
    `--skip_enumerate_chiral_mol`, or `--skip_enumerate_double_bonds` to skip
    the problem-causing step. This fix is easy, but it may unexpectedly impact
    unrelated compounds.
-2. Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision`
+2.  Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision`
    parameters if Gypsum-DL is producing compounds with undesired protonation
    states. Alternatively, you can delete specific protonation rules by
    modifying the
    `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
-3. Add to the Durrant-Lab filters if there is a specific substructure you
+3.  Add to the Durrant-Lab filters if there is a specific substructure you
    would like to avoid (e.g., imidic acid due to amide/imidic-acid
    tautomerization). Simplify modify the
    `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.

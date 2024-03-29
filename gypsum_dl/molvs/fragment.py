@@ -9,16 +9,14 @@ This module contains tools for dealing with molecules with more than one covalen
 
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
+from __future__ import division, print_function, unicode_literals
+
 import logging
 
 from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
 
 from .utils import memoized_property
-
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +38,7 @@ class FragmentPattern(object):
         return Chem.MolFromSmarts(self.smarts_str)
 
     def __repr__(self):
-        return 'FragmentPattern({!r}, {!r})'.format(self.name, self.smarts_str)
+        return "FragmentPattern({!r}, {!r})".format(self.name, self.smarts_str)
 
     def __str__(self):
         return self.name
@@ -49,67 +47,74 @@ class FragmentPattern(object):
 #: The default list of :class:`FragmentPatterns <molvs.fragment.FragmentPattern>` to be used by
 #: :class:`~molvs.fragment.FragmentRemover`.
 REMOVE_FRAGMENTS = (
-    FragmentPattern('hydrogen', '[H]'),
-    FragmentPattern('fluorine', '[F]'),
-    FragmentPattern('chlorine', '[Cl]'),
-    FragmentPattern('bromine', '[Br]'),
-    FragmentPattern('iodine', '[I]'),
-    FragmentPattern('lithium', '[Li]'),
-    FragmentPattern('sodium', '[Na]'),
-    FragmentPattern('potassium', '[K]'),
-    FragmentPattern('calcium', '[Ca]'),
-    FragmentPattern('magnesium', '[Mg]'),
-    FragmentPattern('aluminium', '[Al]'),
-    FragmentPattern('barium', '[Ba]'),
-    FragmentPattern('bismuth', '[Bi]'),
-    FragmentPattern('silver', '[Ag]'),
-    FragmentPattern('strontium', '[Sr]'),
-    FragmentPattern('zinc', '[Zn]'),
-    FragmentPattern('ammonia/ammonium', '[#7]'),
-    FragmentPattern('water/hydroxide', '[#8]'),
-    FragmentPattern('methyl amine', '[#6]-[#7]'),
-    FragmentPattern('sulfide', 'S'),
-    FragmentPattern('nitrate', '[#7](=[#8])(-[#8])-[#8]'),
-    FragmentPattern('phosphate', '[P](=[#8])(-[#8])(-[#8])-[#8]'),
-    FragmentPattern('hexafluorophosphate', '[P](-[#9])(-[#9])(-[#9])(-[#9])(-[#9])-[#9]'),
-    FragmentPattern('sulfate', '[S](=[#8])(=[#8])(-[#8])-[#8]'),
-    FragmentPattern('methyl sulfonate', '[#6]-[S](=[#8])(=[#8])(-[#8])'),
-    FragmentPattern('trifluoromethanesulfonic acid', '[#8]-[S](=[#8])(=[#8])-[#6](-[#9])(-[#9])-[#9]'),
-    FragmentPattern('trifluoroacetic acid', '[#9]-[#6](-[#9])(-[#9])-[#6](=[#8])-[#8]'),
-    FragmentPattern('1,2-dichloroethane', '[Cl]-[#6]-[#6]-[Cl]'),
-    FragmentPattern('1,2-dimethoxyethane', '[#6]-[#8]-[#6]-[#6]-[#8]-[#6]'),
-    FragmentPattern('1,4-dioxane', '[#6]-1-[#6]-[#8]-[#6]-[#6]-[#8]-1'),
-    FragmentPattern('1-methyl-2-pyrrolidinone', '[#6]-[#7]-1-[#6]-[#6]-[#6]-[#6]-1=[#8]'),
-    FragmentPattern('2-butanone', '[#6]-[#6]-[#6](-[#6])=[#8]'),
-    FragmentPattern('acetate/acetic acid', '[#8]-[#6](-[#6])=[#8]'),
-    FragmentPattern('acetone', '[#6]-[#6](-[#6])=[#8]'),
-    FragmentPattern('acetonitrile', '[#6]-[#6]#[N]'),
-    FragmentPattern('benzene', '[#6]1[#6][#6][#6][#6][#6]1'),
-    FragmentPattern('butanol', '[#8]-[#6]-[#6]-[#6]-[#6]'),
-    FragmentPattern('t-butanol', '[#8]-[#6](-[#6])(-[#6])-[#6]'),
-    FragmentPattern('chloroform', '[Cl]-[#6](-[Cl])-[Cl]'),
-    FragmentPattern('cycloheptane', '[#6]-1-[#6]-[#6]-[#6]-[#6]-[#6]-[#6]-1'),
-    FragmentPattern('cyclohexane', '[#6]-1-[#6]-[#6]-[#6]-[#6]-[#6]-1'),
-    FragmentPattern('dichloromethane', '[Cl]-[#6]-[Cl]'),
-    FragmentPattern('diethyl ether', '[#6]-[#6]-[#8]-[#6]-[#6]'),
-    FragmentPattern('diisopropyl ether', '[#6]-[#6](-[#6])-[#8]-[#6](-[#6])-[#6]'),
-    FragmentPattern('dimethyl formamide', '[#6]-[#7](-[#6])-[#6]=[#8]'),
-    FragmentPattern('dimethyl sulfoxide', '[#6]-[S](-[#6])=[#8]'),
-    FragmentPattern('ethanol', '[#8]-[#6]-[#6]'),
-    FragmentPattern('ethyl acetate', '[#6]-[#6]-[#8]-[#6](-[#6])=[#8]'),
-    FragmentPattern('formic acid', '[#8]-[#6]=[#8]'),
-    FragmentPattern('heptane', '[#6]-[#6]-[#6]-[#6]-[#6]-[#6]-[#6]'),
-    FragmentPattern('hexane', '[#6]-[#6]-[#6]-[#6]-[#6]-[#6]'),
-    FragmentPattern('isopropanol', '[#8]-[#6](-[#6])-[#6]'),
-    FragmentPattern('methanol', '[#8]-[#6]'),
-    FragmentPattern('N,N-dimethylacetamide', '[#6]-[#7](-[#6])-[#6](-[#6])=[#8]'),
-    FragmentPattern('pentane', '[#6]-[#6]-[#6]-[#6]-[#6]'),
-    FragmentPattern('propanol', '[#8]-[#6]-[#6]-[#6]'),
-    FragmentPattern('pyridine', '[#6]-1=[#6]-[#6]=[#7]-[#6]=[#6]-1'),
-    FragmentPattern('t-butyl methyl ether', '[#6]-[#8]-[#6](-[#6])(-[#6])-[#6]'),
-    FragmentPattern('tetrahydrofurane', '[#6]-1-[#6]-[#6]-[#8]-[#6]-1'),
-    FragmentPattern('toluene', '[#6]-[#6]~1~[#6]~[#6]~[#6]~[#6]~[#6]~1'),
-    FragmentPattern('xylene', '[#6]-[#6]~1~[#6](-[#6])~[#6]~[#6]~[#6]~[#6]~1')
+    FragmentPattern("hydrogen", "[H]"),
+    FragmentPattern("fluorine", "[F]"),
+    FragmentPattern("chlorine", "[Cl]"),
+    FragmentPattern("bromine", "[Br]"),
+    FragmentPattern("iodine", "[I]"),
+    FragmentPattern("lithium", "[Li]"),
+    FragmentPattern("sodium", "[Na]"),
+    FragmentPattern("potassium", "[K]"),
+    FragmentPattern("calcium", "[Ca]"),
+    FragmentPattern("magnesium", "[Mg]"),
+    FragmentPattern("aluminium", "[Al]"),
+    FragmentPattern("barium", "[Ba]"),
+    FragmentPattern("bismuth", "[Bi]"),
+    FragmentPattern("silver", "[Ag]"),
+    FragmentPattern("strontium", "[Sr]"),
+    FragmentPattern("zinc", "[Zn]"),
+    FragmentPattern("ammonia/ammonium", "[#7]"),
+    FragmentPattern("water/hydroxide", "[#8]"),
+    FragmentPattern("methyl amine", "[#6]-[#7]"),
+    FragmentPattern("sulfide", "S"),
+    FragmentPattern("nitrate", "[#7](=[#8])(-[#8])-[#8]"),
+    FragmentPattern("phosphate", "[P](=[#8])(-[#8])(-[#8])-[#8]"),
+    FragmentPattern(
+        "hexafluorophosphate", "[P](-[#9])(-[#9])(-[#9])(-[#9])(-[#9])-[#9]"
+    ),
+    FragmentPattern("sulfate", "[S](=[#8])(=[#8])(-[#8])-[#8]"),
+    FragmentPattern("methyl sulfonate", "[#6]-[S](=[#8])(=[#8])(-[#8])"),
+    FragmentPattern(
+        "trifluoromethanesulfonic acid",
+        "[#8]-[S](=[#8])(=[#8])-[#6](-[#9])(-[#9])-[#9]",
+    ),
+    FragmentPattern("trifluoroacetic acid", "[#9]-[#6](-[#9])(-[#9])-[#6](=[#8])-[#8]"),
+    FragmentPattern("1,2-dichloroethane", "[Cl]-[#6]-[#6]-[Cl]"),
+    FragmentPattern("1,2-dimethoxyethane", "[#6]-[#8]-[#6]-[#6]-[#8]-[#6]"),
+    FragmentPattern("1,4-dioxane", "[#6]-1-[#6]-[#8]-[#6]-[#6]-[#8]-1"),
+    FragmentPattern(
+        "1-methyl-2-pyrrolidinone", "[#6]-[#7]-1-[#6]-[#6]-[#6]-[#6]-1=[#8]"
+    ),
+    FragmentPattern("2-butanone", "[#6]-[#6]-[#6](-[#6])=[#8]"),
+    FragmentPattern("acetate/acetic acid", "[#8]-[#6](-[#6])=[#8]"),
+    FragmentPattern("acetone", "[#6]-[#6](-[#6])=[#8]"),
+    FragmentPattern("acetonitrile", "[#6]-[#6]#[N]"),
+    FragmentPattern("benzene", "[#6]1[#6][#6][#6][#6][#6]1"),
+    FragmentPattern("butanol", "[#8]-[#6]-[#6]-[#6]-[#6]"),
+    FragmentPattern("t-butanol", "[#8]-[#6](-[#6])(-[#6])-[#6]"),
+    FragmentPattern("chloroform", "[Cl]-[#6](-[Cl])-[Cl]"),
+    FragmentPattern("cycloheptane", "[#6]-1-[#6]-[#6]-[#6]-[#6]-[#6]-[#6]-1"),
+    FragmentPattern("cyclohexane", "[#6]-1-[#6]-[#6]-[#6]-[#6]-[#6]-1"),
+    FragmentPattern("dichloromethane", "[Cl]-[#6]-[Cl]"),
+    FragmentPattern("diethyl ether", "[#6]-[#6]-[#8]-[#6]-[#6]"),
+    FragmentPattern("diisopropyl ether", "[#6]-[#6](-[#6])-[#8]-[#6](-[#6])-[#6]"),
+    FragmentPattern("dimethyl formamide", "[#6]-[#7](-[#6])-[#6]=[#8]"),
+    FragmentPattern("dimethyl sulfoxide", "[#6]-[S](-[#6])=[#8]"),
+    FragmentPattern("ethanol", "[#8]-[#6]-[#6]"),
+    FragmentPattern("ethyl acetate", "[#6]-[#6]-[#8]-[#6](-[#6])=[#8]"),
+    FragmentPattern("formic acid", "[#8]-[#6]=[#8]"),
+    FragmentPattern("heptane", "[#6]-[#6]-[#6]-[#6]-[#6]-[#6]-[#6]"),
+    FragmentPattern("hexane", "[#6]-[#6]-[#6]-[#6]-[#6]-[#6]"),
+    FragmentPattern("isopropanol", "[#8]-[#6](-[#6])-[#6]"),
+    FragmentPattern("methanol", "[#8]-[#6]"),
+    FragmentPattern("N,N-dimethylacetamide", "[#6]-[#7](-[#6])-[#6](-[#6])=[#8]"),
+    FragmentPattern("pentane", "[#6]-[#6]-[#6]-[#6]-[#6]"),
+    FragmentPattern("propanol", "[#8]-[#6]-[#6]-[#6]"),
+    FragmentPattern("pyridine", "[#6]-1=[#6]-[#6]=[#7]-[#6]=[#6]-1"),
+    FragmentPattern("t-butyl methyl ether", "[#6]-[#8]-[#6](-[#6])(-[#6])-[#6]"),
+    FragmentPattern("tetrahydrofurane", "[#6]-1-[#6]-[#6]-[#8]-[#6]-1"),
+    FragmentPattern("toluene", "[#6]-[#6]~1~[#6]~[#6]~[#6]~[#6]~[#6]~1"),
+    FragmentPattern("xylene", "[#6]-[#6]~1~[#6](-[#6])~[#6]~[#6]~[#6]~[#6]~1"),
 )
 
 #: The default value for whether to ensure at least one fragment is left after FragmentRemover is applied.
@@ -146,7 +151,7 @@ class FragmentRemover(object):
         :param fragments: A list of :class:`~molvs.fragment.FragmentPattern` to remove.
         :param bool leave_last: Whether to ensure at least one fragment is left.
         """
-        log.debug('Initializing FragmentRemover')
+        log.debug("Initializing FragmentRemover")
         self.fragments = fragments
         self.leave_last = leave_last
 
@@ -162,16 +167,18 @@ class FragmentRemover(object):
         :return: The molecule with fragments removed.
         :rtype: rdkit.Chem.rdchem.Mol
         """
-        log.debug('Running FragmentRemover')
+        log.debug("Running FragmentRemover")
         # Iterate FragmentPatterns and remove matching fragments
         for frag in self.fragments:
             # If nothing is left or leave_last and only one fragment, end here
-            if mol.GetNumAtoms() == 0 or (self.leave_last and len(Chem.GetMolFrags(mol)) <= 1):
+            if mol.GetNumAtoms() == 0 or (
+                self.leave_last and len(Chem.GetMolFrags(mol)) <= 1
+            ):
                 break
             # Apply removal for this FragmentPattern
             removed = Chem.DeleteSubstructs(mol, frag.smarts, onlyFrags=True)
             if not mol.GetNumAtoms() == removed.GetNumAtoms():
-                log.info('Removed fragment: %s', frag.name)
+                log.info("Removed fragment: %s", frag.name)
             if self.leave_last and removed.GetNumAtoms() == 0:
                 # All the remaining fragments match this pattern - leave them all
                 break
@@ -190,7 +197,7 @@ class LargestFragmentChooser(object):
 
         :param bool prefer_organic: Whether to prioritize organic fragments above all others.
         """
-        log.debug('Initializing LargestFragmentChooser')
+        log.debug("Initializing LargestFragmentChooser")
         self.prefer_organic = prefer_organic
 
     def __call__(self, mol):
@@ -208,36 +215,47 @@ class LargestFragmentChooser(object):
         :return: The largest fragment.
         :rtype: rdkit.Chem.rdchem.Mol
         """
-        log.debug('Running LargestFragmentChooser')
+        log.debug("Running LargestFragmentChooser")
         # TODO: Alternatively allow a list of fragments to be passed as the mol parameter
         fragments = Chem.GetMolFrags(mol, asMols=True)
         largest = None
         for f in fragments:
             smiles = Chem.MolToSmiles(f, isomericSmiles=True)
-            log.debug('Fragment: %s', smiles)
+            log.debug("Fragment: %s", smiles)
             organic = is_organic(f)
             if self.prefer_organic:
                 # Skip this fragment if not organic and we already have an organic fragment as the largest so far
-                if largest and largest['organic'] and not organic:
+                if largest and largest["organic"] and not organic:
                     continue
                 # Reset largest if it wasn't organic and this fragment is organic
-                if largest and organic and not largest['organic']:
+                if largest and organic and not largest["organic"]:
                     largest = None
             # Count atoms
             atoms = 0
             for a in f.GetAtoms():
                 atoms += 1 + a.GetTotalNumHs()
             # Skip this fragment if fewer atoms than the largest
-            if largest and atoms < largest['atoms']:
+            if largest and atoms < largest["atoms"]:
                 continue
             # Skip this fragment if equal number of atoms but weight is lower
             weight = rdMolDescriptors.CalcExactMolWt(f)
-            if largest and atoms == largest['atoms'] and weight < largest['weight']:
+            if largest and atoms == largest["atoms"] and weight < largest["weight"]:
                 continue
             # Skip this fragment if equal atoms and equal weight but smiles comes last alphabetically
-            if largest and atoms == largest['atoms'] and weight == largest['weight'] and smiles > largest['smiles']:
+            if (
+                largest
+                and atoms == largest["atoms"]
+                and weight == largest["weight"]
+                and smiles > largest["smiles"]
+            ):
                 continue
             # Otherwise this is the largest so far
-            log.debug('New largest fragment: %s (%s)', smiles, atoms)
-            largest = {'smiles': smiles, 'fragment': f, 'atoms': atoms, 'weight': weight, 'organic': organic}
-        return largest['fragment']
+            log.debug("New largest fragment: %s (%s)", smiles, atoms)
+            largest = {
+                "smiles": smiles,
+                "fragment": f,
+                "atoms": atoms,
+                "weight": weight,
+                "organic": organic,
+            }
+        return largest["fragment"]

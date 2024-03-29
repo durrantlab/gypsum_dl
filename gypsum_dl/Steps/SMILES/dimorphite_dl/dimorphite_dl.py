@@ -18,9 +18,10 @@ strings.
 """
 
 from __future__ import print_function
+
+import argparse
 import copy
 import os
-import argparse
 import sys
 
 try:
@@ -47,11 +48,10 @@ def print_header():
 
 try:
     import rdkit
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
 
     # Disable the unnecessary RDKit warnings
-    from rdkit import RDLogger
+    from rdkit import Chem, RDLogger
+    from rdkit.Chem import AllChem
 
     RDLogger.DisableLog("rdApp.*")
 except:
@@ -110,7 +110,8 @@ def main(params=None):
 
 class MyParser(argparse.ArgumentParser):
     """Overwrite default parse so it displays help file on error. See
-    https://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu"""
+    https://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu
+    """
 
     def error(self, message):
         """Overwrites the default error message.
@@ -913,7 +914,10 @@ class ProtSubstructFuncs:
                 try:
                     mol_copy = Chem.RemoveHs(mol_copy)
                 except:
-                    if "silent" in ProtSubstructFuncs.args and not ProtSubstructFuncs.args["silent"]:
+                    if (
+                        "silent" in ProtSubstructFuncs.args
+                        and not ProtSubstructFuncs.args["silent"]
+                    ):
                         UtilFuncs.eprint(
                             "WARNING: Skipping poorly formed SMILES string: "
                             + Chem.MolToSmiles(mol_copy)
@@ -1124,7 +1128,7 @@ class TestFuncs:
             "pka_precision": 0.5,
             "smiles": "",
             "label_states": True,
-            "silent": True
+            "silent": True,
         }
 
         for smi, protonated, deprotonated, category in smis:
@@ -1268,7 +1272,7 @@ class TestFuncs:
                             "min_ph": ph,
                             "max_ph": ph,
                             "pka_precision": 0,
-                            "silent": True
+                            "silent": True,
                         }
                     )
                 )

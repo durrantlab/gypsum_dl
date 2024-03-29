@@ -23,10 +23,10 @@ import copy
 import itertools
 import random
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
 import gypsum_dl.ChemUtils as ChemUtils
 import gypsum_dl.MyMol as MyMol
+import gypsum_dl.Parallelizer as Parallelizer
+import gypsum_dl.Utils as Utils
 
 try:
     from rdkit import Chem
@@ -178,7 +178,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
         + mol.name
         + ") has "
         # + str(len(options))
-        + str(2 ** num)
+        + str(2**num)
         + " enantiomers when chiral centers with "
         + "no specified chirality are systematically varied."
     )

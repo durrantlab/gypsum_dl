@@ -1,0 +1,49 @@
+
+name: Codecov workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: codecov
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          auto-update-conda: true
+          # Set to the same as `PYTHON_VERSION` in `Makefile`
+          python-version: "3.12"
+
+      - name: Initialize conda environment
+        run: make conda-create
+
+      - name: Setup conda
+        run: make conda-setup
+
+      - name: Install conda dependencies
+        run: make from-conda-lock
+
+      - name: Poetry install
+        run: make install
+
+      - name: Run tests and coverage
+        run: make test
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          verbose: true

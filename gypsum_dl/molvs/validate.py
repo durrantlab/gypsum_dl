@@ -9,9 +9,8 @@ convenience function.
 
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
+from __future__ import division, print_function, unicode_literals
+
 import logging
 import sys
 
@@ -20,12 +19,11 @@ from rdkit import Chem
 from .errors import StopValidateError
 from .validations import VALIDATIONS
 
-
 #: The default format for log messages.
-SIMPLE_FORMAT = '%(levelname)s: [%(validation)s] %(message)s'
+SIMPLE_FORMAT = "%(levelname)s: [%(validation)s] %(message)s"
 
 #: A more detailed format for log messages. Specify when initializing a Validator.
-LONG_FORMAT = '%(asctime)s - %(levelname)s - %(validation)s - %(message)s'
+LONG_FORMAT = "%(asctime)s - %(levelname)s - %(validation)s - %(message)s"
 
 
 class LogHandler(logging.Handler):
@@ -60,7 +58,14 @@ class LogHandler(logging.Handler):
 class Validator(object):
     """The main class for running :class:`Validations <molvs.validations.Validation>` on molecules."""
 
-    def __init__(self, validations=VALIDATIONS, log_format=SIMPLE_FORMAT, level=logging.INFO, stdout=False, raw=False):
+    def __init__(
+        self,
+        validations=VALIDATIONS,
+        log_format=SIMPLE_FORMAT,
+        level=logging.INFO,
+        stdout=False,
+        raw=False,
+    ):
         """Initialize a Validator with the following parameters:
 
         :param validations: A list of Validations to apply (default: :data:`~molvs.validations.VALIDATIONS`).

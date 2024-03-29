@@ -9,21 +9,25 @@ standardization tasks.
 
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
+from __future__ import division, print_function, unicode_literals
+
 import copy
 import logging
 
 from rdkit import Chem
 
-from .metal import MetalDisconnector
-from .fragment import PREFER_ORGANIC, LargestFragmentChooser, FragmentRemover
-from .normalize import NORMALIZATIONS, MAX_RESTARTS, Normalizer
-from .tautomer import TAUTOMER_TRANSFORMS, TAUTOMER_SCORES, MAX_TAUTOMERS, TautomerCanonicalizer, TautomerEnumerator
 from .charge import ACID_BASE_PAIRS, CHARGE_CORRECTIONS, Reionizer, Uncharger
+from .fragment import PREFER_ORGANIC, FragmentRemover, LargestFragmentChooser
+from .metal import MetalDisconnector
+from .normalize import MAX_RESTARTS, NORMALIZATIONS, Normalizer
+from .tautomer import (
+    MAX_TAUTOMERS,
+    TAUTOMER_SCORES,
+    TAUTOMER_TRANSFORMS,
+    TautomerCanonicalizer,
+    TautomerEnumerator,
+)
 from .utils import memoized_property
-
 
 log = logging.getLogger(__name__)
 
@@ -41,10 +45,17 @@ class Standardizer(object):
 
     """
 
-    def __init__(self, normalizations=NORMALIZATIONS, acid_base_pairs=ACID_BASE_PAIRS,
-                 charge_corrections=CHARGE_CORRECTIONS, tautomer_transforms=TAUTOMER_TRANSFORMS,
-                 tautomer_scores=TAUTOMER_SCORES, max_restarts=MAX_RESTARTS, max_tautomers=MAX_TAUTOMERS,
-                 prefer_organic=PREFER_ORGANIC):
+    def __init__(
+        self,
+        normalizations=NORMALIZATIONS,
+        acid_base_pairs=ACID_BASE_PAIRS,
+        charge_corrections=CHARGE_CORRECTIONS,
+        tautomer_transforms=TAUTOMER_TRANSFORMS,
+        tautomer_scores=TAUTOMER_SCORES,
+        max_restarts=MAX_RESTARTS,
+        max_tautomers=MAX_TAUTOMERS,
+        prefer_organic=PREFER_ORGANIC,
+    ):
         """Initialize a Standardizer with optional custom parameters.
 
         :param normalizations: A list of Normalizations to apply (default: :data:`~molvs.normalize.NORMALIZATIONS`).
@@ -60,7 +71,7 @@ class Standardizer(object):
         :param max_tautomers: The maximum number of tautomers to enumerate (default 1000).
         :param prefer_organic: Whether to prioritize organic fragments when choosing fragment parent (default False).
         """
-        log.debug('Initializing Standardizer')
+        log.debug("Initializing Standardizer")
         self.normalizations = normalizations
         self.acid_base_pairs = acid_base_pairs
         self.charge_corrections = charge_corrections
@@ -219,9 +230,9 @@ class Standardizer(object):
         super = self.super_parent(standardized, skip_standardize=True)
         # TODO: Add other parents - have optional argument to specify which are wanted
         mols = {
-            'standardized': standardized,
-            'tautomer_parent': tautomer,
-            'super_parent': super
+            "standardized": standardized,
+            "tautomer_parent": tautomer,
+            "super_parent": super,
         }
         return mols
 
@@ -240,14 +251,19 @@ class Standardizer(object):
         """
         :returns: A callable :class:`~molvs.normalize.Normalizer` instance.
         """
-        return Normalizer(normalizations=self.normalizations, max_restarts=self.max_restarts)
+        return Normalizer(
+            normalizations=self.normalizations, max_restarts=self.max_restarts
+        )
 
     @memoized_property
     def reionize(self):
         """
         :returns: A callable :class:`~molvs.charge.Reionizer` instance.
         """
-        return Reionizer(acid_base_pairs=self.acid_base_pairs, charge_corrections=self.charge_corrections)
+        return Reionizer(
+            acid_base_pairs=self.acid_base_pairs,
+            charge_corrections=self.charge_corrections,
+        )
 
     @memoized_property
     def uncharge(self):
@@ -275,15 +291,20 @@ class Standardizer(object):
         """
         :returns: A callable :class:`~molvs.tautomer.TautomerEnumerator` instance.
         """
-        return TautomerEnumerator(transforms=self.tautomer_transforms, max_tautomers=self.max_tautomers)
+        return TautomerEnumerator(
+            transforms=self.tautomer_transforms, max_tautomers=self.max_tautomers
+        )
 
     @memoized_property
     def canonicalize_tautomer(self):
         """
         :returns: A callable :class:`~molvs.tautomer.TautomerCanonicalizer` instance.
         """
-        return TautomerCanonicalizer(transforms=self.tautomer_transforms, scores=self.tautomer_scores,
-                                     max_tautomers=self.max_tautomers)
+        return TautomerCanonicalizer(
+            transforms=self.tautomer_transforms,
+            scores=self.tautomer_scores,
+            max_tautomers=self.max_tautomers,
+        )
 
 
 def standardize_smiles(smiles):

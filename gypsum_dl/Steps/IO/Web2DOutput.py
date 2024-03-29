@@ -20,14 +20,14 @@ debugging.
 
 # import webbrowser
 import os
-import gypsum_dl.Utils as Utils
+
 import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.Utils as Utils
 
 try:
-    from rdkit.Chem import rdDepictor
-    from rdkit.Chem.Draw import rdMolDraw2D
-    from rdkit.Chem.Draw import PrepareMolForDrawing
     from rdkit import Chem
+    from rdkit.Chem import rdDepictor
+    from rdkit.Chem.Draw import PrepareMolForDrawing, rdMolDraw2D
 except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
 

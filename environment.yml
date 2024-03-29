@@ -1,0 +1,11 @@
+name: gypsum_dl-dev
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+  - conda-lock
+  - poetry
+  - pre-commit
+  - conda-poetry-liaison
+  - mpi4py
+  - nodejs

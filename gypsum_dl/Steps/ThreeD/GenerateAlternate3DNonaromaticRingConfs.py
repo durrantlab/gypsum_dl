@@ -19,16 +19,14 @@ conformations.
 """
 
 
-
-
 import __future__
 
 import copy
 import warnings
 
+import gypsum_dl.ChemUtils as ChemUtils
 import gypsum_dl.Parallelizer as Parallelizer
 import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
 from gypsum_dl.MyMol import MyConformer
 
 try:

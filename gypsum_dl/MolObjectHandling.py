@@ -16,10 +16,9 @@
 import __future__
 
 import rdkit
-from rdkit import Chem
 
 # Disable the unnecessary RDKit warnings
-from rdkit import RDLogger
+from rdkit import Chem, RDLogger
 
 RDLogger.DisableLog("rdApp.*")
 

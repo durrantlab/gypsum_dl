@@ -7,14 +7,11 @@ Resonance (mesomeric) transformations.
 
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import logging
 
 from rdkit import Chem
-
 
 log = logging.getLogger(__name__)
 
@@ -23,12 +20,17 @@ MAX_STRUCTURES = 1000
 
 
 class ResonanceEnumerator(object):
-    """Simple wrapper around RDKit ResonanceMolSupplier.
+    """Simple wrapper around RDKit ResonanceMolSupplier."""
 
-    """
-
-    def __init__(self, kekule_all=False, allow_incomplete_octets=False, unconstrained_cations=False,
-                 unconstrained_anions=False, allow_charge_separation=False, max_structures=MAX_STRUCTURES):
+    def __init__(
+        self,
+        kekule_all=False,
+        allow_incomplete_octets=False,
+        unconstrained_cations=False,
+        unconstrained_anions=False,
+        allow_charge_separation=False,
+        max_structures=MAX_STRUCTURES,
+    ):
         """
 
         :param bool allow_incomplete_octets: include resonance structures whose octets are less complete than the the most octet-complete structure.
@@ -69,7 +71,9 @@ class ResonanceEnumerator(object):
         if self.unconstrained_cations:
             flags = flags | Chem.UNCONSTRAINED_CATIONS
         results = []
-        for result in Chem.ResonanceMolSupplier(mol, flags=flags, maxStructs=self.max_structures):
+        for result in Chem.ResonanceMolSupplier(
+            mol, flags=flags, maxStructs=self.max_structures
+        ):
             # This seems necessary? ResonanceMolSupplier only does a partial sanitization
             Chem.SanitizeMol(result)
             results.append(result)
@@ -86,6 +90,6 @@ def enumerate_resonance_smiles(smiles):
     :rtype: set of strings.
     """
     mol = Chem.MolFromSmiles(smiles)
-    #Chem.SanitizeMol(mol)  # MolFromSmiles does Sanitize by default
+    # Chem.SanitizeMol(mol)  # MolFromSmiles does Sanitize by default
     mesomers = ResonanceEnumerator().enumerate(mol)
     return {Chem.MolToSmiles(m, isomericSmiles=True) for m in mesomers}

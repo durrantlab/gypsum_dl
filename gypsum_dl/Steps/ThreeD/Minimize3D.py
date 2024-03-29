@@ -21,8 +21,8 @@ import __future__
 
 import copy
 
-import gypsum_dl.Utils as Utils
 import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.Utils as Utils
 from gypsum_dl.MyMol import MyConformer
 
 

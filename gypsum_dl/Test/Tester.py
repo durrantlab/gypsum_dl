@@ -17,9 +17,10 @@ This module is for testing Gypsum-DL. Not quite unit tests, but good enough
 for now.
 """
 
+import glob
 import os
 import shutil
-import glob
+
 from gypsum_dl import Utils
 from gypsum_dl.Start import prepare_molecules
 

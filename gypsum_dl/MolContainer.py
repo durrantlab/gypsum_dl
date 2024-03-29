@@ -24,9 +24,9 @@ MolContainer.MolContainer > MyMol.MyMol > MyMol.MyConformers
 
 import __future__
 
-import gypsum_dl.Utils as Utils
 import gypsum_dl.ChemUtils as ChemUtils
 import gypsum_dl.MyMol as MyMol
+import gypsum_dl.Utils as Utils
 
 try:
     from rdkit import Chem
@@ -204,7 +204,7 @@ class MolContainer:
 
     def add_container_properties(self):
         """Adds all properties from the container to the molecules. Used when
-           saving final files, to keep a record in the file itself."""
+        saving final files, to keep a record in the file itself."""
 
         for mol in self.mols:
             mol.mol_props.update(self.properties)

@@ -13,11 +13,12 @@
 # limitations under the License.
 
 
+import os
+
 # gypsum_dl/gypsum_dl/Steps/SMILES/
 # Including the below allows other programs to import functions from
 # gypsum-DL.
 import sys
-import os
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 Steps = os.path.dirname(current_dir)

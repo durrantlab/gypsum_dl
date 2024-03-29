@@ -23,27 +23,26 @@ MyMol.MyConformer
 """
 
 
-
 import __future__
 
 import contextlib
-import sys
 import copy
 import operator
 import random
-
-import gypsum_dl.Utils as Utils
-import gypsum_dl.MolObjectHandling as MOH
+import sys
 
 # Disable the unnecessary RDKit warnings
 from rdkit import RDLogger
+
+import gypsum_dl.MolObjectHandling as MOH
+import gypsum_dl.Utils as Utils
 
 RDLogger.DisableLog("rdApp.*")
 
 try:
     import rdkit
-    from rdkit.Chem import AllChem
     from rdkit import Chem
+    from rdkit.Chem import AllChem
     from rdkit.Chem.rdchem import BondStereo
 except Exception:
     Utils.exception("You need to install rdkit and its dependencies.")
@@ -259,9 +258,9 @@ class MyMol:
 
     def make_first_3d_conf_no_min(self):
         """Makes the associated rdkit.mol object 3D by adding the first
-           conformer. This also adds hydrogen atoms to the associated rdkit.mol
-           object. Note that it does not perform a minimization, so it is not
-           too expensive."""
+        conformer. This also adds hydrogen atoms to the associated rdkit.mol
+        object. Note that it does not perform a minimization, so it is not
+        too expensive."""
 
         # Set the first 3D conformer
         if len(self.conformers) > 0:
@@ -539,7 +538,7 @@ class MyMol:
 
     def set_all_rdkit_mol_props(self):
         """Set all the stored molecular properties. Copies ones from the
-           MyMol.MyMol object to the MyMol.rdkit_mol object."""
+        MyMol.MyMol object to the MyMol.rdkit_mol object."""
 
         self.set_rdkit_mol_prop("SMILES", self.smiles(True))
         # self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
@@ -649,7 +648,7 @@ class MyMol:
 
     def load_conformers_into_rdkit_mol(self):
         """Load the conformers stored as MyConformers objects (in
-           self.conformers) into the rdkit Mol object."""
+        self.conformers) into the rdkit Mol object."""
 
         self.rdkit_mol.RemoveAllConformers()
         for conformer in self.conformers:
@@ -793,7 +792,7 @@ class MyConformer:
 
     def minimize(self):
         """Minimize (optimize) the geometry of the current conformer if it
-           hasn't already been optimized."""
+        hasn't already been optimized."""
 
         if self.minimized == True:
             # Already minimized. Don't do it again.
@@ -907,4 +906,3 @@ class MyConformer:
 
         ff = AllChem.UFFGetMoleculeForceField(self.mol)
         return ff.CalcEnergy()
-

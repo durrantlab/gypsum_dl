@@ -7,9 +7,8 @@ This module contains all the built-in :class:`Validations <molvs.validations.Val
 
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
+from __future__ import division, print_function, unicode_literals
+
 import logging
 
 from rdkit import Chem
@@ -22,17 +21,17 @@ class Validation(object):
     """The base class that all :class:`~molvs.validations.Validation` subclasses must inherit from."""
 
     def __init__(self, log):
-        self.log = logging.LoggerAdapter(log, {'validation': type(self).__name__})
+        self.log = logging.LoggerAdapter(log, {"validation": type(self).__name__})
 
     def __call__(self, mol):
         try:
-            self.log.debug('Running %s', type(self).__name__)
+            self.log.debug("Running %s", type(self).__name__)
             self.run(mol)
         except Exception as e:
             if isinstance(e, StopValidateError):
                 raise e
             else:
-                self.log.debug('Validation failed: %s', e)
+                self.log.debug("Validation failed: %s", e)
 
     def run(self, mol):
         """"""
@@ -50,7 +49,7 @@ class SmartsValidation(Validation):
     level = logging.INFO
 
     #: The message to log if the SMARTS pattern matches the molecule.
-    message = 'Molecule matched %(smarts)s'
+    message = "Molecule matched %(smarts)s"
 
     #: Whether the SMARTS pattern should match an entire covalent unit.
     entire_fragment = False
@@ -62,17 +61,21 @@ class SmartsValidation(Validation):
     @property
     def smarts(self):
         """The SMARTS pattern as a string. Subclasses must implement this."""
-        raise NotImplementedError('SmartsValidation subclasses must have a smarts attribute')
+        raise NotImplementedError(
+            "SmartsValidation subclasses must have a smarts attribute"
+        )
 
     def _check_matches(self, mol):
         if mol.HasSubstructMatch(self._smarts):
-            self.log.log(self.level, self.message, {'smarts': self.smarts})
+            self.log.log(self.level, self.message, {"smarts": self.smarts})
 
     def _check_matches_fragment(self, mol):
-        matches = frozenset(frozenset(match) for match in mol.GetSubstructMatches(self._smarts))
+        matches = frozenset(
+            frozenset(match) for match in mol.GetSubstructMatches(self._smarts)
+        )
         fragments = frozenset(frozenset(frag) for frag in Chem.GetMolFrags(mol))
         if matches & fragments:
-            self.log.log(self.level, self.message, {'smarts': self.smarts})
+            self.log.log(self.level, self.message, {"smarts": self.smarts})
 
     def run(self, mol):
         if self.entire_fragment:
@@ -90,7 +93,7 @@ class IsNoneValidation(Validation):
 
     def run(self, mol):
         if mol is None:
-            self.log.error('Molecule is None')
+            self.log.error("Molecule is None")
             raise StopValidateError()
 
 
@@ -102,7 +105,7 @@ class NoAtomValidation(Validation):
 
     def run(self, mol):
         if mol.GetNumAtoms() == 0:
-            self.log.error('No atoms are present')
+            self.log.error("No atoms are present")
             raise StopValidateError()
 
 
@@ -112,10 +115,11 @@ class DichloroethaneValidation(SmartsValidation):
     This is provided as an example of how to subclass :class:`~molvs.validations.SmartsValidation` to check for the
     presence of a substructure.
     """
+
     level = logging.INFO
-    smarts = '[Cl]-[#6]-[#6]-[Cl]'
+    smarts = "[Cl]-[#6]-[#6]-[Cl]"
     entire_fragment = True
-    message = '1,2-Dichloroethane is present'
+    message = "1,2-Dichloroethane is present"
 
 
 class FragmentValidation(Validation):
@@ -130,10 +134,12 @@ class FragmentValidation(Validation):
 
     def run(self, mol):
         for fp in self.fragments:
-            matches = frozenset(frozenset(match) for match in mol.GetSubstructMatches(fp.smarts))
+            matches = frozenset(
+                frozenset(match) for match in mol.GetSubstructMatches(fp.smarts)
+            )
             fragments = frozenset(frozenset(frag) for frag in Chem.GetMolFrags(mol))
             if matches & fragments:
-                self.log.info('%s is present', fp.name)
+                self.log.info("%s is present", fp.name)
 
 
 class NeutralValidation(Validation):
@@ -142,8 +148,8 @@ class NeutralValidation(Validation):
     def run(self, mol):
         charge = Chem.GetFormalCharge(mol)
         if not charge == 0:
-            chargestring = '+%s' % charge if charge > 0 else '%s' % charge
-            self.log.info('Not an overall neutral system (%s)', chargestring)
+            chargestring = "+%s" % charge if charge > 0 else "%s" % charge
+            self.log.info("Not an overall neutral system (%s)", chargestring)
 
 
 class IsotopeValidation(Validation):
@@ -154,21 +160,20 @@ class IsotopeValidation(Validation):
         for atom in mol.GetAtoms():
             isotope = atom.GetIsotope()
             if not isotope == 0:
-                isotopes.add('%s%s' % (isotope, atom.GetSymbol()))
+                isotopes.add("%s%s" % (isotope, atom.GetSymbol()))
         for isotope in isotopes:
-            self.log.info('Molecule contains isotope %s', isotope)
+            self.log.info("Molecule contains isotope %s", isotope)
 
 
 #: The default list of :class:`Validations <molvs.validations.Validation>` used by :class:`~molvs.validate.Validator`.
 VALIDATIONS = (
     IsNoneValidation,
     NoAtomValidation,
-    #DichloroethaneValidation,
+    # DichloroethaneValidation,
     FragmentValidation,
     NeutralValidation,
     IsotopeValidation,
 )
-
 
 
 # - WARN/ERROR: Are all atoms defined/real - no query atoms or invalid elements, r-group things
@@ -201,10 +206,7 @@ VALIDATIONS = (
 # UniChem from EBI could be useful here, otherwise use each API directly
 
 
-
-
 # Allow definition of MolSchema to set custom validations on e.g.
 
 # People can define a filterer
 # This has a series of validations, and the required output - e.g. no error or no warns?
-

@@ -1,0 +1,134 @@
+[data-md-color-scheme="default"] {
+
+    /* Primary color shades */
+    --md-primary-fg-color:               #025099;
+    --md-primary-fg-color--light:        #0437AD;
+    --md-primary-bg-color:               #ffffff; /* Header text */
+    --md-primary-bg-color--light:        #DBDBDB; /* Secondary header text */
+
+    /* Default color shades */
+    --md-default-fg-color:               #646464; /* ??? */
+    --md-default-fg-color--light:        #7A7A7A; /* h1 */
+    --md-default-fg-color--lighter:      #9B9B9B; /* ??? */
+    --md-default-fg-color--lightest:     #BCBCBC; /* ??? */
+
+    --md-default-bg-color:               #FAFAFA; /* Body background */
+    --md-default-bg-color--light:        #FAFAFA;
+    --md-default-bg-color--lighter:      #FAFAFA;
+    --md-default-bg-color--lightest:     #FAFAFA;
+
+    /* Code color shades */
+    --md-code-fg-color:                  #36464e; /* Code block text color */
+    --md-code-bg-color:                  #f1f1f1; /* Code block background */
+
+    /* Code highlighting color shades */
+    --md-code-hl-color:                  #0000ff;
+    --md-code-hl-color--light:           #0000ff;
+    --md-code-hl-number-color:           #d52a2a;
+    --md-code-hl-special-color:          #db1457;
+    --md-code-hl-function-color:         #a846b9;
+    --md-code-hl-constant-color:         #6e59d9;
+    --md-code-hl-keyword-color:          #3f6ec6;
+    --md-code-hl-string-color:           #1c7d4d;
+    --md-code-hl-name-color:             #36464e;
+    --md-code-hl-operator-color:         var(--md-primary-fg-color);
+    --md-code-hl-punctuation-color:      var(--md-primary-fg-color);
+    --md-code-hl-comment-color:          var(--md-primary-fg-color);
+    --md-code-hl-generic-color:          var(--md-primary-fg-color);
+    --md-code-hl-variable-color:         var(--md-primary-fg-color);
+
+    /* Typeset color shades */
+    --md-typeset-color:                  #212529; /* Main text color */
+
+    /* Typeset `a` color shades */
+    --md-typeset-a-color:                #01a0d7; /* Link color */
+
+    /* Typeset `table` color shades */
+    --md-typeset-table-color:            #a5a5a5;  /* Outline color */
+    --md-typeset-table-color--light:     #e3e2e2;  /* Hover color */
+
+    /* Footer color shades */
+    --md-footer-fg-color:                #ffffff; /* ??? */
+    --md-footer-fg-color--light:         #e9ecef; /* Footer text */
+    --md-footer-fg-color--lighter:       #adb5bd; /* ??? */
+    --md-footer-bg-color:                #000000;
+    --md-footer-bg-color--dark:          #212529; /* Footer background */
+
+    /* Accent color shades */
+    --md-accent-fg-color:                #032779; /* Hover over link */
+    --md-accent-fg-color--transparent:   #caf0f8; /* Hover over transparent (e.g., code with link) */
+    --md-accent-bg-color:                #ffffff;
+    --md-accent-bg-color--light:         #e5e5e5;
+
+    /* Admonition colors */
+    --md-admonition-fg-color:            #212529;
+    --md-admonition-bg-color:            #FAFAFA;
+}
+
+[data-md-color-scheme="dark"] {
+
+    /* Primary color shades */
+    --md-primary-fg-color:               #03045e;
+    --md-primary-fg-color--light:        #0437AD;
+    --md-primary-bg-color:               #ffffff; /* Header text */
+    --md-primary-bg-color--light:        #DBDBDB; /* Secondary header text */
+
+    /* Default color shades */
+    --md-default-fg-color:               #e2e4e9; /* ??? */
+    --md-default-fg-color--light:        #ffffff; /* h1 */
+    --md-default-fg-color--lighter:      #e2e4e9; /* ??? */
+    --md-default-fg-color--lightest:     #e2e4e9; /* ??? */
+
+    --md-default-bg-color:               #212529; /* Body background */
+    --md-default-bg-color--light:        #FAFAFA;
+    --md-default-bg-color--lighter:      #FAFAFA;
+    --md-default-bg-color--lightest:     #FAFAFA;
+
+    /* Code color shades */
+    --md-code-fg-color:                  #dddddd; /* Code block text color */
+    --md-code-bg-color:                  #333333; /* Code block background */
+
+    /* Code highlighting color shades */
+    --md-code-hl-color:                  #aeaeff;
+    --md-code-hl-color--light:           #aeaeff;
+    --md-code-hl-number-color:           #ff9494;
+    --md-code-hl-special-color:          #ffa0c0;
+    --md-code-hl-function-color:         #f3adff;
+    --md-code-hl-constant-color:         #bdaeff;
+    --md-code-hl-keyword-color:          #a0c1ff;
+    --md-code-hl-string-color:           #9fffcf;
+    --md-code-hl-name-color:             #f5f5f5;
+    --md-code-hl-operator-color:         #a6f0ff;
+    --md-code-hl-punctuation-color:      #a6f0ff;
+    --md-code-hl-comment-color:          #a6f0ff;
+    --md-code-hl-generic-color:          #a6f0ff;
+    --md-code-hl-variable-color:         #a6f0ff;
+
+    /* Typeset color shades */
+    --md-typeset-color:                  #ffffff; /* Main text color */
+
+    /* Typeset `a` color shades */
+    --md-typeset-a-color:                #01a0d7; /* Link color */
+
+    /* Typeset `table` color shades */
+    --md-typeset-table-color:            #a5a5a5;  /* Outline color */
+    --md-typeset-table-color--light:     #343a40;  /* Hover color */
+
+    /* Footer color shades */
+    --md-footer-fg-color:                #ffffff; /* ??? */
+    --md-footer-fg-color--light:         #e9ecef; /* Footer text */
+    --md-footer-fg-color--lighter:       #adb5bd; /* ??? */
+    --md-footer-bg-color:                #000000;
+    --md-footer-bg-color--dark:          #171717; /* Footer background */
+
+    /* Accent color shades */
+    --md-accent-fg-color:                #90e0ef; /* Hover over link */
+    --md-accent-fg-color--transparent:   #6D6D6D; /* Hover over transparent (e.g., code with link) */
+    --md-accent-bg-color:                #ffffff;
+    --md-accent-bg-color--light:         #e5e5e5;
+
+    /* Admonition colors */
+    --md-admonition-fg-color:            #ffffff;
+    --md-admonition-bg-color:            #212529;
+
+}

@@ -19,19 +19,18 @@ small molecules.
 
 import __future__
 
-import sys
 import json
 import os
-from datetime import datetime
+import sys
 from collections import OrderedDict
+from datetime import datetime
 
 import gypsum_dl.Utils as Utils
-from gypsum_dl.Parallelizer import Parallelizer
-from gypsum_dl.Parallelizer import flatten_list
+from gypsum_dl.Parallelizer import Parallelizer, flatten_list
 
 try:
-    from rdkit.Chem import AllChem
     from rdkit import Chem
+    from rdkit.Chem import AllChem
 except:
     Utils.exception("You need to install rdkit and its dependencies.")
 
@@ -46,11 +45,11 @@ except:
     Utils.exception("You need to install scipy and its dependencies.")
 
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file, load_smiles_file
+from gypsum_dl.Steps.IO.ProcessOutput import proccess_output
 from gypsum_dl.Steps.SMILES.PrepareSmiles import prepare_smiles
 from gypsum_dl.Steps.ThreeD.PrepareThreeD import prepare_3d
-from gypsum_dl.Steps.IO.ProcessOutput import proccess_output
-from gypsum_dl.Steps.IO.LoadFiles import load_smiles_file
-from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file
+
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def prepare_molecules(args):
@@ -107,7 +106,6 @@ def prepare_molecules(args):
 
     # Handle mpi errors if mpi4py isn't installed
     if params["job_manager"] == "mpi":
-
         # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
         # We must check that it is being run with the "-m mpi4py" runpy flag
         sys_modules = sys.modules

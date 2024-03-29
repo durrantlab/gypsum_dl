@@ -29,6 +29,7 @@ system. (Description provided by Harrison Green.)
 
 
 import __future__
+
 import multiprocessing
 import sys
 
@@ -229,7 +230,7 @@ class Parallelizer(object):
                 ParallelMPI_obj = ParallelMPI()
                 ParallelMPI_obj.start()
                 return ParallelMPI_obj
-            
+
             raise Exception("mpi4py package must be available to use mpi mode")
 
         return None
@@ -249,7 +250,6 @@ class Parallelizer(object):
         if mode is None:
             mode = self.mode
         if mode == "mpi":
-
             if self.HAS_MPI == True and self.parallel_obj != None:
                 # THIS IS EXPLICITILY CHOSEN TO BE RUN IN MPI AND CAN WORK WITH MPI
                 self.parallel_obj.end()
@@ -298,9 +298,7 @@ class Parallelizer(object):
                 )
                 raise Exception(printout)
             if mode == "mpi":
-                printout = (
-                    "Overriding multiprocess can't go from non-mpi to mpi mode"
-                )
+                printout = "Overriding multiprocess can't go from non-mpi to mpi mode"
                 raise Exception(printout)
 
         if num_procs is None:
@@ -493,7 +491,6 @@ class ParallelMPI(object):
         temp = []
         counter = 0
         for x in range(len(arr)):
-
             # add 1 per group until remainder is removed
             if remainder != 0:
                 r = 1

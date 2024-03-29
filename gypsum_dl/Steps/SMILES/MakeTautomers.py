@@ -21,11 +21,11 @@ import __future__
 
 import random
 
+import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.MolObjectHandling as MOH
+import gypsum_dl.MyMol as MyMol
 import gypsum_dl.Parallelizer as Parallelizer
 import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.MyMol as MyMol
-import gypsum_dl.MolObjectHandling as MOH
 
 try:
     from rdkit import Chem

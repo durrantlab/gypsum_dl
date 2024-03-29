@@ -19,13 +19,14 @@ Contains the function for saving the output to PDB files.
 import __future__
 
 import glob
-import sys
 import os
+import sys
 from os.path import basename
 
-from gypsum_dl import Utils
 import rdkit
 import rdkit.Chem as Chem
+
+from gypsum_dl import Utils
 
 # Disable the unnecessary RDKit warnings
 rdkit.RDLogger.DisableLog("rdApp.*")

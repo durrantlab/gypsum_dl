@@ -19,15 +19,15 @@ Module for enumerating unspecified double bonds (cis vs. trans).
 
 import __future__
 
-import itertools
 import copy
+import itertools
+import math
 import random
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
 import gypsum_dl.ChemUtils as ChemUtils
 import gypsum_dl.MyMol as MyMol
-import math
+import gypsum_dl.Parallelizer as Parallelizer
+import gypsum_dl.Utils as Utils
 
 try:
     from rdkit import Chem

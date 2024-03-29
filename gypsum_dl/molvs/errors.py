@@ -7,9 +7,7 @@ This module contains exceptions that are raised by MolVS.
 
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
+from __future__ import division, print_function, unicode_literals
 
 
 class MolVSError(Exception):
@@ -26,4 +24,5 @@ class ValidateError(MolVSError):
 
 class StopValidateError(ValidateError):
     """Called by Validations to stop any further validations from being performed."""
+
     pass

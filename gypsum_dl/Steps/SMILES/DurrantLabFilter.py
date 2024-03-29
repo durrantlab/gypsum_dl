@@ -20,9 +20,9 @@ filters.
 
 import __future__
 
+import gypsum_dl.ChemUtils as ChemUtils
 import gypsum_dl.Parallelizer as Parallelizer
 import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
 
 try:
     from rdkit import Chem

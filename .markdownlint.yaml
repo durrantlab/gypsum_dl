@@ -1,0 +1,20 @@
+# https://github.com/DavidAnson/markdownlint/blob/main/schema/.markdownlint.yaml
+MD007:
+  indent: 4
+MD013: false
+MD022: false
+MD024: false
+MD026: false
+MD028: false
+MD030:
+  ol_multi: 2
+  ol_single: 2
+  ul_multi: 3
+  ul_single: 3
+MD031: false
+MD032: false
+MD033: false
+MD036: false
+MD038: false
+MD041: false
+MD046: false

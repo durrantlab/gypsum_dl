@@ -13,11 +13,12 @@
 # limitations under the License.
 
 
+import os
+
 # gypsum_dl/gypsum_dl/Steps/IO/
 # Including the below allows other programs to import functions from
 # gypsum-DL.
 import sys
-import os
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 Steps = os.path.dirname(current_dir)
@@ -26,6 +27,5 @@ gypsum_top_dir = os.path.dirname(gypsum_gypsum_dir)
 sys.path.extend([current_dir, Steps, gypsum_gypsum_dir, gypsum_top_dir])
 
 
+from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file, load_smiles_file
 from gypsum_dl.Steps.IO.ProcessOutput import proccess_output
-from gypsum_dl.Steps.IO.LoadFiles import load_smiles_file
-from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file
