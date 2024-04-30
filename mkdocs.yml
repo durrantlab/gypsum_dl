@@ -1,0 +1,137 @@
+docs_dir: docs
+
+site_name: gypsum_dl
+site_author: Durrant Lab
+
+# Git host
+repo_name: durrantlab/gypsum_dl
+repo_url: https://github.com/durrantlab/gypsum_dl
+
+# https://squidfunk.github.io/mkdocs-material/
+theme:
+  name: material
+  custom_dir: docs/.overrides
+  language: en
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: dark
+      toggle:
+        icon: material/lightbulb
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+    annotation: material/star-four-points-circle
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.tracking
+    - navigation.top
+    - navigation.indexes
+    - navigation.path
+    - navigation.prune
+    - toc.follow
+    - search.suggest
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+
+# Options need to be indented twice for some reason?
+plugins:
+  - search
+  - autorefs
+  - material-plausible
+  - table-reader
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["gypsum_dl"]
+          options:
+            annotations_path: brief
+            docstring_style: google
+            docstring_section_style: list
+            show_if_no_docstring: true
+            show_docstring_yields: true
+            show_docstring_examples: true
+            show_docstring_raises: true
+            show_root_toc_entry: true
+            show_root_full_path: true
+            show_object_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_root_members_full_path: true
+            show_source: false
+            line_length: 88
+  - awesome-pages:
+        collapse_single_pages: true
+        strict: false
+        order: asc
+        sort_type: natural
+        order_by: title
+
+extra:
+  generator: false
+
+extra_css:
+  - css/base.css
+  - css/colors.css
+  - css/mkdocstrings.css
+
+extra_javascript:
+  - js/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+markdown_extensions:
+  - abbr
+  - toc:
+      permalink: true
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
