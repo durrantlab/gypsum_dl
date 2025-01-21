@@ -1,7 +1,12 @@
 /*Indentation.*/
 div.doc-contents:not(.first) {
-    padding-left: 25px;
-    border-left: .05rem solid var(--md-typeset-table-color);
+    padding-left: 35px; /*25px is the default*/
+    border-left: .15rem solid #ededed;
+}
+
+.doc-heading .highlight {
+    font-size: 18px;
+    background-color: transparent;
 }
 
 /*Mark external links as such. */
@@ -24,4 +29,20 @@ a.autorefs-external::after {
 a.external:hover::after,
 a.autorefs-external:hover::after {
     background-color: var(--md-accent-fg-color);
+}
+
+/* Fancier color for operators such as * and |. */
+.doc-signature .o {
+    color: var(--md-code-hl-special-color);
+  }
+
+/* Fancier color for constants such as None, True, and False. */
+.doc-signature .kc {
+    color: var(--md-code-hl-constant-color);
+}
+
+/* Fancier color for built-in types (only useful when cross-references are used). */
+.doc-signature .n > a[href^="https://docs.python.org/"][href*="/functions.html#"],
+.doc-signature .n > a[href^="https://docs.python.org/"][href*="/stdtypes.html#"] {
+    color: var(--md-code-hl-constant-color);
 }

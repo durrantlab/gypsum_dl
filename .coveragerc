@@ -1,0 +1,9 @@
+[run]
+branch = true
+source = tests
+
+[paths]
+source = gypsum_dl
+
+[report]
+show_missing = true

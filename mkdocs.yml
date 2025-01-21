@@ -34,9 +34,6 @@ theme:
     - content.code.annotate
     - content.code.copy
     - content.code.select
-    - navigation.instant
-    - navigation.instant.prefetch
-    - navigation.instant.progress
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.tracking
@@ -57,7 +54,6 @@ plugins:
   - search
   - autorefs
   - material-plausible
-  - table-reader
   - gen-files:
       scripts:
         - docs/gen_ref_pages.py
@@ -66,20 +62,17 @@ plugins:
         python:
           paths: ["gypsum_dl"]
           options:
+            show_source: false
+            show_root_heading: false
             annotations_path: brief
             docstring_style: google
-            docstring_section_style: list
+            merge_init_into_class: true
+            docstring_section_style: spacy
             show_if_no_docstring: true
-            show_docstring_yields: true
-            show_docstring_examples: true
-            show_docstring_raises: true
-            show_root_toc_entry: true
-            show_root_full_path: true
-            show_object_full_path: false
+            show_labels: false
+            parameter_headings: true
             show_symbol_type_heading: true
             show_symbol_type_toc: true
-            show_root_members_full_path: true
-            show_source: false
             line_length: 88
   - awesome-pages:
         collapse_single_pages: true
@@ -87,19 +80,43 @@ plugins:
         order: asc
         sort_type: natural
         order_by: title
+  - git-revision-date-localized:
+      type: iso_datetime
+      timezone: America/Detroit
+      fallback_to_build_date: true
+  - macros
+  - table-reader
+  - glightbox
+  - mkdocs-jupyter:
+        no_input: False
+        include_requirejs: true
+        include_source: True
+        ignore: ["*.py"]
+        remove_tag_config:
+            remove_input_tags:
+                - hide_code
+
+hooks:
+  - hooks/launchy.py
+colab_base_url: https://colab.research.google.com/github/durrantlab/gypsum_dl/blob/main/docs
 
 extra:
   generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/durrantlab
+      name: Durrant Lab on GitHub
 
 extra_css:
   - css/base.css
   - css/colors.css
   - css/mkdocstrings.css
+  - css/launchy.css
+  - css/jupyter.css
 
 extra_javascript:
-  - js/mathjax.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - js/mathjax-config.js
 
 markdown_extensions:
   - abbr

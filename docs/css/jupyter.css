@@ -1,0 +1,7 @@
+html
+  /*
+  This adjusts the font size of Jupyter notebook code blocks to be closer to normal.
+  */
+  .highlight {
+    font-size: 85%;
+  }
