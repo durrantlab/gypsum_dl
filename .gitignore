@@ -117,9 +117,6 @@ timer.dat
 psi.*.clean
 
 # Pytest tmp
-tests/tmp/
-tests/files/tmp/*
-!tests/files/tmp/.gitkeep
 report.xml
 
 # pixi environments
