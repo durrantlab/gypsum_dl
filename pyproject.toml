@@ -1,7 +1,7 @@
 [project]
 name = "gypsum_dl"
-version = "1.0.0"
-description = "Convert 1D and 2D molecular representations into 3D structures."
+version = "1.2.1"
+description = "Open-source tool to generate 3D-ready small molecules for virtual screening"
 authors = [
     {name = "durrantlab", email = "durrantj@pitt.edu"},
 ]
@@ -11,9 +11,9 @@ requires-python = ">=3.10"
 # TODO: Keep this here until pixi releases building capabilities
 dependencies = [
     "loguru>=0.7.2,<0.8",
-    "numpy>=2.2.2,<3",
+    "numpy>=1.2.6,<3",
     "scipy>=1.15.1,<2",
-    "rdkit>=2024.9.4,<2025",
+    "rdkit>=2024.9.4,<2026",
     "mpi4py>=4.0.1,<5",
 ]
 
