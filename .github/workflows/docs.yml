@@ -1,6 +1,4 @@
-
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy content to Pages
+name: Deploy documentation
 
 on:
   # Runs on pushes targeting the default branch
@@ -31,41 +29,32 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.8.3
         with:
-          miniconda-version: "latest"
-          auto-update-conda: true
-          python-version: "3.12"
+          locked: false
+          frozen: false
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
-      - name: Initialize conda environment
-        run: make conda-create
-
-      - name: Setup conda
-        run: make conda-setup
-
-      - name: Install conda dependencies
-        run: make from-conda-lock
-
-      - name: Poetry install
-        run: make install
+      - name: Setup environment
+        run: pixi install
 
       - name: Build documentation
-        run: make docs-versioned
+        run: pixi run docs
 
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: './docs/html/'
+          path: 'public/'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
