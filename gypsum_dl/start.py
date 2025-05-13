@@ -9,24 +9,24 @@ import sys
 from collections import OrderedDict
 from datetime import datetime
 
-from . import utils as Utils
-from .parallelizer import Parallelizer
+from gypsum_dl import utils
+from gypsum_dl.parallelizer import Parallelizer
 
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     import numpy
 except:
-    Utils.exception("You need to install numpy and its dependencies.")
+    utils.exception("You need to install numpy and its dependencies.")
 
 try:
     from scipy.cluster.vq import kmeans2
 except:
-    Utils.exception("You need to install scipy and its dependencies.")
+    utils.exception("You need to install scipy and its dependencies.")
 
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file, load_smiles_file
@@ -70,7 +70,7 @@ def prepare_molecules(args):
         try:
             params = json.load(open(args["json"]))
         except:
-            Utils.exception("Is your input json file properly formed?")
+            utils.exception("Is your input json file properly formed?")
 
         params = set_parameters(params)
         if [i for i in json_warning_list if i in list(args.keys())]:
@@ -83,7 +83,7 @@ def prepare_molecules(args):
     # If running in serial mode, make sure only one processor is used.
     if params["job_manager"] == "serial":
         if params["num_processors"] != 1:
-            Utils.log(
+            utils.log(
                 "Because --job_manager was set to serial, this will be run on a single processor."
             )
         params["num_processors"] = 1
@@ -96,7 +96,7 @@ def prepare_molecules(args):
         if "runpy" not in sys_modules.keys():
             printout = "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
             print(printout)
-            Utils.exception(printout)
+            utils.exception(printout)
 
         # Check mpi4py import
         try:
@@ -104,7 +104,7 @@ def prepare_molecules(args):
         except Exception:
             printout = "\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
             print(printout)
-            Utils.exception(printout)
+            utils.exception(printout)
 
         # Check mpi4py import version. This must be at version 2.1.0 and higher
         mpi4py_version = mpi4py.__version__
@@ -114,16 +114,16 @@ def prepare_molecules(args):
             if mpi4py_version[1] < 1:
                 printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
                 print(printout)
-                Utils.exception(printout)
+                utils.exception(printout)
         elif mpi4py_version[0] < 2:
             printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
             print(printout)
-            Utils.exception(printout)
+            utils.exception(printout)
 
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":
-        Utils.log(
+        utils.log(
             "WARNING: Multiprocessing is not supported on Windows. Tasks will be run in Serial mode."
         )
         params["num_processors"] = 1
@@ -146,25 +146,25 @@ def prepare_molecules(args):
     # Let the user know that their command-line parameters will be ignored, if
     # they have specified a json file.
     if need_to_print_override_warning == True:
-        Utils.log("WARNING: Using the --json flag overrides all other flags.")
+        utils.log("WARNING: Using the --json flag overrides all other flags.")
 
     # If running in mpi mode, separate_output_files must be set to true.
     if params["job_manager"] == "mpi" and params["separate_output_files"] == False:
-        Utils.log(
+        utils.log(
             "WARNING: Running in mpi mode, but separate_output_files is not set to True. Setting separate_output_files to True anyway."
         )
         params["separate_output_files"] = True
 
     # Outputing HTML files not supported in mpi mode.
     if params["job_manager"] == "mpi" and params["add_html_output"] == True:
-        Utils.log(
+        utils.log(
             "WARNING: Running in mpi mode, but add_html_output is set to True. HTML output is not supported in mpi mode."
         )
         params["add_html_output"] = False
 
     # Warn the user if he or she is not using the Durrant lab filters.
     if params["use_durrant_lab_filters"] == -False:
-        Utils.log(
+        utils.log(
             "WARNING: Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated "
             + "variants, we have identified a number of substructures that, though technically possible, strike us "
             + "as improbable or otherwise poorly suited for virtual screening. We strongly recommend removing these "
@@ -174,7 +174,7 @@ def prepare_molecules(args):
 
     # Load SMILES data
     if isinstance(params["source"], str):
-        Utils.log(
+        utils.log(
             "Loading molecules from " + os.path.basename(params["source"]) + "..."
         )
 
@@ -195,7 +195,7 @@ def prepare_molecules(args):
     if os.path.exists(params["output_folder"]) == False:
         os.mkdir(params["output_folder"])
         if os.path.exists(params["output_folder"]) == False:
-            Utils.exception("Output folder directory couldn't be found or created.")
+            utils.exception("Output folder directory couldn't be found or created.")
 
     # For Debugging
     # print("")
@@ -216,10 +216,10 @@ def prepare_molecules(args):
         except Exception:
             msg = 'Unexpected error. Does your "source" parameter specify a '
             msg = msg + "filename that ends in a .can, .smi, or .sdf extension?"
-            Utils.exception(msg)
+            utils.exception(msg)
 
         if detect_unassigned_bonds(smiles) is None:
-            Utils.log(
+            utils.log(
                 "WARNING: Throwing out SMILES because of unassigned bonds: " + smiles
             )
             continue
@@ -229,7 +229,7 @@ def prepare_molecules(args):
             new_contnr.orig_smi_canonical == None
             or type(new_contnr.orig_smi_canonical) != str
         ):
-            Utils.log(
+            utils.log(
                 "WARNING: Throwing out SMILES because of it couldn't convert to mol: "
                 + smiles
             )
@@ -241,7 +241,7 @@ def prepare_molecules(args):
     # Remove None types from failed conversion
     contnrs = [x for x in contnrs if x.orig_smi_canonical != None]
     if len(contnrs) != idx_counter:
-        Utils.exception("There is a corrupted container")
+        utils.exception("There is a corrupted container")
 
     # In multiprocessing mode, Gypsum-DL parallelizes each small-molecule
     # preparation step separately. But this scheme is inefficient in MPI mode
@@ -276,9 +276,9 @@ def prepare_molecules(args):
     params["end_time"] = str(end_time)
     params["run_time"] = str(run_time)
 
-    Utils.log("\nStart time at: " + str(start_time))
-    Utils.log("End time at:   " + str(end_time))
-    Utils.log("Total time at: " + str(run_time))
+    utils.log("\nStart time at: " + str(start_time))
+    utils.log("End time at:   " + str(end_time))
+    utils.log("Total time at: " + str(run_time))
 
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["job_manager"])
@@ -305,7 +305,7 @@ def execute_gypsum_dl(contnrs, params):
     add_mol_id_props(contnrs)
 
     # Output the current SMILES.
-    Utils.print_current_smiles(contnrs)
+    utils.print_current_smiles(contnrs)
 
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)  ####
@@ -424,10 +424,10 @@ def merge_parameters(default, params):
     for param in params:
         # Throw an error if there's an unrecognized parameter.
         if param not in default:
-            Utils.log(f'Parameter "{str(param)}" not recognized!')
-            Utils.log("Here are the options:")
-            Utils.log(" ".join(sorted(list(default.keys()))))
-            Utils.exception(f"Unrecognized parameter: {str(param)}")
+            utils.log(f'Parameter "{str(param)}" not recognized!')
+            utils.log("Here are the options:")
+            utils.log(" ".join(sorted(list(default.keys()))))
+            utils.exception(f"Unrecognized parameter: {str(param)}")
 
         # Throw an error if the input parameter has a different type than
         # the default one.
@@ -437,7 +437,7 @@ def merge_parameters(default, params):
                 params[param] = float(params[param])
             else:
                 # Seems to be a type mismatch.
-                Utils.exception(
+                utils.exception(
                     'The parameter "'
                     + param
                     + '" must be of '
@@ -475,7 +475,7 @@ def make_type_dict(dictionary):
 
         # The value ha san unacceptable type. Throw an error.
         if key not in type_dict:
-            Utils.exception(
+            utils.exception(
                 "ERROR: There appears to be an error in your parameter "
                 + "JSON file. No value can have type "
                 + str(type(val))
@@ -497,7 +497,7 @@ def finalize_params(params):
 
     # Throw an error if there's a missing parameter.
     if params["source"] == "":
-        Utils.exception(
+        utils.exception(
             'Missing parameter "source". You need to specify '
             + "the source of the input molecules (probably a SMI or SDF "
             + "file)."
@@ -514,20 +514,20 @@ def finalize_params(params):
     try:
         params["source"] = os.path.abspath(params["source"])
     except Exception:
-        Utils.exception("Source file doesn't exist.")
+        utils.exception("Source file doesn't exist.")
     source_dir = params["source"].strip(os.path.basename(params["source"]))
 
     if params["output_folder"] == "" and params["source"] != "":
         params["output_folder"] = f"{source_dir}output{str(os.sep)}"
 
     if params["add_pdb_output"] == True and params["output_folder"] == "":
-        Utils.exception("To output files as .pdbs, specify the output_folder.")
+        utils.exception("To output files as .pdbs, specify the output_folder.")
 
     if params["separate_output_files"] == True and params["output_folder"] == "":
-        Utils.exception("For separate_output_files, specify the output_folder.")
+        utils.exception("For separate_output_files, specify the output_folder.")
 
     # if not os.path.exists(params["output_folder"]) or not os.path.isdir(params["output_folder"]):
-    #     Utils.exception(
+    #     utils.exception(
     #         "The specified \"output_folder\", " + params["output_folder"] +
     #         ", either does not exist or is a file rather than a folder. " +
     #         "Please provide the path to an existing folder instead."
@@ -573,9 +573,9 @@ def deal_with_failed_molecules(contnrs, params):
     ]
     # Let the user know if there's more than one failed molecule.
     if failed_ones:
-        Utils.log("\n3D models could not be generated for the following entries:")
-        Utils.log("\n".join(failed_ones))
-        Utils.log("\n")
+        utils.log("\n3D models could not be generated for the following entries:")
+        utils.log("\n".join(failed_ones))
+        utils.log("\n")
 
         # Write the failures to an smi file.
         with open(

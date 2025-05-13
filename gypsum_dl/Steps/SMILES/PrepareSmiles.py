@@ -5,7 +5,7 @@ tautomeric, chiral forms, etc.
 
 import __future__
 
-from gypsum_dl import Utils
+from gypsum_dl import utils
 from gypsum_dl.Steps.SMILES.AddHydrogens import add_hydrogens
 from gypsum_dl.Steps.SMILES.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum_dl.Steps.SMILES.DurrantLabFilter import (
@@ -41,9 +41,9 @@ def prepare_smiles(contnrs, params):
 
     # Desalt the molecules. Note that the program always desalts (can't turn it
     # off).
-    # Utils.log("Begin Desaltings")
+    # utils.log("Begin Desaltings")
     desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj)
-    # Utils.log("Done with Desalting")
+    # utils.log("Done with Desalting")
 
     # Filter the containers to remove ones that have bad substrings (metal,
     # etc.) in the desalted smiles, assuming durrant lab filter turned on. Note
@@ -54,11 +54,11 @@ def prepare_smiles(contnrs, params):
         ]
 
     if debug:
-        Utils.print_current_smiles(contnrs)
+        utils.print_current_smiles(contnrs)
 
     # Add hydrogens for user-specified pH, if requested.
     if not params["skip_adding_hydrogen"]:
-        # Utils.log("Ionizing Molecules")
+        # utils.log("Ionizing Molecules")
         add_hydrogens(
             contnrs,
             min_ph,
@@ -70,17 +70,17 @@ def prepare_smiles(contnrs, params):
             job_manager,
             parallelizer_obj,
         )
-        # Utils.log("Done with Ionization")
+        # utils.log("Done with Ionization")
     else:
-        Utils.log("Skipping ionization")
+        utils.log("Skipping ionization")
         wrap_molecules(contnrs)
 
     if debug:
-        Utils.print_current_smiles(contnrs)
+        utils.print_current_smiles(contnrs)
 
     # Make alternate tautomeric forms, if requested.
     if not params["skip_making_tautomers"]:
-        # Utils.log("Tautomerizing Molecules")
+        # utils.log("Tautomerizing Molecules")
         make_tauts(
             contnrs,
             max_variants_per_compound,
@@ -90,27 +90,27 @@ def prepare_smiles(contnrs, params):
             let_tautomers_change_chirality,
             parallelizer_obj,
         )
-        # Utils.log("Done with Tautomerization")
+        # utils.log("Done with Tautomerization")
     else:
-        Utils.log("Skipping tautomerization")
+        utils.log("Skipping tautomerization")
 
     if debug:
-        Utils.print_current_smiles(contnrs)
+        utils.print_current_smiles(contnrs)
 
     # Apply Durrant-lab filters if requested
     if params["use_durrant_lab_filters"]:
-        # Utils.log("Applying Durrant-Lab Filters")
+        # utils.log("Applying Durrant-Lab Filters")
         durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj)
-        # Utils.log("Done Applying Durrant-Lab Filters")
+        # utils.log("Done Applying Durrant-Lab Filters")
     else:
-        Utils.log("Not applying Durrant-lab filters")
+        utils.log("Not applying Durrant-lab filters")
 
     if debug:
-        Utils.print_current_smiles(contnrs)
+        utils.print_current_smiles(contnrs)
 
     # Make alternate chiral forms, if requested.
     if not params["skip_enumerate_chiral_mol"]:
-        # Utils.log("Enumerating Chirality")
+        # utils.log("Enumerating Chirality")
         enumerate_chiral_molecules(
             contnrs,
             max_variants_per_compound,
@@ -119,16 +119,16 @@ def prepare_smiles(contnrs, params):
             job_manager,
             parallelizer_obj,
         )
-        # Utils.log("Done with Chirality Enumeration")
+        # utils.log("Done with Chirality Enumeration")
     else:
-        Utils.log("Skipping chirality enumeration")
+        utils.log("Skipping chirality enumeration")
 
     if debug:
-        Utils.print_current_smiles(contnrs)
+        utils.print_current_smiles(contnrs)
 
     # Make alternate double-bond isomers, if requested.
     if not params["skip_enumerate_double_bonds"]:
-        # Utils.log("Enumerating Double Bonds")
+        # utils.log("Enumerating Double Bonds")
         enumerate_double_bonds(
             contnrs,
             max_variants_per_compound,
@@ -137,12 +137,12 @@ def prepare_smiles(contnrs, params):
             job_manager,
             parallelizer_obj,
         )
-        # Utils.log("Done with Double Bond Enumeration")
+        # utils.log("Done with Double Bond Enumeration")
     else:
-        Utils.log("Skipping double bond enumeration")
+        utils.log("Skipping double bond enumeration")
 
     if debug:
-        Utils.print_current_smiles(contnrs)
+        utils.print_current_smiles(contnrs)
 
 
 def wrap_molecules(contnrs):

@@ -7,8 +7,8 @@ import __future__
 
 import copy
 
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.utils as Utils
+from gypsum_dl import chem_utils
+from gypsum_dl import utils
 from gypsum_dl.MyMol import MyConformer
 
 
@@ -54,7 +54,7 @@ def minimize_3d(
     """
 
     # Let the user know you're on this step.
-    Utils.log("Minimizing all 3D molecular structures...")
+    utils.log("Minimizing all 3D molecular structures...")
 
     # Create the parameters (inputs) for the parallelizer.
     params = []

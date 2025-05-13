@@ -1,8 +1,8 @@
 import argparse
 import copy
 
-from . import utils as Utils
-from .start import prepare_molecules
+from gypsum_dl import utils
+from gypsum_dl.start import prepare_molecules
 from .Test.Tester import run_test
 
 
@@ -288,6 +288,6 @@ def main():
             if v is None:
                 del INPUTS[k]
         prepare_molecules(INPUTS)
-        Utils.log("Finished Gypsum-DL")
+        utils.log("Finished Gypsum-DL")
     else:
         pass

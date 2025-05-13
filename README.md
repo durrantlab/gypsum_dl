@@ -1,4 +1,25 @@
-# Gypsum-DL 1.2.1
+<h1 align="center">Gypsum-DL</h1>
+
+<h4 align="center">Open-source tool to generate 3D-ready small molecules for virtual screening</h4>
+
+<p align="center">
+    <a href="https://github.com/durrantlab/gypsum_dl/actions/workflows/tests.yml">
+        <img src="https://github.com/durrantlab/gypsum_dl/actions/workflows/tests.yml/badge.svg" alt="Build Status ">
+    </a>
+    <!-- <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/vaxstats"> -->
+    <a href="https://codecov.io/gh/durrantlab/gypsum_dl">
+        <img src="https://codecov.io/gh/durrantlab/gypsum_dl/branch/main/graph/badge.svg" alt="codecov">
+    </a>
+    <!-- <a href="https://github.com/durrantlab/gypsum_dl/releases">
+        <img src="https://img.shields.io/github/v/release/durrantlab/gypsum_dl" alt="GitHub release (latest by date)">
+    </a> -->
+    <a href="https://github.com/durrantlab/gypsum_dl/blob/main/LICENSE.md" target="_blank">
+        <img src="https://img.shields.io/github/license/durrantlab/gypsum_dl" alt="License">
+    </a>
+    <a href="https://github.com/durrantlab/gypsum_dl/" target="_blank">
+        <img src="https://img.shields.io/github/repo-size/durrantlab/gypsum_dl" alt="GitHub repo size">
+    </a>
+</p>
 
 Gypsum-DL is a free, open-source program for preparing 3D small-molecule
 models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for

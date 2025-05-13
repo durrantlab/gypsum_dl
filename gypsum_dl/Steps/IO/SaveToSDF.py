@@ -7,12 +7,12 @@ import __future__
 
 import os
 
-import gypsum_dl.utils as Utils
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def save_to_sdf(contnrs, params, separate_output_files, output_folder):
@@ -46,19 +46,19 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
         w.close()
 
     # Also save the file or files containing the output molecules.
-    Utils.log("Saving molecules associated with...")
+    utils.log("Saving molecules associated with...")
     for i, contnr in enumerate(contnrs):
         # Add the container properties to the rdkit_mol object so they get
         # written to the SDF file.
         contnr.add_container_properties()
 
         # Let the user know which molecule you're on.
-        Utils.log("\t" + contnr.orig_smi)
+        utils.log("\t" + contnr.orig_smi)
 
         # Save the file(s).
         if separate_output_files == True:
             # sdf_file = "{}{}__{}.pdb".format(output_folder + os.sep, slug(name), conformer_counter)
-            sdf_file = f"{output_folder + os.sep}{Utils.slug(contnr.name)}__input{contnr.contnr_idx_orig + 1}.sdf"
+            sdf_file = f"{output_folder + os.sep}{utils.slug(contnr.name)}__input{contnr.contnr_idx_orig + 1}.sdf"
             w = Chem.SDWriter(sdf_file)
             # w = Chem.SDWriter(output_folder + os.sep + "output." + str(i + 1) + ".sdf")
 

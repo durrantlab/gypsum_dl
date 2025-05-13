@@ -12,7 +12,7 @@ from os.path import basename
 import rdkit
 import rdkit.Chem as Chem
 
-from gypsum_dl import Utils
+from gypsum_dl import utils
 
 # Disable the unnecessary RDKit warnings
 rdkit.RDLogger.DisableLog("rdApp.*")
@@ -40,7 +40,7 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
 
         # Got through the variants.
         for i, m in enumerate(mols):
-            pdb_file = f"{output_folder + os.sep}{Utils.slug(name)}__input{contnr.contnr_idx_orig + 1}__variant{i + 1}.pdb"
+            pdb_file = f"{output_folder + os.sep}{utils.slug(name)}__input{contnr.contnr_idx_orig + 1}__variant{i + 1}.pdb"
 
             # Get the conformers into the rdkit_mol object.
             m.load_conformers_into_rdkit_mol()

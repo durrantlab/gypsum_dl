@@ -6,14 +6,14 @@ filters.
 
 import __future__
 
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.utils as Utils
+from gypsum_dl import chem_utils
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 # Get the substructures you won't permit (per substructure matching, not
 # substring matching)
@@ -89,7 +89,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    Utils.log("Applying Durrant-lab filters to all molecules...")
+    utils.log("Applying Durrant-lab filters to all molecules...")
 
     prohibited_substructs = [
         Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc
@@ -130,7 +130,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # Using this function just to make the changes. Doesn't do energy
     # minimization or anything (as it does later) because max variants
     # and thoroughness maxed out.
-    ChemUtils.bst_for_each_contnr_no_opt(
+    chem_utils.bst_for_each_contnr_no_opt(
         contnrs, mols, 1000, 1000  # max_variants_per_compound, thoroughness
     )
 
@@ -154,7 +154,7 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
             if durrant_lab_contains_bad_substr(
                 m.orig_smi_deslt
             ) or m.rdkit_mol.HasSubstructMatch(pattrn):
-                Utils.log(
+                utils.log(
                     "\t"
                     + m.smiles(True)
                     + ", a variant generated "

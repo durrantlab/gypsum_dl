@@ -8,15 +8,15 @@ MolContainer.MolContainer > MyMol.MyMol > MyMol.MyConformers
 """
 
 
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.MyMol as MyMol
+from gypsum_dl import chem_utils
+from gypsum_dl import MyMol
 
-from . import utils as Utils
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 class MolContainer:
@@ -225,27 +225,27 @@ class MolContainer:
         #     ) for m in self.mols]
 
         # if len(set(wrong_cannonical_smiles)) != len(set(right_cannonical_smiles)):
-        #     Utils.log("ERROR!")
-        #     Utils.log("Stored smiles string in this container:")
-        #     Utils.log("\n".join(all_can_noh_smiles))
-        #     Utils.log("")
-        #     Utils.log("""Supposedly cannonical smiles strings generated from stored
+        #     utils.log("ERROR!")
+        #     utils.log("Stored smiles string in this container:")
+        #     utils.log("\n".join(all_can_noh_smiles))
+        #     utils.log("")
+        #     utils.log("""Supposedly cannonical smiles strings generated from stored
         #         RDKit Mols in this container:""")
-        #     Utils.log("\n".join(wrong_cannonical_smiles))
-        #     Utils.log("""But if you plop these into chemdraw, you'll see some of them
+        #     utils.log("\n".join(wrong_cannonical_smiles))
+        #     utils.log("""But if you plop these into chemdraw, you'll see some of them
         #         represent identical structures.""")
-        #     Utils.log("")
-        #     Utils.log("""Cannonical smiles strings generated from RDKit mols that
+        #     utils.log("")
+        #     utils.log("""Cannonical smiles strings generated from RDKit mols that
         #         were generated from the stored smiles string in this container:""")
-        #     Utils.log("\n".join(right_cannonical_smiles))
-        #     Utils.log("""Now you see the identical molecules. But why didn't the previous
+        #     utils.log("\n".join(right_cannonical_smiles))
+        #     utils.log("""Now you see the identical molecules. But why didn't the previous
         #         method catch them?""")
-        #     Utils.log("")
+        #     utils.log("")
 
-        #     Utils.log("""Note that the third method identifies duplicates that the second
+        #     utils.log("""Note that the third method identifies duplicates that the second
         #         method doesn't.""")
-        #     Utils.log("")
-        #     Utils.log("=" * 20)
+        #     utils.log("")
+        #     utils.log("=" * 20)
 
         # # You need to make new molecules to get it to work.
         # new_smiles = [m.smiles() for m in self.mols]
@@ -264,7 +264,7 @@ class MolContainer:
         # while None in self.mols:
         #     self.mols.remove(None)
 
-        self.mols = ChemUtils.uniq_mols_in_list(self.mols)
+        self.mols = chem_utils.uniq_mols_in_list(self.mols)
 
     def update_idx(self, new_idx):
         """Updates the index of this container.
@@ -274,6 +274,6 @@ class MolContainer:
         """
 
         if type(new_idx) != int:
-            Utils.exception("New idx value must be an int.")
+            utils.exception("New idx value must be an int.")
         self.contnr_idx = new_idx
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx

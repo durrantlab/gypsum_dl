@@ -5,11 +5,11 @@ molecules.
 
 from rdkit import Chem
 
-import gypsum_dl.ChemUtils as ChemUtils
+from gypsum_dl import chem_utils
 import gypsum_dl.MolContainer as MolCont
-import gypsum_dl.MyMol as MyMol
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.utils as Utils
+from gypsum_dl import MyMol
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import utils
 from gypsum_dl.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
 
 
@@ -55,7 +55,7 @@ def add_hydrogens(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    Utils.log("Ionizing all molecules...")
+    utils.log("Ionizing all molecules...")
 
     # Make a simple directory with the ionization parameters.
     protonation_settings = {
@@ -82,12 +82,12 @@ def add_hydrogens(
 
     # Dimorphite-DL might not have generated ionization states for some
     # molecules. Identify those that are missing.
-    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, results)
+    contnr_idxs_of_failed = utils.fnd_contnrs_not_represntd(contnrs, results)
 
     # For those molecules, just use the original SMILES string, with hydrogen
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
-        Utils.log(
+        utils.log(
             "\tWARNING: Gypsum-DL produced no valid ionization states for "
             + contnrs[miss_indx].orig_smi
             + " ("
@@ -112,7 +112,7 @@ def add_hydrogens(
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(
+    chem_utils.bst_for_each_contnr_no_opt(
         contnrs, results, max_variants_per_compound, thoroughness
     )
 
@@ -131,11 +131,11 @@ def parallel_add_H(contnr, protonation_settings):
 
     # Make sure the canonical SMILES is actually a string.
     if type(contnr.orig_smi_canonical) != str:
-        Utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
-        Utils.log(
+        utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        utils.log(
             f"type container.orig_smi_canonical: {str(type(contnr.orig_smi_canonical))}"
         )
-        Utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
 
     # Add the SMILES string to the protonation parameters.
     protonation_settings["smiles"] = contnr.orig_smi_canonical

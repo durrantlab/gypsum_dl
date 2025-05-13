@@ -7,13 +7,13 @@ import glob
 import os
 import shutil
 
-from gypsum_dl import Utils
-from gypsum_dl.Start import prepare_molecules
+from gypsum_dl import utils
+from gypsum_dl.start import prepare_molecules
 
 
-def run_test():
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    output_folder = script_dir + os.sep + "gypsum_dl_test_output" + os.sep
+def test_samples(test_dir):
+    path_smiles = os.path.join(test_dir, "files/sample/sample_molecules.smi")
+    output_folder = os.path.join(test_dir, "tmp/sample")
 
     # Delete test output directory if it exists.
     if os.path.exists(output_folder):
@@ -24,7 +24,7 @@ def run_test():
 
     # Make the Gypsum-DL parameters.
     params = {
-        "source": script_dir + os.sep + "sample_molecules.smi",
+        "source": path_smiles,
         "separate_output_files": True,
         "job_manager": "serial",  # multiprocessing
         "output_folder": output_folder,
@@ -39,19 +39,19 @@ def run_test():
 
     # Prepare the molecules.
     prepare_molecules(params)
-    Utils.log("")
-    Utils.log("TEST RESULTS")
-    Utils.log("============")
+    utils.log("")
+    utils.log("TEST RESULTS")
+    utils.log("============")
 
     # Get the output sdf files.
-    sdf_files = glob.glob(f"{output_folder}*")
+    sdf_files = glob.glob(f"{output_folder}/*")
 
     # There should be seven sdf files.
     msg = f"Expected 15 output files, got {len(sdf_files)}."
     if len(sdf_files) != 15:
-        Utils.exception(f"FAILED. {msg}")
+        utils.exception(f"FAILED. {msg}")
     else:
-        Utils.log(f"PASSED. {msg}")
+        utils.log(f"PASSED. {msg}")
 
     # Get all the smiles from the files.
     all_smiles = set([])
@@ -143,9 +143,9 @@ def run_test():
     # msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
     #     str(len(all_smiles)) + "."
     # if len(all_smiles) != len(target_smiles):
-    #     Utils.exception("FAILED. " + msg)
+    #     utils.exception("FAILED. " + msg)
     # else:
-    #     Utils.log("PASSED. " + msg)
+    #     utils.log("PASSED. " + msg)
 
     # Python3 gives some smiles that are different than thsoe obtain with
     # Python2. But they are just different representations of the same thing.
@@ -186,15 +186,15 @@ def run_test():
 
         pdb.set_trace()
 
-        Utils.exception(
+        utils.exception(
             "FAILED. "
             + "Got some SMILES I didn't expect (either in output or target list): "
             + " ".join(list(all_smiles ^ target_smiles))
         )
     else:
-        Utils.log("PASSED. Gypsum-DL output the very SMILES strings I was expecting.")
+        utils.log("PASSED. Gypsum-DL output the very SMILES strings I was expecting.")
 
-    Utils.log("")
+    utils.log("")
 
     # Delete test output directory if it exists.
     if os.path.exists(output_folder):

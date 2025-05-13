@@ -1,12 +1,12 @@
 """The module includes definitions to manipulate the molecules."""
 
 
-from . import utils as Utils
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
 except ImportError:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
@@ -39,7 +39,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
 
     # First, generate 3D structures. How many? num * thoroughness. mols_3d is
     # a list of Gypsum-DL MyMol.MyMol objects.
-    mols_3d = Utils.random_sample(mol_lst, num * thoroughness, "")
+    mols_3d = utils.random_sample(mol_lst, num * thoroughness, "")
 
     # Now get the energies
     data = []
@@ -82,7 +82,7 @@ def remove_highly_charged_molecules(mol_lst):
         if abs(charge - charge_closest_to_neutral) <= 4:
             new_mol_lst.append(mol_lst[i])
         else:
-            Utils.log(
+            utils.log(
                 "\tWARNING: Discarding highly charged form: "
                 + mol_lst[i].smiles()
                 + "."
@@ -129,7 +129,7 @@ def bst_for_each_contnr_no_opt(
         mol_cont.remove_identical_mols_from_contnr()
 
     # Group the smiles by contnr_idx.
-    data = Utils.group_mols_by_container_index(mol_lst)
+    data = utils.group_mols_by_container_index(mol_lst)
 
     # Go through each container.
     for contnr_idx, contnr in enumerate(contnrs):
@@ -166,7 +166,7 @@ def bst_for_each_contnr_no_opt(
         if none_generated:
             if crry_ovr_frm_lst_step_if_no_fnd:
                 # Just use previous ones.
-                Utils.log(
+                utils.log(
                     "\tWARNING: Unable to find low-energy conformations: "
                     + contnr.orig_smi_deslt
                     + " ("
@@ -176,7 +176,7 @@ def bst_for_each_contnr_no_opt(
                 )
             else:
                 # Discard the conformation.
-                Utils.log(
+                utils.log(
                     "\tWARNING: Unable to find low-energy conformations: "
                     + contnr.orig_smi_deslt
                     + " ("

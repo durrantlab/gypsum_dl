@@ -5,21 +5,21 @@ import __future__
 
 import random
 
-import gypsum_dl.ChemUtils as ChemUtils
+from gypsum_dl import chem_utils
 import gypsum_dl.MolObjectHandling as MOH
-import gypsum_dl.MyMol as MyMol
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.utils as Utils
+from gypsum_dl import MyMol
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 try:
-    from gypsum_dl.molvs import tautomer
+    from molvs import tautomer
 except Exception:
-    Utils.exception("You need to install molvs and its dependencies.")
+    utils.exception("You need to install molvs and its dependencies.")
 
 
 def make_tauts(
@@ -66,7 +66,7 @@ def make_tauts(
     if max_variants_per_compound == 0:
         return
 
-    Utils.log("Generating tautomers for all molecules...")
+    utils.log("Generating tautomers for all molecules...")
 
     # Create the parameters to feed into the parallelizer object.
     params = []
@@ -104,7 +104,7 @@ def make_tauts(
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(
+    chem_utils.bst_for_each_contnr_no_opt(
         contnrs, taut_data, max_variants_per_compound, thoroughness
     )
 
@@ -139,7 +139,7 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
 
     # Make sure it's not None.
     if m is None:
-        Utils.log(
+        utils.log(
             "\tCould not generate tautomers for "
             + contnr.orig_smi
             + ". I'm deleting it."
@@ -168,7 +168,7 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
 
     # If there's more than one, let the user know that.
     if len(tauts_mols) > 1:
-        Utils.log("\t" + mol.smiles(True) + " has tautomers.")
+        utils.log("\t" + mol.smiles(True) + " has tautomers.")
 
     # Now collect the final results.
     results = []
@@ -337,7 +337,7 @@ def parallel_check_nonarom_rings(taut, contnr):
         # good ones.
         return taut
     else:
-        Utils.log(
+        utils.log(
             "\t"
             + taut.smiles(True)
             + ", a tautomer generated "
@@ -376,7 +376,7 @@ def parallel_check_chiral_centers(taut, contnr):
         # one.
         return taut
     else:
-        Utils.log(
+        utils.log(
             "\t"
             + contnr.orig_smi
             + " ==> "
@@ -415,7 +415,7 @@ def parallel_check_carbon_hydrogens(taut, contnr):
     if orig_carbon_hydrogen_count == this_carbon_hydrogen_count:
         return taut
     else:
-        Utils.log(
+        utils.log(
             "\t"
             + contnr.orig_smi
             + " ==> "

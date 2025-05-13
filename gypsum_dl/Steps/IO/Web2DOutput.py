@@ -7,15 +7,15 @@ debugging.
 # import webbrowser
 import os
 
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.utils as Utils
+from gypsum_dl import chem_utils
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
     from rdkit.Chem import rdDepictor
     from rdkit.Chem.Draw import PrepareMolForDrawing, rdMolDraw2D
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def web_2d_output(contnrs, output_folder):
@@ -23,13 +23,13 @@ def web_2d_output(contnrs, output_folder):
     a browser. Then opens a browser automatically to view them. This is mostly
     for debugging."""
 
-    Utils.log("Saving html image of molecules associated with...")
+    utils.log("Saving html image of molecules associated with...")
 
     # Let's not parallelize it for now. This will rarely be used.
     html_file = output_folder + os.sep + "gypsum_dl_success.html"
     with open(html_file, "w") as f:
         for contnr in contnrs:
-            Utils.log("\t" + contnr.orig_smi)
+            utils.log("\t" + contnr.orig_smi)
             for mol in contnr.mols:
                 # See
                 # http://rdkit.org/docs/source/rdkit.Chem.rdmolops.html#rdkit.Chem.rdmolops.RemoveHs

@@ -18,7 +18,7 @@ from rdkit import RDLogger
 
 import gypsum_dl.MolObjectHandling as MOH
 
-from . import utils as Utils
+from gypsum_dl import utils
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -28,12 +28,12 @@ try:
     from rdkit.Chem import AllChem
     from rdkit.Chem.rdchem import BondStereo
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 try:
-    from gypsum_dl.molvs import standardize_smiles as ssmiles
+    from molvs import standardize_smiles as ssmiles
 except Exception:
-    Utils.exception("You need to install molvs and its dependencies.")
+    utils.exception("You need to install molvs and its dependencies.")
 
 
 class MyMol:
@@ -77,7 +77,7 @@ class MyMol:
                 # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
                 self.can_smi = False
                 id_to_print = name if name != "" else str(starter)
-                Utils.log(
+                utils.log(
                     "\tERROR: Could not generate one of the structures "
                     + "for ("
                     + id_to_print
@@ -118,7 +118,7 @@ class MyMol:
         try:
             self.stdrd_smiles = ssmiles(self.smiles())
         except Exception:
-            Utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
+            utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
             self.stdrd_smiles = self.smiles()
 
         return self.stdrd_smiles
@@ -282,7 +282,7 @@ class MyMol:
                     self.rdkit_mol, isomericSmiles=True, canonical=True
                 )
             except Exception:
-                Utils.log(
+                utils.log(
                     f"Warning: Couldn't put {self.orig_smi} ({self.name}) in canonical form. Got this error: {str(sys.exc_info()[0])}. This molecule will be discarded."
                 )
                 self.can_smi = None
@@ -446,7 +446,7 @@ class MyMol:
             # First just match strings... could be faster, but not 100%
             # accurate.
             if s in self.orig_smi or s in self.orig_smi_deslt or s in self.can_smi:
-                Utils.log("\tDetected unusual substructure: " + s)
+                utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -454,9 +454,9 @@ class MyMol:
         for s in prohibited_substructures:
             pattrn = Chem.MolFromSmarts(s)
             if self.rdkit_mol.HasSubstructMatch(pattrn):
-                # Utils.log("\tRemoving a molecule because it has an odd
+                # utils.log("\tRemoving a molecule because it has an odd
                 # substructure: " + s)
-                Utils.log("\tDetected unusual substructure: " + s)
+                utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -744,7 +744,7 @@ class MyConformer:
                 ff = AllChem.UFFGetMoleculeForceField(self.mol)
                 self.energy = ff.CalcEnergy()
             except Exception:
-                Utils.log(
+                utils.log(
                     "Warning: Could not calculate energy for molecule "
                     + Chem.MolToSmiles(self.mol)
                 )
@@ -787,7 +787,7 @@ class MyConformer:
             ff.Minimize()
             self.energy = ff.CalcEnergy()
         except Exception:
-            Utils.log(
+            utils.log(
                 "Warning: Could not calculate energy for molecule "
                 + Chem.MolToSmiles(self.mol)
             )
@@ -826,7 +826,7 @@ class MyConformer:
         mol_copy = copy.deepcopy(self.mol_copy)  # Use it as a template.
         mol_copy.RemoveAllConformers()
         mol_copy.AddConformer(self.conformer)
-        Utils.log(Chem.MolToMolBlock(mol_copy)[:500])
+        utils.log(Chem.MolToMolBlock(mol_copy)[:500])
 
     def rmsd_to_me(self, other_conf):
         """Calculate the rms distance between this conformer and another one.
