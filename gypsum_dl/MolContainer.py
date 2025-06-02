@@ -7,16 +7,7 @@ MyMol.MyMol. So, just to clarify:
 MolContainer.MolContainer > MyMol.MyMol > MyMol.MyConformers
 """
 
-
-from gypsum_dl import chem_utils
-from gypsum_dl import MyMol
-
-from gypsum_dl import utils
-
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+from gypsum_dl import MyMol, chem_utils, utils
 
 
 class MolContainer:

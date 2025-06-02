@@ -1,6 +1,5 @@
 """Module for enumerating unspecified double bonds (cis vs. trans)."""
 
-
 import __future__
 
 import copy
@@ -8,10 +7,8 @@ import itertools
 import math
 import random
 
-from gypsum_dl import chem_utils
-from gypsum_dl import MyMol
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import utils
+from gypsum_dl import MyMol, chem_utils, utils
 
 try:
     from rdkit import Chem

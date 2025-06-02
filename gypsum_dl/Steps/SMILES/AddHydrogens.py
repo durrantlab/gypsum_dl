@@ -3,14 +3,11 @@ This module identifies and enumerates the possible protonation sites of
 molecules.
 """
 
+from dimorphite_dl import protonate_smiles
 from rdkit import Chem
 
-from gypsum_dl import chem_utils
-import gypsum_dl.MolContainer as MolCont
-from gypsum_dl import MyMol
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import utils
-from gypsum_dl.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
+from gypsum_dl import MyMol, chem_utils, utils
 
 
 def add_hydrogens(
@@ -141,7 +138,7 @@ def parallel_add_H(contnr, protonation_settings):
     protonation_settings["smiles"] = contnr.orig_smi_canonical
 
     # Protonate the SMILESstring. This is Dimorphite-DL.
-    smis = Protonate(protonation_settings)
+    smis = protonate_smiles(protonation_settings)
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
     # objects.

@@ -3,46 +3,9 @@ import copy
 
 from gypsum_dl import utils
 from gypsum_dl.start import prepare_molecules
-from .Test.Tester import run_test
-
-
-def print_gypsum_citation():
-    """
-    Print out the citation for the Gypsum-DL paper.
-    Because this is before the Parallelizer is initiallized it requires
-    limiting the print statement to the cpu ranked=0.
-    Without this check, in MPI mode it would print once per available cpu.
-    """
-
-    import sys
-
-    # And always report citation information.
-    citation_print = (
-        "\nIf you use Gypsum-DL in your research, please cite:\n\n"
-        + "Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,\n"
-    )
-    citation_print += "Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D. Durrant.\n"
-    citation_print += "(2019) Gypsum-DL: An Open-source Program for Preparing Small-molecule Libraries for \n"
-    citation_print += (
-        "Structure-based Virtual Screening. Journal of Cheminformatics 11:1. "
-    )
-    citation_print += "\ndoi:10.1186/s13321-019-0358-3.\n"
-
-    try:
-        from mpi4py import MPI
-
-        comm = MPI.COMM_WORLD
-        rank = comm.rank
-        if rank == 0:
-            print(citation_print)
-    except Exception:
-        print(citation_print)
 
 
 def main():
-    # print out the citation of Gypsum-DL paper.
-    print_gypsum_citation()
-
     PARSER = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
@@ -279,15 +242,10 @@ def main():
     )
 
     ARGS_DICT = vars(PARSER.parse_args())
-    if ARGS_DICT["test"] == True:
-        run_test()
-    elif ARGS_DICT["cache_prerun"] == False:
-        INPUTS = copy.deepcopy(ARGS_DICT)
+    INPUTS = copy.deepcopy(ARGS_DICT)
 
-        for k, v in ARGS_DICT.items():
-            if v is None:
-                del INPUTS[k]
-        prepare_molecules(INPUTS)
-        utils.log("Finished Gypsum-DL")
-    else:
-        pass
+    for k, v in ARGS_DICT.items():
+        if v is None:
+            del INPUTS[k]
+    prepare_molecules(INPUTS)
+    utils.log("Finished Gypsum-DL")

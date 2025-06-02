@@ -3,9 +3,7 @@ A module to so the 2D to 3D conversion, though the actual code for that
 conversion is in MyMol.MyMol.make_first_3d_conf_no_min()
 """
 
-
-from gypsum_dl import chem_utils
-from gypsum_dl import utils
+from gypsum_dl import chem_utils, utils
 
 from ... import parallelizer as Parallelizer
 

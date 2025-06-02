@@ -9,26 +9,11 @@ import sys
 from collections import OrderedDict
 from datetime import datetime
 
+from rdkit import Chem
+
 from gypsum_dl import utils
-from gypsum_dl.parallelizer import Parallelizer
-
-try:
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-except:
-    utils.exception("You need to install rdkit and its dependencies.")
-
-try:
-    import numpy
-except:
-    utils.exception("You need to install numpy and its dependencies.")
-
-try:
-    from scipy.cluster.vq import kmeans2
-except:
-    utils.exception("You need to install scipy and its dependencies.")
-
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.parallelizer import Parallelizer
 from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file, load_smiles_file
 from gypsum_dl.Steps.IO.ProcessOutput import proccess_output
 from gypsum_dl.Steps.SMILES.PrepareSmiles import prepare_smiles
@@ -384,20 +369,10 @@ def set_parameters(params_unicode):
     # Because Python2 & Python3 use different string objects, we separate their
     # usecases here.
     params = {}
-    if sys.version_info < (3,):
-        # For Python2
-        for param in params_unicode:
-            val = params_unicode[param]
-            if isinstance(val, unicode):
-                val = str(val).encode("utf8")
-            key = param.lower().encode("utf8")
-            params[key] = val
-    else:
-        # For Python3
-        for param in params_unicode:
-            val = params_unicode[param]
-            key = param.lower()
-            params[key] = val
+    for param in params_unicode:
+        val = params_unicode[param]
+        key = param.lower()
+        params[key] = val
 
     # Overwrites values with the user parameters where they exit.
     merge_parameters(default, params)

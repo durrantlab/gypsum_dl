@@ -2,7 +2,7 @@
 .DS_Store
 
 .vscode
-
+**/_version.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

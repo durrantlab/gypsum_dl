@@ -4,15 +4,13 @@ since most modern docking programs (e.g., Vina) can't consider alternate ring
 conformations.
 """
 
-
 import __future__
 
 import copy
 import warnings
 
-from gypsum_dl import chem_utils
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import utils
+from gypsum_dl import chem_utils, utils
 from gypsum_dl.MyMol import MyConformer
 
 try:

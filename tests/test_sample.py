@@ -164,27 +164,28 @@ def test_samples(test_dir):
         for s in all_smiles
     }
     all_smiles = {
-        r"CC(=O)NNC(C)=O"
-        if s
-        in [
-            r"CC(=O)[N-]/N=C(\C)O",
-            r"C/C(O)=N/N=C(\C)O",
-            r"CC(=O)N/N=C(\C)O",
-            r"CC(=O)[N-]/N=C(/C)O",
-            r"CC(=O)[N-]NC(C)=O",
-            r"CC(=O)N/N=C(/C)O",
-        ]
-        # Different one that turns up sometimes
-        else s
+        (
+            r"CC(=O)NNC(C)=O"
+            if s
+            in [
+                r"CC(=O)[N-]/N=C(\C)O",
+                r"C/C(O)=N/N=C(\C)O",
+                r"CC(=O)N/N=C(\C)O",
+                r"CC(=O)[N-]/N=C(/C)O",
+                r"CC(=O)[N-]NC(C)=O",
+                r"CC(=O)N/N=C(/C)O",
+            ]
+            # Different one that turns up sometimes
+            else s
+        )
         for s in all_smiles
     }
+
+    assert len(all_smiles) == len(target_smiles)
 
     if len(all_smiles ^ target_smiles) > 0:
         print(all_smiles)
         print(target_smiles)
-        import pdb
-
-        pdb.set_trace()
 
         utils.exception(
             "FAILED. "

@@ -1,12 +1,8 @@
 """The module includes definitions to manipulate the molecules."""
 
+from rdkit import Chem
 
 from gypsum_dl import utils
-
-try:
-    from rdkit import Chem
-except ImportError:
-    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):

@@ -4,11 +4,11 @@ channels = ["conda-forge"]
 description = "Open-source tool to generate 3D-ready small molecules for virtual screening"
 name = "gypsum_dl"
 platforms = ["linux-64", "osx-64", "win-64", "osx-arm64"]
-version = "1.2.1"
 
 [pypi-dependencies]
 gypsum_dl = { path = ".", editable = true }
 molvs = ">=0.1.1, <0.2"
+dimorphite-dl = { git = "https://github.com/durrantlab/dimorphite_dl.git", branch = "main"}
 
 [tasks]
 
@@ -75,6 +75,7 @@ publish = { cmd = ["twine", "upload", "dist/*"] }
 
 [feature.dev.pypi-dependencies]
 build = ">=1.2.2.post1,<2"
+setuptools-scm = ">=8.0.0"
 
 [feature.docs.dependencies]
 mkdocs = ">=1.6.1,<2"

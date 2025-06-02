@@ -2,17 +2,14 @@
 A module for generating alternate chiralities.
 """
 
-
 import __future__
 
 import copy
 import itertools
 import random
 
-from gypsum_dl import chem_utils
-from gypsum_dl import MyMol
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import utils
+from gypsum_dl import MyMol, chem_utils, utils
 
 try:
     from rdkit import Chem

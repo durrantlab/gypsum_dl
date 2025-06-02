@@ -3,12 +3,10 @@ Saves the output to an HTML file (2D images only). This is mostly for
 debugging.
 """
 
-
 # import webbrowser
 import os
 
-from gypsum_dl import chem_utils
-from gypsum_dl import utils
+from gypsum_dl import chem_utils, utils
 
 try:
     from rdkit import Chem

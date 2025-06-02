@@ -2,7 +2,6 @@
 Saves output files to SDF.
 """
 
-
 import __future__
 
 import os

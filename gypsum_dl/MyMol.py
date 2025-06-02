@@ -13,27 +13,17 @@ import copy
 import operator
 import sys
 
+from molvs import standardize_smiles as ssmiles
+
 # Disable the unnecessary RDKit warnings
-from rdkit import RDLogger
+from rdkit import Chem, RDLogger
+from rdkit.Chem import AllChem
+from rdkit.Chem.rdchem import BondStereo
 
 import gypsum_dl.MolObjectHandling as MOH
-
 from gypsum_dl import utils
 
 RDLogger.DisableLog("rdApp.*")
-
-try:
-    import rdkit
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-    from rdkit.Chem.rdchem import BondStereo
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
-
-try:
-    from molvs import standardize_smiles as ssmiles
-except Exception:
-    utils.exception("You need to install molvs and its dependencies.")
 
 
 class MyMol:

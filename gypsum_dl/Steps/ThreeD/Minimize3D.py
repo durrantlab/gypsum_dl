@@ -7,8 +7,7 @@ import __future__
 
 import copy
 
-from gypsum_dl import chem_utils
-from gypsum_dl import utils
+from gypsum_dl import chem_utils, utils
 from gypsum_dl.MyMol import MyConformer
 
 

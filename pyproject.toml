@@ -1,6 +1,6 @@
 [project]
 name = "gypsum_dl"
-version = "1.2.1"
+dynamic = ["version"]
 description = "Open-source tool to generate 3D-ready small molecules for virtual screening"
 authors = [
     {name = "durrantlab", email = "durrantj@pitt.edu"},
@@ -22,8 +22,14 @@ dependencies = [
 gypsum-dl = "gypsum_dl.run:main"
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0", "setuptools-scm>=8", "wheel"]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["gypsum_dl*"]
+
+[tool.setuptools_scm]
+write_to = "gypsum_dl/_version.py"
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-timestamp"
+

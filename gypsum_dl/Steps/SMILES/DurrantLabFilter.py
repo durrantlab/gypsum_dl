@@ -3,12 +3,10 @@ This module removes molecules with prohibited substructures, per Durrant-lab
 filters.
 """
 
-
 import __future__
 
-from gypsum_dl import chem_utils
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import utils
+from gypsum_dl import chem_utils, utils
 
 try:
     from rdkit import Chem
