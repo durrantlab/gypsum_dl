@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored codebase to use pixi as our development environment and make this package pip installable.
+
 ## [1.2.1]
 
 -   Fixed a bug in generating multiple non-aromatic ring conformations. This
