@@ -183,20 +183,6 @@ def test_samples(test_dir):
 
     assert len(all_smiles) == len(target_smiles)
 
-    if len(all_smiles ^ target_smiles) > 0:
-        print(all_smiles)
-        print(target_smiles)
-
-        utils.exception(
-            "FAILED. "
-            + "Got some SMILES I didn't expect (either in output or target list): "
-            + " ".join(list(all_smiles ^ target_smiles))
-        )
-    else:
-        utils.log("PASSED. Gypsum-DL output the very SMILES strings I was expecting.")
-
-    utils.log("")
-
-    # Delete test output directory if it exists.
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
+    assert len(all_smiles ^ target_smiles) == 0, (
+        f"Differences in smiles: {list(all_smiles ^ target_smiles)}"
+    )

@@ -129,7 +129,10 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # minimization or anything (as it does later) because max variants
     # and thoroughness maxed out.
     chem_utils.bst_for_each_contnr_no_opt(
-        contnrs, mols, 1000, 1000  # max_variants_per_compound, thoroughness
+        contnrs,
+        mols,
+        1000,
+        1000,  # max_variants_per_compound, thoroughness
     )
 
 

@@ -56,9 +56,9 @@ def add_hydrogens(
 
     # Make a simple directory with the ionization parameters.
     protonation_settings = {
-        "min_ph": min_pH,
-        "max_ph": max_pH,
-        "pka_precision": st_dev,
+        "ph_min": min_pH,
+        "ph_max": max_pH,
+        "precision": st_dev,
         "max_variants": thoroughness * max_variants_per_compound,
     }
 
@@ -66,7 +66,7 @@ def add_hydrogens(
     inputs = tuple(
         (cont, protonation_settings)
         for cont in contnrs
-        if type(cont.orig_smi_canonical) == str
+        if isinstance(cont.orig_smi_canonical, str)
     )
 
     # Run the parallelizer and collect the results.
@@ -127,7 +127,7 @@ def parallel_add_H(contnr, protonation_settings):
     """
 
     # Make sure the canonical SMILES is actually a string.
-    if type(contnr.orig_smi_canonical) != str:
+    if not isinstance(contnr.orig_smi_canonical, str):
         utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
         utils.log(
             f"type container.orig_smi_canonical: {str(type(contnr.orig_smi_canonical))}"
@@ -135,10 +135,10 @@ def parallel_add_H(contnr, protonation_settings):
         utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
 
     # Add the SMILES string to the protonation parameters.
-    protonation_settings["smiles"] = contnr.orig_smi_canonical
+    protonation_settings["smiles_input"] = contnr.orig_smi_canonical
 
     # Protonate the SMILESstring. This is Dimorphite-DL.
-    smis = protonate_smiles(protonation_settings)
+    smis = protonate_smiles(**protonation_settings)
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
     # objects.
