@@ -6,7 +6,7 @@
     <a href="https://github.com/durrantlab/gypsum_dl/actions/workflows/tests.yml">
         <img src="https://github.com/durrantlab/gypsum_dl/actions/workflows/tests.yml/badge.svg" alt="Build Status ">
     </a>
-    <!-- <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/vaxstats"> -->
+    <!-- <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/gypsum-dl"> -->
     <a href="https://codecov.io/gh/durrantlab/gypsum_dl">
         <img src="https://codecov.io/gh/durrantlab/gypsum_dl/branch/main/graph/badge.svg" alt="codecov">
     </a>
@@ -21,45 +21,24 @@
     </a>
 </p>
 
-Gypsum-DL is a free, open-source program for preparing 3D small-molecule
-models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
-alternate ionization, tautomeric, chiral, cis/trans isomeric, and
-ring-conformational forms. It is released under the Apache License, Version
-2.0 (see `LICENSE.txt`).
+Gypsum-DL is a free, open-source program for preparing 3D small-molecule models.
+Beyond simply assigning atomic coordinates, Gypsum-DL accounts for alternate ionization, tautomeric, chiral, cis/trans isomeric, and ring-conformational forms.
 
-## Citation
+## Installation
 
-If you use Gypsum-DL in your research, please cite:
-
-Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,
-Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D.
-Durrant. (2019) "Gypsum-DL: An Open-source Program for Preparing
-Small-molecule Libraries for Structure-based Virtual Screening." Journal of
-Cheminformatics 11:1. doi:10.1186/s13321-019-0358-3.
-
-Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An
-open-source program for enumerating the ionization states of drug-like small
-molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.
-
-## Getting Started
-
-To run Gypsum-DL, acquire a copy of this repository, either by git clone or by
-download. Install the required dependencies via your favorite python package
-manager. We suggest using Anaconda to manage packages:
+You can install the latest released version on [PyPI](https://pypi.org/project/gypsum-dl/) using the following command.
 
 ```bash
-conda install -c rdkit rdkit numpy scipy mpi4py
+pip install gypsum-dl
 ```
 
-If you encounter an error like `ImportError: libboost_python3.so.1.65.1:
-cannot open shared object file: No such file or directory`, [a helpful
-user](https://durrantlab.pitt.edu/forums/topic/importerror-libboost_python3-so-1-65-1-solved/)
-suggested installing RDKit this way instead:
+Or you can install the latest development version from the `main` branch on [GitHub](https://github.com/durrantlab/gypsum_dl) using
 
 ```bash
-conda create -c conda-forge --name gypsum_dl_env rdkit numpy scipy mpi4py -y
-conda activate gypsum_dl_env
+pip install https://github.com/durrantlab/gypsum_dl.git
 ```
+
+## Usage
 
 ## Command-Line Parameters
 
@@ -132,10 +111,9 @@ Gypsum-DL accepts the following command-line parameters:
                         README.md for more details.
   --2d_output_only      Skips the generate-3D-models step.
   --cache_prerun, -c    Run this before running Gypsum-DL in mpi mode.
-  --test                Tests Gypsum-DL to check for programming bugs.
 ```
 
-## Examples of Use
+### Examples
 
 Prepare a virtual library and save all 3D models to a single SDF file in the
 present directory:
@@ -222,87 +200,85 @@ Where `myparams.json` might look like:
 }
 ```
 
-## Important Caveats
+## Limitations
 
 ### Large Molecules
 
-Gypsum-DL is designed to process drug-like molecules. Generating 3D structures
-for larger molecules takes a very long time. For example, in our tests it
-takes Gypsum-DL a very long time to process this molecule:
-`CCCC[C@@H](C(N[C@H]1CC(NCCCC[C@H](NC([C@@H](NC([C@@H](NC([C@@H](NC([C@@H]2CCCN2C1=O)=O)Cc3ccccc3)=O)CCCNC(N)=N)=O)Cc(c[nH]4)c5c4cccc5)=O)C(N6CCC[C@H]6C(N[C@@H](C(C)C)C(N)=O)=O)=O)=O)=O)NC(C)=O`
-
-You may wish to run your compounds through a drug-like filter before
-processing them with Gypsum-DL.
+Gypsum-DL is designed to process drug-like molecules.
+Generating 3D structures for larger molecules takes a very long time.
+For example, in our tests it takes Gypsum-DL a very long time to process this molecule: `CCCC[C@@H](C(N[C@H]1CC(NCCCC[C@H](NC([C@@H](NC([C@@H](NC([C@@H](NC([C@@H]2CCCN2C1=O)=O)Cc3ccccc3)=O)CCCNC(N)=N)=O)Cc(c[nH]4)c5c4cccc5)=O)C(N6CCC[C@H]6C(N[C@@H](C(C)C)C(N)=O)=O)=O)=O)=O)NC(C)=O` You may wish to run your compounds through a drug-like filter before processing them with Gypsum-DL.
 
 ### Tautomers
 
-Gypsum-DL uses MolVS to generate tautomers. While MolVS is effective, we have
-noticed that it sometimes generates inappropriate tautomers that change the
-total number of chiral centers, e.g. `O=C(c1ccc(CN)cc1)N` to
-`N=Cc1ccc(C(O)N)cc1`. But some legitimate tautomers also change the number of
-chiral centers, e.g., `C[C@@H](C(C)=O)F` to `C/C(F)=C(C)\O`.
+Gypsum-DL uses MolVS to generate tautomers.
+While MolVS is effective, we have noticed that it sometimes generates inappropriate tautomers that change the total number of chiral centers, e.g., `O=C(c1ccc(CN)cc1)N` to `N=Cc1ccc(C(O)N)cc1`.
+But some legitimate tautomers also change the number of chiral centers, e.g., `C[C@@H](C(C)=O)F` to `C/C(F)=C(C)\O`.
 
-To compensate for this MolVS bug, by default Gypsum-DL rejects all tautomers
-that change the total number of chiral centers. Use the
-`--let_tautomers_change_chirality` flag if you would like to retain these
-tautomers instead. As always, be sure to examine the structures that Gypsum-DL
-outputs to ensure they are chemically feasible.
+To compensate for this MolVS bug, by default Gypsum-DL rejects all tautomers that change the total number of chiral centers
+
+Use the `--let_tautomers_change_chirality` flag if you would like to retain these tautomers instead
+
+As always, be sure to examine the structures that Gypsum-DL outputs to ensure they are chemically feasible.
 
 ### Durrant-Lab Filters
 
-In looking over many Gypsum-DL-generated variants, we have identified a number
-of substructures that, though technically possible, strike us as improbable or
-otherwise poorly suited for virtual screening. Here are some examples:
+In looking over many Gypsum-DL-generated variants, we have identified a number of substructures that, though technically possible, strike us as improbable or otherwise poorly suited for virtual screening.
+Here are some examples:
 
-*   `C=[N-]`
-*   `[N-]C=[N+]`
-*   `[nH+]c[n-]`
-*   `[#7+]~[#7+]`
-*   `[#7-]~[#7-]`
-*   `[!#7]~[#7+]~[#7-]~[!#7]`
-*   `[#5]` (boron)
-*   `O=[PH](=O)([#8])([#8])`
-*   `N=c1cc[#7]c[#7]1`
-*   `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
-*   Metals
+- `C=[N-]`
+- `[N-]C=[N+]`
+- `[nH+]c[n-]`
+- `[#7+]~[#7+]`
+- `[#7-]~[#7-]`
+- `[!#7]~[#7+]~[#7-]~[!#7]`
+- `[#5]` (boron)
+- `O=[PH](=O)([#8])([#8])`
+- `N=c1cc[#7]c[#7]1`
+- `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
+- Metals
 
-If you'd like to discard molecular variants with substructures such as these,
-use the `--use_durrant_lab_filters` flag.
+If you'd like to discard molecular variants with substructures such as these, use the `--use_durrant_lab_filters` flag.
 
 ### Highly Constrained Ring Systems
 
-Some users have reported that Gypsum-DL fails to produce 3D models when
-processing molecules with highly constrained ring systems, such as amantadine
-compounds (e.g., this molecule from ChemBridge:
-`CC1=CC=CN2N=CC(C(=O)NC34CC5CC(C3)CC(C5)(C4)N3C=NC=N3)=C12`). Increasing the
-`thoroughness` parameter may help in these cases.
+Some users have reported that Gypsum-DL fails to produce 3D models when processing molecules with highly constrained ring systems, such as amantadine compounds (e.g., this molecule from ChemBridge: `CC1=CC=CN2N=CC(C(=O)NC34CC5CC(C3)CC(C5)(C4)N3C=NC=N3)=C12`).
+Increasing the `thoroughness` parameter may help in these cases.
 
 ### Memory Considerations
 
-When processing large libraries, Gypsum-DL requires substantial memory. Some
-users have reported that the program suddenly stops in these situations. To
-correct the problem, either increase the available memory, or divide your
-library into several smaller files and processes them sequentially.
+When processing large libraries, Gypsum-DL requires substantial memory.
+Some users have reported that the program suddenly stops in these situations.
+To correct the problem, either increase the available memory, or divide your library into several smaller files and processes them sequentially.
 
 ### Advanced Methods for Eliminating Problematic Compounds
 
-Gypsum-DL aims to enumerate many possible variant forms, including forms that
-are not necessarily probable. Beyond applying Durrant-Lab filters, several
-methods allow users to exclude other potentially problematic forms:
+Gypsum-DL aims to enumerate many possible variant forms, including forms that are not necessarily probable.
+Beyond applying Durrant-Lab filters, several methods allow users to exclude other potentially problematic forms:
 
-1.  Identify the steps Gypsum-DL takes to generate a given problematic form
-   (see the "Genealogy" field of every output SDF file). Then use parameters
-   such as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`,
-   `--skip_adding_hydrogen`, `--skip_making_tautomers`,
-   `--skip_enumerate_chiral_mol`, or `--skip_enumerate_double_bonds` to skip
-   the problem-causing step. This fix is easy, but it may unexpectedly impact
-   unrelated compounds.
-2.  Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision`
-   parameters if Gypsum-DL is producing compounds with undesired protonation
-   states. Alternatively, you can delete specific protonation rules by
-   modifying the
+1. Identify the steps Gypsum-DL takes to generate a given problematic form (see the "Genealogy" field of every output SDF file).
+    Then use parameters such as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`, `--skip_adding_hydrogen`, `--skip_making_tautomers`, `--skip_enumerate_chiral_mol`, or `--skip_enumerate_double_bonds` to skip the problem-causing step.
+    This fix is easy, but it may unexpectedly impact unrelated compounds.
+2.  Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision` parameters if Gypsum-DL is producing compounds with undesired protonation states.
+    Alternatively, you can delete specific protonation rules by modifying the
    `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
-3.  Add to the Durrant-Lab filters if there is a specific substructure you
-   would like to avoid (e.g., imidic acid due to amide/imidic-acid
-   tautomerization). Simplify modify the
-   `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.
+3.  Add to the Durrant-Lab filters if there is a specific substructure you would like to avoid (e.g., imidic acid due to amide/imidic-acid tautomerization).
+    Simplify modify the `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.
+
+
+## Citation
+
+If you use Gypsum-DL in your research, please cite:
+
+Ropp, Patrick J., Jacob O. Spiegel, Jennifer L. Walker, Harrison Green,
+Guillermo A. Morales, Katherine A. Milliken, John J. Ringe, and Jacob D.
+Durrant. (2019) "Gypsum-DL: An Open-source Program for Preparing
+Small-molecule Libraries for Structure-based Virtual Screening." Journal of
+Cheminformatics 11:1. doi:10.1186/s13321-019-0358-3.
+
+Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An
+open-source program for enumerating the ionization states of drug-like small
+molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.
+
+## License
+
+This project is released under the Apache-2.0 License as specified in `LICENSE.md`.

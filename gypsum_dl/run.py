@@ -235,11 +235,6 @@ def main():
         action="store_true",
         help="Run this before running Gypsum-DL in mpi mode.",
     )
-    PARSER.add_argument(
-        "--test",
-        action="store_true",
-        help="Tests Gypsum-DL to check for programming bugs.",
-    )
 
     ARGS_DICT = vars(PARSER.parse_args())
     INPUTS = copy.deepcopy(ARGS_DICT)
