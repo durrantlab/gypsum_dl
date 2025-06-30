@@ -3928,15 +3928,16 @@ packages:
   timestamp: 1745436578592
 - pypi: ./
   name: gypsum-dl
-  version: 1.0.1.dev11+gedc3bc7
-  sha256: 5304c355f660307b9e672154053e2a554c5f2c27bb856cd25c3604681cd50bf9
+  version: 1.0.1.dev13+g38bfb04.d20250630123953
+  sha256: 76965a7dc41710ffcda918d9e136845022c293e3aca60a09589690e182337ce1
   requires_dist:
   - loguru>=0.7.2,<0.8
-  - numpy>=1.2.6,<3
+  - numpy>=2.0.0,<3
   - scipy>=1.15.1,<2
-  - rdkit>=2024.9.4,<2026
+  - rdkit>=2024.9.4,<2027
   - mpi4py>=4.0.1,<5
-  - molvs>=0.1.1,<0.2
+  - molvs>=0.1.1,<1
+  - dimorphite-dl>=2.0.1,<3
   requires_python: '>=3.10'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/h2-4.2.0-pyhd8ed1ab_0.conda

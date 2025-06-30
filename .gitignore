@@ -1,6 +1,7 @@
 *.pyc
 .DS_Store
 
+profile.json
 .vscode
 **/_version.py
 # Byte-compiled / optimized / DLL files

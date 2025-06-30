@@ -10,12 +10,13 @@ requires-python = ">=3.10"
 
 # TODO: Keep this here until pixi releases building capabilities
 dependencies = [
-    "loguru>=0.7.2,<0.8",
-    "numpy>=1.2.6,<3",
+    "loguru>=0.7.2,<1",
+    "numpy>=2.0.0,<3",
     "scipy>=1.15.1,<2",
-    "rdkit>=2024.9.4,<2026",
+    "rdkit>=2024.9.4,<2027",
     "mpi4py>=4.0.1,<5",
-    "molvs>=0.1.1,<0.2",
+    "molvs>=0.1.1,<1",
+    "dimorphite-dl>=2.0.1,<3",
 ]
 
 [project.scripts]
