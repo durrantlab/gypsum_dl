@@ -1,31 +1,17 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 Saves output files to SDF.
 """
 
-
 import __future__
+
 import os
 
-import gypsum_dl.Utils as Utils
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def save_to_sdf(contnrs, params, separate_output_files, output_folder):
@@ -59,19 +45,19 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
         w.close()
 
     # Also save the file or files containing the output molecules.
-    Utils.log("Saving molecules associated with...")
+    utils.log("Saving molecules associated with...")
     for i, contnr in enumerate(contnrs):
         # Add the container properties to the rdkit_mol object so they get
         # written to the SDF file.
         contnr.add_container_properties()
 
         # Let the user know which molecule you're on.
-        Utils.log("\t" + contnr.orig_smi)
+        utils.log("\t" + contnr.orig_smi)
 
         # Save the file(s).
         if separate_output_files == True:
             # sdf_file = "{}{}__{}.pdb".format(output_folder + os.sep, slug(name), conformer_counter)
-            sdf_file = f"{output_folder + os.sep}{Utils.slug(contnr.name)}__input{contnr.contnr_idx_orig + 1}.sdf"
+            sdf_file = f"{output_folder + os.sep}{utils.slug(contnr.name)}__input{contnr.contnr_idx_orig + 1}.sdf"
             w = Chem.SDWriter(sdf_file)
             # w = Chem.SDWriter(output_folder + os.sep + "output." + str(i + 1) + ".sdf")
 

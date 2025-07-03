@@ -1,29 +1,13 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 A module for loading in files.
 """
 
-
-import __future__
-from gypsum_dl import Utils
+from gypsum_dl import utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def load_smiles_file(filename):
@@ -53,7 +37,7 @@ def load_smiles_file(filename):
             # Handle unnamed ligands.
             if not name:
                 name = f"untitled_line_{line_counter + 1}"
-                Utils.log(
+                utils.log(
                     (
                         "\tUntitled ligand on line {}. Naming that ligand "
                         + "{}. All associated files will be referred to with "
@@ -69,11 +53,11 @@ def load_smiles_file(filename):
                 else:
                     duplicate_names[name] = 2
                 new_name = f"{name}_copy_{duplicate_names[name]}"
-                Utils.log(f"\nMultiple entries with the ligand name: {name}")
-                Utils.log(
+                utils.log(f"\nMultiple entries with the ligand name: {name}")
+                utils.log(
                     f"\tThe version of the ligand on line {line_counter} will be retitled {new_name}"
                 )
-                Utils.log("\tAll associated files will be referred to with this name")
+                utils.log("\tAll associated files will be referred to with this name")
                 name = new_name
             # Save the data for this line and advance.
             name_list.append(name)
@@ -105,7 +89,7 @@ def load_sdf_file(filename):
         if mol:
             smiles = Chem.MolToSmiles(mol, isomericSmiles=True, canonical=True)
         else:
-            Utils.log(
+            utils.log(
                 "\tWarning: Could not convert some SDF-formatted files to SMILES. Consider using an SMI (SMILES) file instead."
             )
             continue
@@ -117,17 +101,17 @@ def load_sdf_file(filename):
 
         # Handle unnamed ligands
         if not name:
-            Utils.log(
+            utils.log(
                 f"\tUntitled ligand for the {mol_obj_counter} molecule in the input SDF"
             )
             name = f"untitled_{missing_name_counter}_molnum_{mol_obj_counter}"
-            Utils.log(f"\tNaming that ligand {name}")
-            Utils.log("\tAll associated files will be referred to with this name")
+            utils.log(f"\tNaming that ligand {name}")
+            utils.log("\tAll associated files will be referred to with this name")
             missing_name_counter += 1
 
             # Handle duplicate ligands in same list.
             if name in name_list:
-                Utils.log(f"\nMultiple entries with the ligand name: {name}")
+                utils.log(f"\nMultiple entries with the ligand name: {name}")
                 # If multiple names.
                 if name in list(duplicate_names.keys()):
                     duplicate_names[name] = duplicate_names[name] + 1
@@ -136,10 +120,10 @@ def load_sdf_file(filename):
                     duplicate_names[name] = 2
                 new_name = f"{name}_copy_{duplicate_names[name]}"
                 name = new_name
-                Utils.log(
+                utils.log(
                     f"\tThe version of the ligand for the {mol_obj_counter} molecule in the SDF file will be retitled {name}"
                 )
-                Utils.log("\tAll associated files will be referred to with this name")
+                utils.log("\tAll associated files will be referred to with this name")
             mol_obj_counter += 1
             name_list.append(name)
 

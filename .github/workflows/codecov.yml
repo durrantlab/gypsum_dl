@@ -1,0 +1,42 @@
+name: Codecov workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: codecov
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.8.3
+        with:
+          locked: false
+          frozen: false
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+
+      - name: Setup environment
+        run: pixi install
+
+      - name: Get test coverage
+        run: pixi run tests
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}

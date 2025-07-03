@@ -1,33 +1,17 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-
 """
 This module removes molecules with prohibited substructures, per Durrant-lab
 filters.
 """
 
-
 import __future__
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import chem_utils, utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 # Get the substructures you won't permit (per substructure matching, not
 # substring matching)
@@ -103,7 +87,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    Utils.log("Applying Durrant-lab filters to all molecules...")
+    utils.log("Applying Durrant-lab filters to all molecules...")
 
     prohibited_substructs = [
         Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc
@@ -144,8 +128,11 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # Using this function just to make the changes. Doesn't do energy
     # minimization or anything (as it does later) because max variants
     # and thoroughness maxed out.
-    ChemUtils.bst_for_each_contnr_no_opt(
-        contnrs, mols, 1000, 1000  # max_variants_per_compound, thoroughness
+    chem_utils.bst_for_each_contnr_no_opt(
+        contnrs,
+        mols,
+        1000,
+        1000,  # max_variants_per_compound, thoroughness
     )
 
 
@@ -168,7 +155,7 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
             if durrant_lab_contains_bad_substr(
                 m.orig_smi_deslt
             ) or m.rdkit_mol.HasSubstructMatch(pattrn):
-                Utils.log(
+                utils.log(
                     "\t"
                     + m.smiles(True)
                     + ", a variant generated "

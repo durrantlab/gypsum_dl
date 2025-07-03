@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.8.3
+        with:
+          locked: false
+          frozen: false
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+
+      - name: Setup environment
+        run: pixi install
+
+      - name: Run tests
+        run: pixi run tests

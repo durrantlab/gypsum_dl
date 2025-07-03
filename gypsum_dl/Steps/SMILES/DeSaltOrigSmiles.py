@@ -1,34 +1,17 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-
 """
 Desalts the input SMILES strings. If an input SMILES string contains to
 molecule, keep the larger one.
 """
 
-
 import __future__
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.MyMol as MyMol
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import MyMol, chem_utils, utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def desalt_orig_smi(
@@ -47,7 +30,7 @@ def desalt_orig_smi(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    Utils.log("Desalting all molecules (i.e., keeping only largest fragment).")
+    utils.log("Desalting all molecules (i.e., keeping only largest fragment).")
 
     # Desalt each of the molecule containers. This step is very fast, so let's
     # just run it on a single processor always.
@@ -84,7 +67,7 @@ def desalter(contnr):
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
         return contnr.mol_orig_frm_inp_smi
-    Utils.log(
+    utils.log(
         "\tMultiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
     )
 

@@ -1,35 +1,17 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-
 """
 A module to so the 2D to 3D conversion, though the actual code for that
 conversion is in MyMol.MyMol.make_first_3d_conf_no_min()
 """
 
+from gypsum_dl import chem_utils, utils
 
-import __future__
-import copy
-
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
+from ... import parallelizer as Parallelizer
 
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def convert_2d_to_3d(
@@ -64,7 +46,7 @@ def convert_2d_to_3d(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    Utils.log("Converting all molecules to 3D structures.")
+    utils.log("Converting all molecules to 3D structures.")
 
     # Make the inputs to pass to the parallelizer.
     params = []
@@ -83,7 +65,7 @@ def convert_2d_to_3d(
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(
+    chem_utils.bst_for_each_contnr_no_opt(
         contnrs, clear, max_variants_per_compound, thoroughness, False
     )
 
@@ -122,7 +104,7 @@ def parallel_make_3d(mol):
 
     if show_error_msg:
         # Something's gone wrong, so show this error.
-        Utils.log(
+        utils.log(
             "\tWARNING: Could not generate 3D geometry for "
             + str(mol.smiles())
             + " ("

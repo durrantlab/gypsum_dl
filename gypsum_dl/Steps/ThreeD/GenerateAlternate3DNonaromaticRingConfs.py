@@ -1,51 +1,33 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 This module generates alternate non-aromatic ring conformations on the fly,
 since most modern docking programs (e.g., Vina) can't consider alternate ring
 conformations.
 """
 
-
-
-
 import __future__
 
 import copy
 import warnings
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import chem_utils, utils
 from gypsum_dl.MyMol import MyConformer
 
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 try:
     import numpy
 except Exception:
-    Utils.exception("You need to install numpy and its dependencies.")
+    utils.exception("You need to install numpy and its dependencies.")
 
 try:
     from scipy.cluster.vq import kmeans2
 except Exception:
-    Utils.exception("You need to install scipy and its dependencies.")
+    utils.exception("You need to install scipy and its dependencies.")
 
 
 def generate_alternate_3d_nonaromatic_ring_confs(
@@ -94,7 +76,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     """
 
     # Let the user know you've started this step.
-    Utils.log(
+    utils.log(
         "Generating several conformers of molecules with non-aromatic "
         + "rings (boat vs. chair, etc.)..."
     )

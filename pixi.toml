@@ -1,0 +1,99 @@
+[project]
+authors = ["Durrant Lab <durrantj@pitt.edu>"]
+channels = ["conda-forge"]
+description = "Open-source tool to generate 3D-ready small molecules for virtual screening"
+name = "gypsum_dl"
+platforms = ["linux-64", "osx-64", "win-64", "osx-arm64"]
+
+[pypi-dependencies]
+gypsum_dl = { path = ".", editable = true }
+molvs = ">=0.1.1, <1"
+dimorphite-dl = ">=2.0.1, <3"
+
+[tasks]
+
+[dependencies]
+python = ">=3.10,<3.14"
+loguru = ">=0.7.2,<1"
+numpy = ">=2.0.0,<3"
+scipy = ">=1.15.1,<2"
+rdkit = ">=2024.9.4,<2027"
+mpi4py = ">=4.0.1,<5"
+
+[environments]
+dev = ["dev"]
+docs = ["docs"]
+
+
+[feature.dev.dependencies]
+ruff = ">=0.7.2,<1"
+isort = ">=5.13.2,<6"
+mypy = ">=1.13.0,<2"
+twine = ">=5.1.1,<6"
+pytest = ">=8.3.3,<9"
+pytest-cov = ">=6.0.0,<7"
+coverage = ">=7.6.4,<8"
+pip = ">=24.3.1,<25"
+setuptools = ">=75.3.0,<76"
+types-pyyaml = ">=6.0.12.20240917,<7"
+scalene = ">=1.5.41,<2"
+basedpyright = ">=1.29.1,<2"
+
+[feature.dev.tasks]
+mdlint = { cmd = ["markdownlint-cli2", '"**/*.{md,markdown}"', "--fix", "--config", ".markdownlint.yaml", "||", "true"] }
+isort = { cmd = ["isort", "--settings-path", ".isort.cfg", "./gypsum_dl", "./tests", "||", "true"] }
+ruff = { cmd = ["ruff", "format", "--config", ".ruff.toml", "./gypsum_dl", "./tests", "||", "true"] }
+format = { depends-on = ["mdlint", "isort", "ruff"] }
+tests = { cmd = [
+    "PYTHONPATH=.",
+    "pytest",
+    "-c",
+    ".pytest.ini",
+    "--cov='gypsum_dl'",
+    "--cov-report=xml",
+    "--junit-xml=report.xml",
+    "--failed-first",
+]}
+profile = { cmd = [
+    "PYTHONPATH=.",
+    "scalene",
+    "-m",
+    "pytest",
+    "-c",
+    ".pytest.ini",
+    "--cov='gypsum_dl'",
+    "--cov-report=xml",
+    "--junit-xml=report.xml",
+    "--failed-first",
+]}
+coverage = { cmd = ["coverage", "report"] }
+cleanup-build = { cmd = ["rm", "-rf", "./build"] }
+build = { cmd = ["python3", "-m", "build"], depends-on = ["cleanup-build"]}
+publish-test = { cmd = ["twine", "upload", "--repository", "testpypi", "dist/*"] }
+publish = { cmd = ["twine", "upload", "dist/*"] }
+
+[feature.dev.pypi-dependencies]
+build = ">=1.2.2.post1,<2"
+setuptools-scm = ">=8.0.0"
+
+[feature.docs.dependencies]
+mkdocs = ">=1.6.1,<2"
+mkdocs-material = ">=9.5.44,<10"
+pymdown-extensions = ">=10.12,<11"
+mkdocs-table-reader-plugin = ">=3.1.0,<4"
+mkdocstrings = ">=0.26.2,<0.27"
+mkdocstrings-python = ">=1.12.2,<2"
+mkdocs-gen-files = ">=0.4.0,<1"
+mkdocs-macros-plugin = ">=1.3.7,<2"
+mkdocs-jupyter = ">=0.25.0,<1"
+mkdocs-glightbox = ">=0.4.0,<1"
+mkdocs-git-revision-date-localized-plugin = ">=1.2.9,<2"
+mkdocs-autorefs = ">=1.2.0,<2"
+
+[feature.docs.pypi-dependencies]
+material-plausible-plugin = ">=0.2.0,<1"
+mkdocs-awesome-pages-plugin = ">=2.9.3,<3"
+
+[feature.docs.tasks]
+docs = { cmd = ["rm", "-rf", "./public/", "&&", "mkdocs", "build", "-d", "public/"] }
+serve = { cmd = ["mkdocs", "serve"] }

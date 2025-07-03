@@ -1,25 +1,58 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+"""Simplify your molecular simulation workflow."""
 
+from typing import Any
 
-# gypsum_dl/gypsum_dl/
-# Including the below allows other programs to import functions from
-# gypsum-DL.
-import sys
 import os
+import sys
+from ast import literal_eval
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-gypsum_gypsum_dir = current_dir
-gypsum_top_dir = os.path.dirname(gypsum_gypsum_dir)
-sys.path.extend([gypsum_gypsum_dir, gypsum_top_dir])
+from loguru import logger
+
+__version__ = "1.2.1"
+
+logger.disable("gypsum_dl")
+
+LOG_FORMAT = (
+    "<green>{time:HH:mm:ss}</green> | "
+    "<level>{level: <8}</level> | "
+    "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+)
+
+
+def enable_logging(
+    level_set: int,
+    stdout_set: bool = True,
+    file_path: str | None = None,
+    log_format: str = LOG_FORMAT,
+) -> None:
+    r"""Enable logging.
+
+    Args:
+        level: Requested log level: `10` is debug, `20` is info.
+        file_path: Also write logs to files here.
+    """
+    config: dict[str, Any] = {"handlers": []}
+    if stdout_set:
+        config["handlers"].append(
+            {
+                "sink": sys.stdout,
+                "level": level_set,
+                "format": log_format,
+                "colorize": True,
+            }
+        )
+    if isinstance(file_path, str):
+        config["handlers"].append(
+            {"sink": file_path, "level": level_set, "format": log_format, "False": True}
+        )
+    # https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure
+    logger.configure(**config)
+
+    logger.enable("gypsum_dl")
+
+
+if literal_eval(os.environ.get("GYPSUM_DL_LOG", "False")):
+    level = int(os.environ.get("GYPSUM_DL_LOG_LEVEL", 20))
+    stdout = literal_eval(os.environ.get("GYPSUM_DL_STDOUT", "True"))
+    log_file_path = os.environ.get("GYPSUM_DL_LOG_FILE_PATH", None)
+    enable_logging(level, stdout, log_file_path)

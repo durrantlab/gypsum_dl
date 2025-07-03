@@ -1,35 +1,19 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 Saves the output to an HTML file (2D images only). This is mostly for
 debugging.
 """
 
-
 # import webbrowser
 import os
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
+
+from gypsum_dl import chem_utils, utils
 
 try:
-    from rdkit.Chem import rdDepictor
-    from rdkit.Chem.Draw import rdMolDraw2D
-    from rdkit.Chem.Draw import PrepareMolForDrawing
     from rdkit import Chem
+    from rdkit.Chem import rdDepictor
+    from rdkit.Chem.Draw import PrepareMolForDrawing, rdMolDraw2D
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def web_2d_output(contnrs, output_folder):
@@ -37,13 +21,13 @@ def web_2d_output(contnrs, output_folder):
     a browser. Then opens a browser automatically to view them. This is mostly
     for debugging."""
 
-    Utils.log("Saving html image of molecules associated with...")
+    utils.log("Saving html image of molecules associated with...")
 
     # Let's not parallelize it for now. This will rarely be used.
     html_file = output_folder + os.sep + "gypsum_dl_success.html"
     with open(html_file, "w") as f:
         for contnr in contnrs:
-            Utils.log("\t" + contnr.orig_smi)
+            utils.log("\t" + contnr.orig_smi)
             for mol in contnr.mols:
                 # See
                 # http://rdkit.org/docs/source/rdkit.Chem.rdmolops.html#rdkit.Chem.rdmolops.RemoveHs

@@ -1,17 +1,3 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-
 """
 This module contains classes and functions for processing individual molecules
 (variants). All variants of the same input molecule are grouped together in
@@ -22,36 +8,22 @@ So just to clarify: MolContainer.MolContainer > MyMol.MyMol >
 MyMol.MyConformer
 """
 
-
-
-import __future__
-
 import contextlib
-import sys
 import copy
 import operator
-import random
+import sys
 
-import gypsum_dl.Utils as Utils
-import gypsum_dl.MolObjectHandling as MOH
+from molvs import standardize_smiles as ssmiles
 
 # Disable the unnecessary RDKit warnings
-from rdkit import RDLogger
+from rdkit import Chem, RDLogger
+from rdkit.Chem import AllChem
+from rdkit.Chem.rdchem import BondStereo
+
+import gypsum_dl.MolObjectHandling as MOH
+from gypsum_dl import utils
 
 RDLogger.DisableLog("rdApp.*")
-
-try:
-    import rdkit
-    from rdkit.Chem import AllChem
-    from rdkit import Chem
-    from rdkit.Chem.rdchem import BondStereo
-except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
-
-try:
-    from gypsum_dl.molvs import standardize_smiles as ssmiles
-except Exception:
-    Utils.exception("You need to install molvs and its dependencies.")
 
 
 class MyMol:
@@ -95,7 +67,7 @@ class MyMol:
                 # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
                 self.can_smi = False
                 id_to_print = name if name != "" else str(starter)
-                Utils.log(
+                utils.log(
                     "\tERROR: Could not generate one of the structures "
                     + "for ("
                     + id_to_print
@@ -136,7 +108,7 @@ class MyMol:
         try:
             self.stdrd_smiles = ssmiles(self.smiles())
         except Exception:
-            Utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
+            utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
             self.stdrd_smiles = self.smiles()
 
         return self.stdrd_smiles
@@ -259,9 +231,9 @@ class MyMol:
 
     def make_first_3d_conf_no_min(self):
         """Makes the associated rdkit.mol object 3D by adding the first
-           conformer. This also adds hydrogen atoms to the associated rdkit.mol
-           object. Note that it does not perform a minimization, so it is not
-           too expensive."""
+        conformer. This also adds hydrogen atoms to the associated rdkit.mol
+        object. Note that it does not perform a minimization, so it is not
+        too expensive."""
 
         # Set the first 3D conformer
         if len(self.conformers) > 0:
@@ -300,7 +272,7 @@ class MyMol:
                     self.rdkit_mol, isomericSmiles=True, canonical=True
                 )
             except Exception:
-                Utils.log(
+                utils.log(
                     f"Warning: Couldn't put {self.orig_smi} ({self.name}) in canonical form. Got this error: {str(sys.exc_info()[0])}. This molecule will be discarded."
                 )
                 self.can_smi = None
@@ -464,7 +436,7 @@ class MyMol:
             # First just match strings... could be faster, but not 100%
             # accurate.
             if s in self.orig_smi or s in self.orig_smi_deslt or s in self.can_smi:
-                Utils.log("\tDetected unusual substructure: " + s)
+                utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -472,9 +444,9 @@ class MyMol:
         for s in prohibited_substructures:
             pattrn = Chem.MolFromSmarts(s)
             if self.rdkit_mol.HasSubstructMatch(pattrn):
-                # Utils.log("\tRemoving a molecule because it has an odd
+                # utils.log("\tRemoving a molecule because it has an odd
                 # substructure: " + s)
-                Utils.log("\tDetected unusual substructure: " + s)
+                utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -539,7 +511,7 @@ class MyMol:
 
     def set_all_rdkit_mol_props(self):
         """Set all the stored molecular properties. Copies ones from the
-           MyMol.MyMol object to the MyMol.rdkit_mol object."""
+        MyMol.MyMol object to the MyMol.rdkit_mol object."""
 
         self.set_rdkit_mol_prop("SMILES", self.smiles(True))
         # self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
@@ -649,7 +621,7 @@ class MyMol:
 
     def load_conformers_into_rdkit_mol(self):
         """Load the conformers stored as MyConformers objects (in
-           self.conformers) into the rdkit Mol object."""
+        self.conformers) into the rdkit Mol object."""
 
         self.rdkit_mol.RemoveAllConformers()
         for conformer in self.conformers:
@@ -762,7 +734,7 @@ class MyConformer:
                 ff = AllChem.UFFGetMoleculeForceField(self.mol)
                 self.energy = ff.CalcEnergy()
             except Exception:
-                Utils.log(
+                utils.log(
                     "Warning: Could not calculate energy for molecule "
                     + Chem.MolToSmiles(self.mol)
                 )
@@ -793,7 +765,7 @@ class MyConformer:
 
     def minimize(self):
         """Minimize (optimize) the geometry of the current conformer if it
-           hasn't already been optimized."""
+        hasn't already been optimized."""
 
         if self.minimized == True:
             # Already minimized. Don't do it again.
@@ -805,7 +777,7 @@ class MyConformer:
             ff.Minimize()
             self.energy = ff.CalcEnergy()
         except Exception:
-            Utils.log(
+            utils.log(
                 "Warning: Could not calculate energy for molecule "
                 + Chem.MolToSmiles(self.mol)
             )
@@ -844,7 +816,7 @@ class MyConformer:
         mol_copy = copy.deepcopy(self.mol_copy)  # Use it as a template.
         mol_copy.RemoveAllConformers()
         mol_copy.AddConformer(self.conformer)
-        Utils.log(Chem.MolToMolBlock(mol_copy)[:500])
+        utils.log(Chem.MolToMolBlock(mol_copy)[:500])
 
     def rmsd_to_me(self, other_conf):
         """Calculate the rms distance between this conformer and another one.
@@ -907,4 +879,3 @@ class MyConformer:
 
         ff = AllChem.UFFGetMoleculeForceField(self.mol)
         return ff.CalcEnergy()
-

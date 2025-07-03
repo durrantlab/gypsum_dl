@@ -1,38 +1,19 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-
-"""
-Module for enumerating unspecified double bonds (cis vs. trans).
-"""
-
+"""Module for enumerating unspecified double bonds (cis vs. trans)."""
 
 import __future__
 
-import itertools
 import copy
+import itertools
+import math
 import random
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.MyMol as MyMol
-import math
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import MyMol, chem_utils, utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def enumerate_double_bonds(
@@ -73,7 +54,7 @@ def enumerate_double_bonds(
     if max_variants_per_compound == 0:
         return
 
-    Utils.log("Enumerating all possible cis-trans isomers for all molecules...")
+    utils.log("Enumerating all possible cis-trans isomers for all molecules...")
 
     # Group the molecule containers so they can be passed to the parallelizer.
     params = []
@@ -99,11 +80,11 @@ def enumerate_double_bonds(
     flat = Parallelizer.flatten_list(clean)
 
     # Get the indexes of the ones that failed to generate.
-    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, flat)
+    contnr_idxs_of_failed = utils.fnd_contnrs_not_represntd(contnrs, flat)
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
-        Utils.log(
+        utils.log(
             "\tCould not generate valid double-bond variant for "
             + contnrs[miss_indx].orig_smi
             + " ("
@@ -115,11 +96,11 @@ def enumerate_double_bonds(
             mol.genealogy.append("(WARNING: Unable to generate double-bond variant)")
             clean.append(mol)
 
-    flat = ChemUtils.uniq_mols_in_list(flat)
+    flat = chem_utils.uniq_mols_in_list(flat)
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(
+    chem_utils.bst_for_each_contnr_no_opt(
         contnrs, flat, max_variants_per_compound, thoroughness
     )
 
@@ -233,7 +214,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
 
     # Let the user know.
     if dbl_bnd_count > 0:
-        Utils.log(
+        utils.log(
             "\t"
             + mol.smiles(True)
             + " has "

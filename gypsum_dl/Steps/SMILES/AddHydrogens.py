@@ -1,31 +1,13 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 This module identifies and enumerates the possible protonation sites of
 molecules.
 """
 
+from dimorphite_dl import protonate_smiles
 from rdkit import Chem
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.MyMol as MyMol
-import gypsum_dl.MolContainer as MolCont
-
-from gypsum_dl.Steps.SMILES.dimorphite_dl.dimorphite_dl import Protonate
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import MyMol, chem_utils, utils
 
 
 def add_hydrogens(
@@ -70,13 +52,13 @@ def add_hydrogens(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    Utils.log("Ionizing all molecules...")
+    utils.log("Ionizing all molecules...")
 
     # Make a simple directory with the ionization parameters.
     protonation_settings = {
-        "min_ph": min_pH,
-        "max_ph": max_pH,
-        "pka_precision": st_dev,
+        "ph_min": min_pH,
+        "ph_max": max_pH,
+        "precision": st_dev,
         "max_variants": thoroughness * max_variants_per_compound,
     }
 
@@ -84,7 +66,7 @@ def add_hydrogens(
     inputs = tuple(
         (cont, protonation_settings)
         for cont in contnrs
-        if type(cont.orig_smi_canonical) == str
+        if isinstance(cont.orig_smi_canonical, str)
     )
 
     # Run the parallelizer and collect the results.
@@ -97,12 +79,12 @@ def add_hydrogens(
 
     # Dimorphite-DL might not have generated ionization states for some
     # molecules. Identify those that are missing.
-    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, results)
+    contnr_idxs_of_failed = utils.fnd_contnrs_not_represntd(contnrs, results)
 
     # For those molecules, just use the original SMILES string, with hydrogen
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
-        Utils.log(
+        utils.log(
             "\tWARNING: Gypsum-DL produced no valid ionization states for "
             + contnrs[miss_indx].orig_smi
             + " ("
@@ -127,7 +109,7 @@ def add_hydrogens(
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(
+    chem_utils.bst_for_each_contnr_no_opt(
         contnrs, results, max_variants_per_compound, thoroughness
     )
 
@@ -145,18 +127,18 @@ def parallel_add_H(contnr, protonation_settings):
     """
 
     # Make sure the canonical SMILES is actually a string.
-    if type(contnr.orig_smi_canonical) != str:
-        Utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
-        Utils.log(
+    if not isinstance(contnr.orig_smi_canonical, str):
+        utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        utils.log(
             f"type container.orig_smi_canonical: {str(type(contnr.orig_smi_canonical))}"
         )
-        Utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
 
     # Add the SMILES string to the protonation parameters.
-    protonation_settings["smiles"] = contnr.orig_smi_canonical
+    protonation_settings["smiles_input"] = contnr.orig_smi_canonical
 
     # Protonate the SMILESstring. This is Dimorphite-DL.
-    smis = Protonate(protonation_settings)
+    smis = protonate_smiles(**protonation_settings)
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
     # objects.

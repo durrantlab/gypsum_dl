@@ -1,0 +1,7 @@
+[tool.black]
+target-version = [
+    "py312",
+]
+line-length = 88
+color = true
+exclude = "/(\n    \\.git\n    | \\.hg\n    | \\.mypy_cache\n    | \\.pixi\n    | \\.venv\n    | _build\n    | buck-out\n    | build\n    | dist\n    | env\n    | venv\n)/\n"

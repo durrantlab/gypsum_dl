@@ -1,21 +1,6 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-
 """
 A module for generating alternate chiralities.
 """
-
 
 import __future__
 
@@ -23,15 +8,13 @@ import copy
 import itertools
 import random
 
-import gypsum_dl.Parallelizer as Parallelizer
-import gypsum_dl.Utils as Utils
-import gypsum_dl.ChemUtils as ChemUtils
-import gypsum_dl.MyMol as MyMol
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import MyMol, chem_utils, utils
 
 try:
     from rdkit import Chem
 except Exception:
-    Utils.exception("You need to install rdkit and its dependencies.")
+    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def enumerate_chiral_molecules(
@@ -72,7 +55,7 @@ def enumerate_chiral_molecules(
     if max_variants_per_compound == 0:
         return
 
-    Utils.log("Enumerating all possible enantiomers for all molecules...")
+    utils.log("Enumerating all possible enantiomers for all molecules...")
 
     # Group the molecules so you can feed them to parallelizer.
     params = []
@@ -96,11 +79,11 @@ def enumerate_chiral_molecules(
     flat = Parallelizer.flatten_list(clean)
 
     # Get the indexes of the ones that failed to generate.
-    contnr_idxs_of_failed = Utils.fnd_contnrs_not_represntd(contnrs, flat)
+    contnr_idxs_of_failed = utils.fnd_contnrs_not_represntd(contnrs, flat)
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
-        Utils.log(
+        utils.log(
             "\tCould not generate valid enantiomers for "
             + contnrs[miss_indx].orig_smi
             + " ("
@@ -114,7 +97,7 @@ def enumerate_chiral_molecules(
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
-    ChemUtils.bst_for_each_contnr_no_opt(
+    chem_utils.bst_for_each_contnr_no_opt(
         contnrs, flat, max_variants_per_compound, thoroughness
     )
 
@@ -171,14 +154,14 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
             options = [list(itertools.chain(c[0], c[1])) for c in options]
 
     # Let the user know the number of chiral centers.
-    Utils.log(
+    utils.log(
         "\t"
         + mol.smiles(True)
         + " ("
         + mol.name
         + ") has "
         # + str(len(options))
-        + str(2 ** num)
+        + str(2**num)
         + " enantiomers when chiral centers with "
         + "no specified chirality are systematically varied."
     )
@@ -186,7 +169,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
     # Randomly select a few of the chiral combinations to examine. This is to
     # reduce the potential combinatorial explosion.
     num_to_keep_initially = thoroughness * max_variants_per_compound
-    options = Utils.random_sample(options, num_to_keep_initially, "")
+    options = utils.random_sample(options, num_to_keep_initially, "")
 
     # Go through the chirality combinations and make a molecule with that
     # chirality.

@@ -1,17 +1,3 @@
-# Copyright 2023 Jacob D. Durrant
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 Contains the function for saving the output to PDB files.
 """
@@ -19,13 +5,14 @@ Contains the function for saving the output to PDB files.
 import __future__
 
 import glob
-import sys
 import os
+import sys
 from os.path import basename
 
-from gypsum_dl import Utils
 import rdkit
 import rdkit.Chem as Chem
+
+from gypsum_dl import utils
 
 # Disable the unnecessary RDKit warnings
 rdkit.RDLogger.DisableLog("rdApp.*")
@@ -53,7 +40,7 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
 
         # Got through the variants.
         for i, m in enumerate(mols):
-            pdb_file = f"{output_folder + os.sep}{Utils.slug(name)}__input{contnr.contnr_idx_orig + 1}__variant{i + 1}.pdb"
+            pdb_file = f"{output_folder + os.sep}{utils.slug(name)}__input{contnr.contnr_idx_orig + 1}__variant{i + 1}.pdb"
 
             # Get the conformers into the rdkit_mol object.
             m.load_conformers_into_rdkit_mol()

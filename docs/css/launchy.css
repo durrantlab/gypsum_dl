@@ -1,0 +1,8 @@
+.launchy-container {
+    display: flex;
+    justify-content: flex-end;
+    position: relative;
+    margin-top: -4.4em;
+    margin-bottom: 2em;
+    margin-right: 0.4em;
+}

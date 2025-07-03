@@ -1,0 +1,36 @@
+# Check http://editorconfig.org for more information
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+charset = utf-8
+end_of_line = lf
+
+[*.{py, pyi}]
+indent_style = space
+indent_size = 4
+
+[*.bat]
+indent_style = tab
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab
+
+[*.{yml, yaml}]
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+indent_size = 4
+trim_trailing_whitespace = true
+
+[LICENSE]
+insert_final_newline = false
+
+[*.{diff,patch}]
+trim_trailing_whitespace = false
