@@ -3,6 +3,8 @@ Contains the prepare_molecules definition which reads, prepares, and writes
 small molecules.
 """
 
+from typing import Any
+
 import json
 import os
 import sys
@@ -14,19 +16,19 @@ from rdkit import Chem
 from gypsum_dl import utils
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.parallelizer import Parallelizer
+from gypsum_dl.steps.conf.PrepareThreeD import prepare_3d
 from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
 from gypsum_dl.steps.io.ProcessOutput import proccess_output
 from gypsum_dl.steps.smiles.PrepareSmiles import prepare_smiles
-from gypsum_dl.steps.conf.PrepareThreeD import prepare_3d
 
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
-def prepare_molecules(args):
+def prepare_molecules(args: dict[str, Any]) -> None:
     """A function for preparing small-molecule models for docking. To work, it
     requires that the python module rdkit be installed on the system.
 
-    :param args: The arguments, from the commandline.
-    :type args: dict
+    Args:
+        args: The arguments, from the commandline.
     """
 
     # Keep track of the tim the program starts.
@@ -269,13 +271,12 @@ def prepare_molecules(args):
     params["Parallelizer"].end(params["job_manager"])
 
 
-def execute_gypsum_dl(contnrs, params):
+def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> None:
     """A function for doing all of the manipulations to each molecule.
 
-    :param contnrs: A list of all molecules.
-    :type contnrs: list
-    :param params: A dictionary containing all of the parameters.
-    :type params: dict
+    Args:
+        contnrs: A list of all molecules.
+        params: A dictionary containing all of the parameters.
     """
     # Start creating the models.
 
@@ -299,15 +300,15 @@ def execute_gypsum_dl(contnrs, params):
     proccess_output(contnrs, params)
 
 
-def detect_unassigned_bonds(smiles):
+def detect_unassigned_bonds(smiles: str) -> str | None:
     """Detects whether a give smiles string has unassigned bonds.
 
-    :param smiles: The smiles string.
-    :type smiles: string
-    :return: None if it has bad bonds, or the input smiles string otherwise.
-    :rtype: None|string
-    """
+    Args:
+        smiles: The smiles string.
 
+    Returns:
+        None if it has bad bonds, or the input smiles string otherwise.
+    """
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     if mol is None:
         # Apparently the bonds are particularly bad, because couldn't even
@@ -319,15 +320,16 @@ def detect_unassigned_bonds(smiles):
     return smiles
 
 
-def set_parameters(params_unicode):
+def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
     """Set the parameters that will control this ConfGenerator object.
 
-    :param params_unicode: The parameters, with keys and values possibly in
-       unicode.
-    :type params_unicode: dict
-    :return: The parameters, properly processed, with defaults used when no
-       value specified.
-    :rtype: dict
+    Args:
+        params_unicode: The parameters, with keys and values possibly in
+            unicode.
+
+    Returns:
+        The parameters, properly processed, with defaults used when no
+            value specified.
     """
 
     # Set the default values.
@@ -381,15 +383,12 @@ def set_parameters(params_unicode):
     return finalize_params(default)
 
 
-def merge_parameters(default, params):
+def merge_parameters(default: dict[str, Any], params: dict[str, Any]) -> None:
     """Add default values if missing from parameters.
 
-    :param default: The parameters.
-    :type default: dict
-    :param params: The default values
-    :type params: dict
-    :raises KeyError: Unrecognized parameter.
-    :raises TypeError: Input parameter has a different type than the default.
+    Args:
+        default: The parameters.
+        params: The default values
     """
 
     # Generate a dictionary with the same keys, but the types for the values.
@@ -427,16 +426,16 @@ def merge_parameters(default, params):
         default[param] = params[param]
 
 
-def make_type_dict(dictionary):
+def make_type_dict(dictionary: dict[str, Any]) -> dict[str, Any]:
     """Creates a types dictionary from an existant dictionary. Keys are
-       preserved, but values are the types.
+    preserved, but values are the types.
 
-    :param dictionary: A dictionary, with keys are values.
-    :type dictionary: dict
-    :return: A dictionary with the same keys, but the values are the types.
-    :rtype: dict
+    Args:
+        dictionary: A dictionary, with keys are values.
+
+    Returns:
+        A dictionary with the same keys, but the values are the types.
     """
-
     type_dict = {}
     allowed_types = [int, float, bool, str]
     # Go through the dictionary keys.
@@ -460,14 +459,14 @@ def make_type_dict(dictionary):
     return type_dict
 
 
-def finalize_params(params):
+def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Checks and updates parameters to their final values.
 
-    :param params: The parameters.
-    :type params: dict
-    :raises NotImplementedError: Missing parameter.
-    :return: The parameters, corrected/updated where needed.
-    :rtype: dict
+    Args:
+        params: The parameters.
+
+    Returns:
+        The parameters, corrected/updated where needed.
     """
 
     # Throw an error if there's a missing parameter.
@@ -514,12 +513,12 @@ def finalize_params(params):
     return params
 
 
-def add_mol_id_props(contnrs):
+def add_mol_id_props(contnrs: list[MolContainer]) -> None:
     """Once all molecules have been generated, go through each and add the
        name and a unique id (for writing to the SDF file, for example).
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
+    Args:
+        contnrs: A list of containers (MolContainer.MolContainer).
     """
 
     cont_id = 0
@@ -530,14 +529,15 @@ def add_mol_id_props(contnrs):
             mol.set_all_rdkit_mol_props()
 
 
-def deal_with_failed_molecules(contnrs, params):
+def deal_with_failed_molecules(
+    contnrs: list[MolContainer], params: dict[str, Any]
+) -> None:
     """Removes and logs failed molecules.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
-    :param params: The parameters, used to determine the filename that will
-       contain the failed molecules.
-    :type params: dict
+    Args:
+        contnrs: A list of containers (MolContainer.MolContainer).
+        params: The parameters, used to determine the filename that will
+            contain the failed molecules.
     """
 
     # To keep track of failed molecules

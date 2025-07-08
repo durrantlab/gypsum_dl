@@ -13,10 +13,11 @@ or a high-performance computer cluster, utilizing the full resources of each
 system. (Description provided by Harrison Green.)
 """
 
+from typing import Any
+
 import multiprocessing
 import sys
 
-MPI_installed = False
 try:
     import mpi4py
 
@@ -30,39 +31,60 @@ class Parallelizer(object):
     Abstract parallelization class
     """
 
-    def __init__(self, mode=None, num_procs=None, flag_for_low_level=False):
+    def __init__(
+        self,
+        mode: str | None = None,
+        num_procs: int | None = None,
+        flag_for_low_level: bool = False,
+    ):
         """
-        This will initialize the Parallelizer class and kick off the specific classes for multiprocessing and MPI.
+        This will initialize the Parallelizer class and kick off the specific
+        classes for multiprocessing and MPI.
 
-        Default num_procs is all the processesors possible
+        Default num_procs is all the processesors possible.
 
-        This will also establish:
-            :self   bol     self.HAS_MPI: If true it can import mpi4py;
-                        if False it either cant import mpi4py or the mode/flag_for_low_level dictates not to check mpi4py import
-                            due to issues which arrise when mpi is started within a program which is already mpi enabled
-            :self   str     self.mode:  The mode which will be used for this paralellization. This determined by mode and the enviorment
-                                        default is mpi if the enviorment allows, if not mpi then multiprocessing on all processors unless stated otherwise.
-            :self   class   self.parallel_obj: This is the obstantiated object of the class of parallizations.
-                            ie) if self.mode=='mpi' self.parallel_obj will be an instance of the mpi class
-                                This style of retained parallel_obj to be used later is important because this is the object which controls the work nodes and maintains the mpi universe
-                            self.parallel_obj will be set to None for simpler parallization methods like serial
-            :self   int     self.num_processor:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
-                                                This will be overriden and fixed to a single processor if mode==serial
-        Inputs:
-        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
-                            if None then we will try to pick a possible multiprocessing choice. This should only be used for
-                            top level coding. It is best practice to specify which multiprocessing choice to use.
-                            if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
-        :param int num_procs:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
-                                        This will be overriden and fixed to a single processor if mode==serial
-        :param bol flag_for_low_level: this will override mode and number of processors and set it to a multiprocess as serial. This is useful because
-                                a low-level program in mpi mode referenced by a top level program in mpi mode will have terrible problems. This means you can't mpi-multiprocess inside an mpi-multiprocess.
+        Args:
+            mode: the multiprocess mode to be used, ie) serial,
+                multiprocessing, mpi, or None: if None then we will try to
+                pick a possible multiprocessing choice. This should only
+                be used for top level coding. It is best practice to specify
+                which multiprocessing choice to use. if you have smaller programs
+                used by a larger program, with both mpi enabled there will be
+                problems, so specify multiprocessing is important.
+            num_procs: the number of processors or nodes that will be used.
+                If None than we will use all available nodes/processors
+                This will be overriden and fixed to a single processor if
+                mode==serial.
+            flag_for_low_level: this will override mode and number of processors
+                and set it to a multiprocess as serial. This is useful because
+                a low-level program in mpi mode referenced by a top level program
+                in mpi mode will have terrible problems. This means you can't
+                mpi-multiprocess inside an mpi-multiprocess.
+
+        Attrs:
+            mode:  The mode which will be used for this paralellization.
+                This determined by mode and the enviorment default is mpi if the
+                enviorment allows, if not mpi then multiprocessing on all
+                processors unless stated otherwise.
+            parallel_obj: This is the obstantiated object of the class of parallizations.
+                ie) if self.mode=='mpi' self.parallel_obj will be an instance of the mpi class
+                This style of retained parallel_obj to be used later is important because
+                this is the object which controls the work nodes and maintains the mpi universe
+                self.parallel_obj will be set to None for simpler parallization methods like serial
+            num_processor: the number of processors or nodes that will be used. If None than we
+                will use all available nodes/processors This will be overriden and fixed to a
+                single processor if mode==serial
         """
 
         if mode in ["none", "None"]:
             mode = None
 
-        self.HAS_MPI = self.test_import_MPI(mode, flag_for_low_level)
+        self.HAS_MPI: bool = self.test_import_MPI(mode, flag_for_low_level)
+        """
+        If true it can import mpi4py; if False it either cant import mpi4py or the
+        mode/flag_for_low_level dictates not to check mpi4py import due to issues
+        which arrise when mpi is started within a program which is already mpi enabled.
+        """
 
         # Pick the mode
         self.pick_mode = self.pick_mode()
@@ -182,7 +204,7 @@ class Parallelizer(object):
             return False
         return True
 
-    def start(self, mode=None):
+    def start(self, mode: str | None = None):
         """
         One must call this method before `run()` in order to configure MPI parallelization
 
@@ -192,11 +214,11 @@ class Parallelizer(object):
         with this multiprocess, referenced by a top level program, make sure the mode
         is explicitly chosen.
 
-        Inputs:
-        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
-                            if None then we will try to pick a possible multiprocessing choice. This should only be used for
-                            top level coding. It is best practice to specify which multiprocessing choice to use.
-                            if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
+        Args:
+            mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
+                if None then we will try to pick a possible multiprocessing choice. This should only be used for
+                top level coding. It is best practice to specify which multiprocessing choice to use.
+                if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
         Returns:
         :returns: class parallel_obj: This is the obstantiated object of the class of parallizations.
                             ie) if self.mode=='mpi' self.parallel_obj will be an instance of the mpi class
@@ -739,18 +761,15 @@ def start_processes(inputs, num_procs):
     return [item[1] for item in map(list, results)]
 
 
-###
-# Helper functions
-###
-
-
-def flatten_list(tier_list):
+def flatten_list(tier_list: list) -> list:
     """
     Given a list of lists, this returns a flat list of all items.
 
-    :params list tier_list: A 2D list.
+    Args:
+        tier_list: A 2D list.
 
-    :returns: A flat list of all items.
+    Returns:
+        A flat list of all items.
     """
 
     if tier_list is None:
@@ -763,7 +782,7 @@ def flatten_list(tier_list):
     return [item for sublist in tier_list for item in sublist]
 
 
-def strip_none(none_list):
+def strip_none(none_list: list[Any]) -> list[Any]:
     """
     Given a list that might contain None items, this returns a list with no
     None items.

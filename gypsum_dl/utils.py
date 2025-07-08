@@ -5,6 +5,8 @@ import random
 import string
 import textwrap
 
+from gypsum_dl import MolContainer, MyMol
+
 
 def group_mols_by_container_index(mol_lst):
     """Take a list of MyMol.MyMol objects, and place them in lists according to
@@ -17,7 +19,7 @@ def group_mols_by_container_index(mol_lst):
 
     Returns:
         A dictionary, where keys are `contnr_idx` values and values are lists of
-        MyMol.MyMol objects
+            MyMol.MyMol objects.
     """
 
     # Make the dictionary.
@@ -40,18 +42,17 @@ def group_mols_by_container_index(mol_lst):
     return grouped_results
 
 
-def random_sample(lst, num, msg_if_cut=""):
+def random_sample(lst: list, num: int, msg_if_cut: str = ""):
     """Randomly selects elements from a list.
 
-    :param lst: The list of elements.
-    :type lst: list
-    :param num: The number to randomly select.
-    :type num: int
-    :param msg_if_cut: The message to display if some elements must be ignored
-       to construct the list. Defaults to "".
-    :param msg_if_cut: str, optional
-    :return: A list that contains at most num elements.
-    :rtype: list
+    Args:
+        lst: The list of elements.
+        num: The number to randomly select.
+        msg_if_cut: The message to display if some elements must be ignored
+            to construct the list. Defaults to `""`.
+
+    Returns:
+        A list that contains at most num elements.
     """
 
     with contextlib.suppress(Exception):
@@ -69,14 +70,13 @@ def random_sample(lst, num, msg_if_cut=""):
     return lst
 
 
-def log(txt, trailing_whitespace=""):
+def log(txt: str, trailing_whitespace: str = "") -> None:
     """Prints a message to the screen.
 
-    :param txt: The message to print.
-    :type txt: str
-    :param trailing_whitespace: White space to add to the end of the
-        message, after the trim. "" by default.
-    :type trailing_whitespace: string
+    Args:
+        txt: The message to print.
+        trailing_whitespace: White space to add to the end of the
+            message, after the trim. "" by default.
     """
 
     whitespace_before = txt[: len(txt) - len(txt.lstrip())].replace("\t", "    ")
@@ -93,17 +93,17 @@ def log(txt, trailing_whitespace=""):
     )
 
 
-def fnd_contnrs_not_represntd(contnrs, results):
+def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> list:
     """Identify containers that have no representative elements in results.
     Something likely failed for the containers with no results.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
-    :param results: A list of MyMol.MyMol objects.
-    :type results: list
-    :return: A list of integers, the indecies of the contnrs that have no
-       associated elements in the results.
-    :rtype: list
+    Args:
+        contnrs: A list of containers (MolContainer.MolContainer).
+        results: A list of MyMol.MyMol objects.
+
+    Returns:
+        A list of integers, the indecies of the contnrs that have no
+            associated elements in the results.
     """
 
     # Find ones that don't have any generated. In the context of ionization, for
@@ -130,11 +130,11 @@ def fnd_contnrs_not_represntd(contnrs, results):
     return list(idx_to_smi.keys())
 
 
-def print_current_smiles(contnrs):
+def print_current_smiles(contnrs: list[MolContainer]) -> None:
     """Prints the smiles of the current containers. Helpful for debugging.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
+    Args:
+        contnrs: A list of containers (MolContainer.MolContainer).
     """
 
     # For debugging.
@@ -145,12 +145,11 @@ def print_current_smiles(contnrs):
             log("\t\t\tMol #" + str(i) + ": " + s)
 
 
-def exception(msg):
+def exception(msg: str) -> None:
     """Prints an error to the screen and raises an exception.
 
-    :param msg: The error message.
-    :type msg: str
-    :raises Exception: The error.
+    Args:
+        msg: The error message.
     """
 
     log(msg)
@@ -162,13 +161,14 @@ def exception(msg):
     raise Exception(msg)
 
 
-def slug(strng):
+def slug(strng: str) -> str:
     """Converts a string to one that is appropriate for a filename.
 
-    :param strng: The input string.
-    :type strng: str
-    :return: The filename appropriate string.
-    :rtype: str
+    Args:
+        strng: The input string.
+
+    Returns:
+        The filename appropriate string.
     """
 
     # See
