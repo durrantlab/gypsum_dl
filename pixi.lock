@@ -3928,10 +3928,10 @@ packages:
   timestamp: 1745436578592
 - pypi: ./
   name: gypsum-dl
-  version: 1.0.1.dev13+g38bfb04.d20250630123953
-  sha256: 76965a7dc41710ffcda918d9e136845022c293e3aca60a09589690e182337ce1
+  version: 1.0.1.dev4+g441bece
+  sha256: 4942dec03a78254da84781c5236ca91e82023ce806a26b87f4aec53b3f04b492
   requires_dist:
-  - loguru>=0.7.2,<0.8
+  - loguru>=0.7.2,<1
   - numpy>=2.0.0,<3
   - scipy>=1.15.1,<2
   - rdkit>=2024.9.4,<2027
