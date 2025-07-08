@@ -4,14 +4,12 @@ since most modern docking programs (e.g., Vina) can't consider alternate ring
 conformations.
 """
 
-import __future__
-
 import copy
 import warnings
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import chem_utils, utils
-from gypsum_dl.MyMol import MyConformer
+from gypsum_dl import utils
+from gypsum_dl.molecule import MyConformer
 
 try:
     from rdkit import Chem
@@ -46,7 +44,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
        chair, etc.). This function generates a few low-energy ring structures
        for each molecule with a non-aromatic ring(s).
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
@@ -153,7 +151,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
     """Gets alternate ring conformations. Meant to run with the parallelizer class.
 
     :param mol: The molecule to process (with non-aromatic ring(s)).
-    :type mol: MyMol.MyMol
+    :type mol: Molecule
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
        step.
@@ -171,7 +169,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         run time, but sometimes converts certain molecules that would
         otherwise fail.
     :type second_embed: bool
-    :return: A list of MyMol.MyMol objects, with alternate ring conformations.
+    :return: A list of Molecule objects, with alternate ring conformations.
     :rtype: list
     """
 
@@ -251,7 +249,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         # contribute similar conformations. In the end, you'll be selecting from
         # all these together, so similar ones could end up together.
 
-        # Key is group id from kmeans (int). Values are the MyMol.MyConformers
+        # Key is group id from kmeans (int). Values are the MyConformers
         # objects.
         best_conf_per_group = {}
 
@@ -259,10 +257,10 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         for k, grp in enumerate(groups):
             if grp not in list(best_conf_per_group.keys()):
                 best_conf_per_group[grp] = mol.conformers[k]
-        # best_confs has the MyMol.MyConformers objects.
+        # best_confs has the MyConformers objects.
         best_confs = best_conf_per_group.values()
 
-        # Convert rdkit mols to MyMol.MyMol and save those MyMol.MyMol objects
+        # Convert rdkit mols to Molecule and save those Molecule objects
         # for returning.
         results = []
         for conf in best_confs:

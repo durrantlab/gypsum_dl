@@ -225,17 +225,17 @@ As always, be sure to examine the structures that Gypsum-DL outputs to ensure th
 In looking over many Gypsum-DL-generated variants, we have identified a number of substructures that, though technically possible, strike us as improbable or otherwise poorly suited for virtual screening.
 Here are some examples:
 
-- `C=[N-]`
-- `[N-]C=[N+]`
-- `[nH+]c[n-]`
-- `[#7+]~[#7+]`
-- `[#7-]~[#7-]`
-- `[!#7]~[#7+]~[#7-]~[!#7]`
-- `[#5]` (boron)
-- `O=[PH](=O)([#8])([#8])`
-- `N=c1cc[#7]c[#7]1`
-- `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
-- Metals
+-   `C=[N-]`
+-   `[N-]C=[N+]`
+-   `[nH+]c[n-]`
+-   `[#7+]~[#7+]`
+-   `[#7-]~[#7-]`
+-   `[!#7]~[#7+]~[#7-]~[!#7]`
+-   `[#5]` (boron)
+-   `O=[PH](=O)([#8])([#8])`
+-   `N=c1cc[#7]c[#7]1`
+-   `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
+-   Metals
 
 If you'd like to discard molecular variants with substructures such as these, use the `--use_durrant_lab_filters` flag.
 
@@ -255,7 +255,7 @@ To correct the problem, either increase the available memory, or divide your lib
 Gypsum-DL aims to enumerate many possible variant forms, including forms that are not necessarily probable.
 Beyond applying Durrant-Lab filters, several methods allow users to exclude other potentially problematic forms:
 
-1. Identify the steps Gypsum-DL takes to generate a given problematic form (see the "Genealogy" field of every output SDF file).
+1.  Identify the steps Gypsum-DL takes to generate a given problematic form (see the "Genealogy" field of every output SDF file).
     Then use parameters such as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`, `--skip_adding_hydrogen`, `--skip_making_tautomers`, `--skip_enumerate_chiral_mol`, or `--skip_enumerate_double_bonds` to skip the problem-causing step.
     This fix is easy, but it may unexpectedly impact unrelated compounds.
 2.  Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision` parameters if Gypsum-DL is producing compounds with undesired protonation states.
@@ -263,7 +263,6 @@ Beyond applying Durrant-Lab filters, several methods allow users to exclude othe
    `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
 3.  Add to the Durrant-Lab filters if there is a specific substructure you would like to avoid (e.g., imidic acid due to amide/imidic-acid tautomerization).
     Simplify modify the `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.
-
 
 ## Citation
 

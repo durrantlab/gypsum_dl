@@ -3,15 +3,8 @@ Desalts the input SMILES strings. If an input SMILES string contains to
 molecule, keep the larger one.
 """
 
-import __future__
-
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
-
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+from gypsum_dl import Molecule, utils
 
 
 def desalt_orig_smi(
@@ -20,7 +13,7 @@ def desalt_orig_smi(
     """If an input molecule has multiple unconnected fragments, this removes
        all but the largest fragment.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -55,9 +48,9 @@ def desalter(contnr):
     """Desalts molecules in a molecule container.
 
     :param contnr: The molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :return: A molecule object.
-    :rtype: MyMol.MyMol
+    :rtype: Molecule
     """
 
     # Split it into fragments
@@ -83,7 +76,7 @@ def desalter(contnr):
     biggest_frag = num_heavy_atoms_to_frag[max(num_heavy_atoms)]
 
     # Return info about that biggest fragment.
-    new_mol = MyMol.MyMol(biggest_frag)
+    new_mol = Molecule(biggest_frag)
     new_mol.contnr_idx = contnr.contnr_idx
     new_mol.name = contnr.name
     new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy

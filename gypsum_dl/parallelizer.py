@@ -1,6 +1,4 @@
 """
-Parallelizer.py
-
 Abstract parallel computation utility.
 
 The "parallelizer" object exposes a simple map interface that takes a function
@@ -22,7 +20,7 @@ try:
     import mpi4py
 
     MPI_installed = True
-except Exception:
+except ImportError:
     MPI_installed = False
 
 

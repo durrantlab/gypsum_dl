@@ -2,14 +2,11 @@
 A module for generating alternate chiralities.
 """
 
-import __future__
-
 import copy
 import itertools
-import random
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
+from gypsum_dl import Molecule, chem_utils, utils
 
 try:
     from rdkit import Chem
@@ -29,7 +26,7 @@ def enumerate_chiral_molecules(
        an atom is given, that chiral center is not varied. Only the chirality
        of unspecified chiral centers is varied.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
@@ -106,7 +103,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating chiralities.
 
     :param mol: The input molecule.
-    :type mol: MyMol.MyMol
+    :type mol: Molecule
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
        step.
@@ -119,7 +116,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
        computational expense, but it also increases the chances of finding good
        molecules.
     :type thoroughness: int
-    :return: A list of MyMol.MyMol objects.
+    :return: A list of Molecule objects.
     :rtype: list
     """
 
@@ -188,8 +185,8 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
                     Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW
                 )
 
-        # Make a new MyMol.MyMol object from that rdkit molecule.
-        new_mol = MyMol.MyMol(a_rd_mol)
+        # Make a new Molecule object from that rdkit molecule.
+        new_mol = Molecule(a_rd_mol)
 
         # Add the new molecule to the list of results, if it does not have a
         # bizarre substructure.

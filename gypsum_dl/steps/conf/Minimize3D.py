@@ -3,12 +3,10 @@ This module performs a final 3D minimization to improve the small-molecule
 geometry.
 """
 
-import __future__
-
 import copy
 
-from gypsum_dl import chem_utils, utils
-from gypsum_dl.MyMol import MyConformer
+from gypsum_dl import utils
+from gypsum_dl.molecule import MyConformer
 
 
 def minimize_3d(
@@ -25,7 +23,7 @@ def minimize_3d(
        conformers, minimizes the best ones, and then saves the best of the
        best.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
@@ -76,12 +74,12 @@ def minimize_3d(
     else:
         tmp = parallelizer_obj.run(params, parallel_minit, num_procs, job_manager)
 
-    # Save energy into MyMol object, and get a list of just those objects.
+    # Save energy into Molecule object, and get a list of just those objects.
     contnr_list_not_empty = set([])  # To keep track of which container lists
     # are not empty. These are the ones
     # you'll be repopulating with better
     # optimized structures.
-    results = []  # Will contain MyMol.MyMol objects, with the saved energies
+    results = []  # Will contain Molecule objects, with the saved energies
     # inside.
     for mol in tmp:
         mol.mol_props["Energy"] = mol.conformers[0].energy
@@ -107,11 +105,11 @@ def minimize_3d(
 
 
 def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
-    """Minimizes the geometries of a MyMol.MyMol object. Meant to be run
+    """Minimizes the geometries of a Molecule object. Meant to be run
     within parallelizer.
 
     :param mol: The molecule to minimize.
-    :type mol: MyMol.MyMol
+    :type mol: Molecule
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
        step.
@@ -130,7 +128,7 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
         otherwise fail.
     :type second_embed: bool
     :return: A molecule with the minimized conformers inside it.
-    :rtype: MyMol.MyMol
+    :rtype: Molecule
     """
 
     # Not minimizing. Just adding the conformers.

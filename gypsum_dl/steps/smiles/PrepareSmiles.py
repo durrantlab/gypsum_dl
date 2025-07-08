@@ -3,8 +3,6 @@ Runs the smile preparation process. Generates alternate ionization,
 tautomeric, chiral forms, etc.
 """
 
-import __future__
-
 from gypsum_dl import utils
 from gypsum_dl.steps.smiles.AddHydrogens import add_hydrogens
 from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
@@ -20,7 +18,7 @@ from gypsum_dl.steps.smiles.MakeTautomers import make_tauts
 def prepare_smiles(contnrs, params):
     """Runs the appropriate steps for processing the SMILES strings.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param params: The user parameters.
     :type params: dict
@@ -159,7 +157,7 @@ def wrap_molecules(contnrs):
     In this case, the one SMILES needs to be converted to a RDKit mol object
     for subsequent steps to work. Let's do that here.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     """
 

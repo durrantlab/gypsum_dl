@@ -13,8 +13,7 @@ from datetime import datetime
 
 from rdkit import Chem
 
-from gypsum_dl import utils
-from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl import MoleculeContainer, utils
 from gypsum_dl.parallelizer import Parallelizer
 from gypsum_dl.steps.conf.PrepareThreeD import prepare_3d
 from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
@@ -211,7 +210,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             )
             continue
 
-        new_contnr = MolContainer(smiles, name, idx_counter, props)
+        new_contnr = MoleculeContainer(smiles, name, idx_counter, props)
         if (
             new_contnr.orig_smi_canonical == None
             or type(new_contnr.orig_smi_canonical) != str
@@ -513,12 +512,12 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
     return params
 
 
-def add_mol_id_props(contnrs: list[MolContainer]) -> None:
+def add_mol_id_props(contnrs: list[MoleculeContainer]) -> None:
     """Once all molecules have been generated, go through each and add the
        name and a unique id (for writing to the SDF file, for example).
 
     Args:
-        contnrs: A list of containers (MolContainer.MolContainer).
+        contnrs: A list of containers (container.MoleculeContainer).
     """
 
     cont_id = 0
@@ -530,12 +529,12 @@ def add_mol_id_props(contnrs: list[MolContainer]) -> None:
 
 
 def deal_with_failed_molecules(
-    contnrs: list[MolContainer], params: dict[str, Any]
+    contnrs: list[MoleculeContainer], params: dict[str, Any]
 ) -> None:
     """Removes and logs failed molecules.
 
     Args:
-        contnrs: A list of containers (MolContainer.MolContainer).
+        contnrs: A list of containers (container.MoleculeContainer).
         params: The parameters, used to determine the filename that will
             contain the failed molecules.
     """

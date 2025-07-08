@@ -1,10 +1,10 @@
 """
 This module contains classes and functions for processing individual molecules
 (variants). All variants of the same input molecule are grouped together in
-the same MolContainer.MolContainer object. Each MyMol.MyMol is also associated
+the same container.MoleculeContainer object. Each Molecule is also associated
 with conformers described here (3D coordinate sets).
 
-So just to clarify: MolContainer.MolContainer > MyMol.MyMol >
+So just to clarify: container.MoleculeContainer > Molecule >
 MyMol.MyConformer
 """
 
@@ -26,7 +26,7 @@ from gypsum_dl import utils
 RDLogger.DisableLog("rdApp.*")
 
 
-class MyMol:
+class Molecule:
     """
     A class that wraps around a rdkit.Mol object. Includes additional data and
     functions.
@@ -114,7 +114,7 @@ class MyMol:
         return self.stdrd_smiles
 
     def __hash__(self):
-        """Allows you to compare MyMol.MyMol objects.
+        """Allows you to compare Molecule objects.
 
         :return: The hashed canonical smiles.
         :rtype: str
@@ -126,10 +126,10 @@ class MyMol:
         return hash(can_smi)
 
     def __eq__(self, other):
-        """Allows you to compare MyMol.MyMol objects.
+        """Allows you to compare Molecule objects.
 
         :param other: The other molecule.
-        :type other: MyMol.MyMol
+        :type other: Molecule
         :return: Whether the other molecule is the same as this one.
         :rtype: bool
         """
@@ -137,10 +137,10 @@ class MyMol:
         return False if other is None else self.__hash__() == other.__hash__()
 
     def __ne__(self, other):
-        """Allows you to compare MyMol.MyMol objects.
+        """Allows you to compare Molecule objects.
 
         :param other: The other molecule.
-        :type other: MyMol.MyMol
+        :type other: Molecule
         :return: Whether the other molecule is different from this one.
         :rtype: bool
         """
@@ -154,7 +154,7 @@ class MyMol:
         attempts to compare MyMol directly.
 
         :param other: The other molecule.
-        :type other: MyMol.MyMol
+        :type other: Molecule
         :return: True or False, if less than or not.
         :rtype: boolean
         """
@@ -168,7 +168,7 @@ class MyMol:
         attempts to compare MyMol directly.
 
         :param other: The other molecule.
-        :type other: MyMol.MyMol
+        :type other: Molecule
         :return: True or False, if less than or equal to, or not.
         :rtype: boolean
         """
@@ -182,7 +182,7 @@ class MyMol:
         attempts to compare MyMol directly.
 
         :param other: The other molecule.
-        :type other: MyMol.MyMol
+        :type other: Molecule
         :return: True or False, if greater than or not.
         :rtype: boolean
         """
@@ -196,7 +196,7 @@ class MyMol:
         attempts to compare MyMol directly.
 
         :param other: The other molecule.
-        :type other: MyMol.MyMol
+        :type other: Molecule
         :return: True or False, if greater than or equal to, or not.
         :rtype: boolean
         """
@@ -478,16 +478,16 @@ class MyMol:
         return frags
 
     def inherit_contnr_props(self, other):
-        """Copies a few key properties from a different MyMol.MyMol object to
+        """Copies a few key properties from a different Molecule object to
            this one.
 
-        :param other: The other MyMol.MyMol object to copy these properties to.
-        :type other: MyMol.MyMol
+        :param other: The other Molecule object to copy these properties to.
+        :type other: Molecule
         """
 
-        # other can be a contnr or MyMol.MyMol object. These are properties
-        # that should be the same for every MyMol.MyMol object in this
-        # MolContainer.
+        # other can be a contnr or Molecule object. These are properties
+        # that should be the same for every Molecule object in this
+        # MoleculeContainer.
         self.contnr_idx = other.contnr_idx
         self.orig_smi = other.orig_smi
         self.orig_smi_deslt = other.orig_smi_deslt  # initial assumption
@@ -511,7 +511,7 @@ class MyMol:
 
     def set_all_rdkit_mol_props(self):
         """Set all the stored molecular properties. Copies ones from the
-        MyMol.MyMol object to the MyMol.rdkit_mol object."""
+        Molecule object to the MyMol.rdkit_mol object."""
 
         self.set_rdkit_mol_prop("SMILES", self.smiles(True))
         # self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
@@ -631,7 +631,7 @@ class MyMol:
 class MyConformer:
     """A wrapper around a rdkit Conformer object. Allows me to associate extra
     values with conformers. These are 3D coordinate sets for a given
-    MyMol.MyMol object (different molecule conformations).
+    Molecule object (different molecule conformations).
     """
 
     def __init__(
@@ -639,8 +639,8 @@ class MyConformer:
     ):
         """Create a MyConformer objects.
 
-        :param mol: The MyMol.MyMol associated with this conformer.
-        :type mol: MyMol.MyMol
+        :param mol: The Molecule associated with this conformer.
+        :type mol: Molecule
         :param conformer: An optional variable specifying the conformer to use.
            If not specified, it will create a new conformer. Defaults to None.
         :type conformer: rdkit.Conformer, optional

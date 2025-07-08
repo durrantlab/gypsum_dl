@@ -10,7 +10,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
        makes a conformer without minimization (so not too computationally
        expensive).
 
-    :param mol_lst: The list of MyMol.MyMol objects.
+    :param mol_lst: The list of Molecule objects.
     :type mol_lst: list
     :param num: The number of the lowest-energy ones to keep.
     :type num: int
@@ -22,7 +22,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
        computational expense, but it also increases the chances of finding good
        molecules.
     :type thoroughness: int
-    :return: Returns a list of MyMol.MyMol, the best ones.
+    :return: Returns a list of Molecule, the best ones.
     :rtype: list
     """
 
@@ -34,7 +34,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
         return mol_lst
 
     # First, generate 3D structures. How many? num * thoroughness. mols_3d is
-    # a list of Gypsum-DL MyMol.MyMol objects.
+    # a list of Gypsum-DL Molecule objects.
     mols_3d = utils.random_sample(mol_lst, num * thoroughness, "")
 
     # Now get the energies
@@ -98,9 +98,9 @@ def bst_for_each_contnr_no_opt(
        combinatorial explosion. This is run periodically on the growing
        containers to keep them in check.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
-    :param mol_lst: The list of MyMol.MyMol objects.
+    :param mol_lst: The list of Molecule objects.
     :type mol_lst: list
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next

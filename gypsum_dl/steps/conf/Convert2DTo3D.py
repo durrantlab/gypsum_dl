@@ -1,17 +1,10 @@
 """
 A module to so the 2D to 3D conversion, though the actual code for that
-conversion is in MyMol.MyMol.make_first_3d_conf_no_min()
+conversion is in Molecule.make_first_3d_conf_no_min()
 """
 
+import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
-
-from ... import parallelizer as Parallelizer
-
-try:
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def convert_2d_to_3d(
@@ -24,7 +17,7 @@ def convert_2d_to_3d(
 ):
     """Converts the 1D smiles strings into 3D small-molecule models.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
@@ -74,10 +67,10 @@ def parallel_make_3d(mol):
     """Does the 2D to 3D conversion. Meant to run within parallelizer.
 
     :param mol: The molecule to be converted.
-    :type mol: MyMol.MyMol
-    :return: A MyMol.MyMol object with the 3D coordinates inside, or None if
+    :type mol: Molecule
+    :return: A Molecule object with the 3D coordinates inside, or None if
        it fails.
-    :rtype: MyMol.MyMol | None
+    :rtype: Molecule | None
     """
 
     # Initially assume you won't show an error message.

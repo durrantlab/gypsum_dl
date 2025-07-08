@@ -1,25 +1,30 @@
 """Some helpful utility definitions used throughout the code."""
 
+from typing import TYPE_CHECKING, Any
+
 import contextlib
 import random
 import string
 import textwrap
 
-from gypsum_dl import MolContainer, MyMol
+if TYPE_CHECKING:
+    from gypsum_dl import Molecule, MoleculeContainer
 
 
-def group_mols_by_container_index(mol_lst):
-    """Take a list of MyMol.MyMol objects, and place them in lists according to
+def group_mols_by_container_index(
+    mol_lst: list["Molecule"],
+) -> dict[Any, list["Molecule"]]:
+    """Take a list of Molecule objects, and place them in lists according to
     their associated contnr_idx values. These lists are accessed via
     a dictionary, where they keys are the contnr_idx values
     themselves.
 
     Args:
-        mol_lst: The list of MyMol.MyMol objects.
+        mol_lst: The list of Molecule objects.
 
     Returns:
         A dictionary, where keys are `contnr_idx` values and values are lists of
-            MyMol.MyMol objects.
+            Molecule objects.
     """
 
     # Make the dictionary.
@@ -42,7 +47,7 @@ def group_mols_by_container_index(mol_lst):
     return grouped_results
 
 
-def random_sample(lst: list, num: int, msg_if_cut: str = ""):
+def random_sample(lst: list, num: int, msg_if_cut: str = "") -> list:
     """Randomly selects elements from a list.
 
     Args:
@@ -56,7 +61,7 @@ def random_sample(lst: list, num: int, msg_if_cut: str = ""):
     """
 
     with contextlib.suppress(Exception):
-        # Remove redundancies. Supress because someitems lst element may be
+        # Remove redundancies. Supress because sometimes lst element may be
         # unhashable.
         lst = list(set(lst))
 
@@ -93,13 +98,15 @@ def log(txt: str, trailing_whitespace: str = "") -> None:
     )
 
 
-def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> list:
+def fnd_contnrs_not_represntd(
+    contnrs: list["MoleculeContainer"], results: list
+) -> list:
     """Identify containers that have no representative elements in results.
     Something likely failed for the containers with no results.
 
     Args:
-        contnrs: A list of containers (MolContainer.MolContainer).
-        results: A list of MyMol.MyMol objects.
+        contnrs: A list of containers (container.MoleculeContainer).
+        results: A list of Molecule objects.
 
     Returns:
         A list of integers, the indecies of the contnrs that have no
@@ -130,17 +137,17 @@ def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> lis
     return list(idx_to_smi.keys())
 
 
-def print_current_smiles(contnrs: list[MolContainer]) -> None:
+def print_current_smiles(contnrs: list["MoleculeContainer"]) -> None:
     """Prints the smiles of the current containers. Helpful for debugging.
 
     Args:
-        contnrs: A list of containers (MolContainer.MolContainer).
+        contnrs: A list of containers (container.MoleculeContainer).
     """
 
     # For debugging.
-    log("    Contents of MolContainers")
+    log("    Contents of MoleculeContainers")
     for i, mol_cont in enumerate(contnrs):
-        log("\t\tMolContainer #" + str(i) + " (" + mol_cont.name + ")")
+        log("\t\tMoleculeContainer #" + str(i) + " (" + mol_cont.name + ")")
         for i, s in enumerate(mol_cont.all_can_noh_smiles()):
             log("\t\t\tMol #" + str(i) + ": " + s)
 

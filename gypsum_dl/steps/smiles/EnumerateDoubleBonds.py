@@ -1,14 +1,12 @@
 """Module for enumerating unspecified double bonds (cis vs. trans)."""
 
-import __future__
-
 import copy
 import itertools
 import math
 import random
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
+from gypsum_dl import Molecule, chem_utils, utils
 
 try:
     from rdkit import Chem
@@ -28,7 +26,7 @@ def enumerate_double_bonds(
        double bond is specified, it is not varied. All unspecified double bonds
        are varied.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: A list.
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
@@ -109,7 +107,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating double bonds.
 
     :param mol: The molecule with a potentially unspecified double bond.
-    :type mol: MyMol.MyMol
+    :type mol: Molecule
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
        step.
@@ -274,8 +272,8 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     ]
     results = []
     for smile_to_consider in smiles_to_consider:
-        # Make a new MyMol.MyMol object with the specified smiles.
-        new_mol = MyMol.MyMol(smile_to_consider)
+        # Make a new Molecule object with the specified smiles.
+        new_mol = Molecule(smile_to_consider)
 
         # Sometimes you get an error if there's a bad structure otherwise. Add
         # the new molecule to the list of results, if it does not have a bizarre

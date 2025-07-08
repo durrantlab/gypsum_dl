@@ -1,16 +1,16 @@
 """
-This module describes the MolContainer, which contains different MyMol.MyMol
+This module describes the MoleculeContainer, which contains different Molecule
 objects. Each object in this container is derived from the same input molecule
 (so they are variants). Note that conformers (3D coordinate sets) live inside
-MyMol.MyMol. So, just to clarify:
+Molecule. So, just to clarify:
 
-MolContainer.MolContainer > MyMol.MyMol > MyMol.MyConformers
+container.MoleculeContainer > Molecule > MyMol.MyConformers
 """
 
-from gypsum_dl import MyMol, chem_utils, utils
+from gypsum_dl import Molecule, chem_utils, utils
 
 
-class MolContainer:
+class MoleculeContainer:
     """The molecucle container class. It stores all the molecules (tautomers,
     etc.) associated with a single input SMILES entry."""
 
@@ -21,7 +21,7 @@ class MolContainer:
         :type smiles: str
         :param name: The name of the molecule.
         :type name: str
-        :param index: The index of this MolContainer in the main MolContainer
+        :param index: The index of this MoleculeContainer in the main MoleculeContainer
            list.
         :type index: int
         :param properties: A dictionary of properties from the sdf.
@@ -39,7 +39,7 @@ class MolContainer:
         self.mols = []
         self.name = name
         self.properties = properties
-        self.mol_orig_frm_inp_smi = MyMol.MyMol(smiles, name)
+        self.mol_orig_frm_inp_smi = Molecule(smiles, name)
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx
         self.frgs = ""  # For caching.
 
@@ -70,9 +70,9 @@ class MolContainer:
 
         :param smiles: The smiles string to check.
         :type smiles: str
-        :return: True if it is present, otherwise a new MyMol.MyMol object
+        :return: True if it is present, otherwise a new Molecule object
            corresponding to that smiles.
-        :rtype: bool or MyMol.MyMol
+        :rtype: bool or Molecule
         """
 
         # Checks all the mols in this container to see if a given smiles is
@@ -86,7 +86,7 @@ class MolContainer:
 
         # Determine whether it is already in the container, and act
         # accordingly.
-        amol = MyMol.MyMol(smiles)
+        amol = Molecule(smiles)
         return True if amol.smiles() in can_smi_in_this_container else amol
 
     def add_smiles(self, smiles):
@@ -119,8 +119,8 @@ class MolContainer:
     def add_mol(self, mol):
         """Adds a molecule to this container. Does NOT check for uniqueness.
 
-        :param mol: The MyMol.MyMol object to add.
-        :type mol: MyMol.MyMol
+        :param mol: The Molecule object to add.
+        :type mol: Molecule
         """
 
         self.mols.append(mol)
@@ -159,10 +159,10 @@ class MolContainer:
         :type orig_smi: str
         """
 
-        # Update the MolContainer object
+        # Update the MoleculeContainer object
         self.orig_smi = orig_smi
         self.orig_smi_deslt = orig_smi
-        self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
+        self.mol_orig_frm_inp_smi = Molecule(self.orig_smi, self.name)
         self.frgs = ""
         self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
         self.num_nonaro_rngs = len(

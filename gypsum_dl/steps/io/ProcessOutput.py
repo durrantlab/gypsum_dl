@@ -3,8 +3,6 @@ The proccess_output definition determines which formats are saved to the
 disk (output).
 """
 
-import __future__
-
 from gypsum_dl import utils
 from gypsum_dl.steps.io.SaveToPDB import convert_sdfs_to_PDBs
 from gypsum_dl.steps.io.SaveToSDF import save_to_sdf

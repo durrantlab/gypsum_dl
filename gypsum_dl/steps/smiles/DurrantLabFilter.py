@@ -3,8 +3,6 @@ This module removes molecules with prohibited substructures, per Durrant-lab
 filters.
 """
 
-import __future__
-
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
 
@@ -77,7 +75,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     """Removes any molecules that contain prohibited substructures, per the
     durrant-lab filters.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: A list.
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -141,12 +139,12 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
        break any nonaromatic rings present in the original object.
 
     :param contnr: The molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :param prohibited_substructs: A list of the prohibited substructures.
     :type prohibited_substructs: list
     :return: Either the container with bad molecules removed, or a None
       object.
-    :rtype: MolContainer.MolContainer | None
+    :rtype: container.MoleculeContainer | None
     """
 
     # Replace any molecules that have prohibited substructure with None.

@@ -7,7 +7,7 @@ from dimorphite_dl import protonate_smiles
 from rdkit import Chem
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
+from gypsum_dl import Molecule, chem_utils, utils
 
 
 def add_hydrogens(
@@ -24,7 +24,7 @@ def add_hydrogens(
     """Adds hydrogen atoms to molecule containers, as appropriate for a given
        pH.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: A list.
     :param min_pH: The minimum pH to consider.
     :type min_pH: float
@@ -119,7 +119,7 @@ def parallel_add_H(contnr, protonation_settings):
        This is the function that gets fed into the parallelizer.
 
     :param contnr: The molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :param protonation_settings: Protonation settings to pass to Dimorphite-DL.
     :type protonation_settings: dict
     :return: [description]
@@ -144,14 +144,14 @@ def parallel_add_H(contnr, protonation_settings):
     # objects.
     rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
 
-    # Convert from rdkit mols to MyMol.MyMol.
-    addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]
+    # Convert from rdkit mols to Molecule.
+    addH_mols = [Molecule(mol) for mol in rdkit_mols if mol is not None]
 
-    # Remove MyMols with odd substructures.
+    # Remove Molecule with odd substructures.
     addH_mols = [mol for mol in addH_mols if mol.remove_bizarre_substruc() is False]
 
     # I once saw it add a "C+"" here. So do a secondary check at this point to
-    # make sure it's valid. Recreate the list, moving new MyMol.MyMol objects
+    # make sure it's valid. Recreate the list, moving new Molecule objects
     # into the return_values list.
 
     return_values = []

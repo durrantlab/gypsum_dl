@@ -2,8 +2,6 @@
 Runs the 3D preparation process.
 """
 
-import __future__
-
 from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d
 from gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs import (
     generate_alternate_3d_nonaromatic_ring_confs,
@@ -14,7 +12,7 @@ from gypsum_dl.steps.conf.Minimize3D import minimize_3d
 def prepare_3d(contnrs, params):
     """Runs the pipeline for generating the 3D small-molecule models.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param params: The parameters.
     :type params: dict

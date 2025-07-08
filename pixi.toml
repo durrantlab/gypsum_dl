@@ -40,7 +40,7 @@ scalene = ">=1.5.41,<2"
 basedpyright = ">=1.29.1,<2"
 
 [feature.dev.tasks]
-mdlint = { cmd = ["markdownlint-cli2", '"**/*.{md,markdown}"', "--fix", "--config", ".markdownlint.yaml", "||", "true"] }
+mdlint = { cmd = ["markdownlint-cli2", '"docs/*.{md,markdown}"', "--fix", "--config", ".markdownlint.yaml", "||", "true"] }
 isort = { cmd = ["isort", "--settings-path", ".isort.cfg", "./gypsum_dl", "./tests", "||", "true"] }
 ruff = { cmd = ["ruff", "format", "--config", ".ruff.toml", "./gypsum_dl", "./tests", "||", "true"] }
 format = { depends-on = ["mdlint", "isort", "ruff"] }

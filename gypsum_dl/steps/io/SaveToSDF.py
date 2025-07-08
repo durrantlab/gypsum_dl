@@ -2,8 +2,6 @@
 Saves output files to SDF.
 """
 
-import __future__
-
 import os
 
 from gypsum_dl import utils
@@ -17,7 +15,7 @@ except Exception:
 def save_to_sdf(contnrs, params, separate_output_files, output_folder):
     """Saves the 3D models to the disk as an SDF file.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param params: The parameters.
     :type params: dict
