@@ -8,8 +8,6 @@ from ast import literal_eval
 
 from loguru import logger
 
-__version__ = "1.2.1"
-
 logger.disable("gypsum_dl")
 
 LOG_FORMAT = (
@@ -43,7 +41,7 @@ def enable_logging(
         )
     if isinstance(file_path, str):
         config["handlers"].append(
-            {"sink": file_path, "level": level_set, "format": log_format, "False": True}
+            {"sink": file_path, "level": level_set, "format": log_format, "colorize": True}
         )
     # https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure
     logger.configure(**config)

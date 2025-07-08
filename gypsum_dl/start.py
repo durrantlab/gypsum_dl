@@ -14,10 +14,10 @@ from rdkit import Chem
 from gypsum_dl import utils
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.parallelizer import Parallelizer
-from gypsum_dl.Steps.IO.LoadFiles import load_sdf_file, load_smiles_file
-from gypsum_dl.Steps.IO.ProcessOutput import proccess_output
-from gypsum_dl.Steps.SMILES.PrepareSmiles import prepare_smiles
-from gypsum_dl.Steps.ThreeD.PrepareThreeD import prepare_3d
+from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
+from gypsum_dl.steps.io.ProcessOutput import proccess_output
+from gypsum_dl.steps.smiles.PrepareSmiles import prepare_smiles
+from gypsum_dl.steps.conf.PrepareThreeD import prepare_3d
 
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
