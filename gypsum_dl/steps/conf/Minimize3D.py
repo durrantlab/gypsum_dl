@@ -5,7 +5,8 @@ geometry.
 
 import copy
 
-from gypsum_dl import utils
+from loguru import logger
+
 from gypsum_dl.molecule import MyConformer
 
 
@@ -49,9 +50,7 @@ def minimize_3d(
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
-
-    # Let the user know you're on this step.
-    utils.log("Minimizing all 3D molecular structures...")
+    logger.info("Minimizing all 3D molecular structures...")
 
     # Create the parameters (inputs) for the parallelizer.
     params = []

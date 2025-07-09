@@ -265,6 +265,6 @@ class MoleculeContainer:
         """
 
         if type(new_idx) != int:
-            utils.exception("New idx value must be an int.")
+            raise TypeError("New idx value must be an int.")
         self.contnr_idx = new_idx
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx

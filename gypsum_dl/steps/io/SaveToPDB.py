@@ -5,13 +5,9 @@ Contains the function for saving the output to PDB files.
 import os
 import sys
 
-import rdkit
 import rdkit.Chem as Chem
 
 from gypsum_dl import utils
-
-# Disable the unnecessary RDKit warnings
-rdkit.RDLogger.DisableLog("rdApp.*")
 
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), "gypsum_dl"))
 

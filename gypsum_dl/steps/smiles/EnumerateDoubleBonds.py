@@ -5,13 +5,11 @@ import itertools
 import math
 import random
 
+from loguru import logger
+from rdkit import Chem
+
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import Molecule, chem_utils, utils
-
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def enumerate_double_bonds(
@@ -52,7 +50,7 @@ def enumerate_double_bonds(
     if max_variants_per_compound == 0:
         return
 
-    utils.log("Enumerating all possible cis-trans isomers for all molecules...")
+    logger.debug("Enumerating all possible cis-trans isomers for all molecules...")
 
     # Group the molecule containers so they can be passed to the parallelizer.
     params = []
@@ -82,7 +80,7 @@ def enumerate_double_bonds(
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
-        utils.log(
+        logger.warning(
             "\tCould not generate valid double-bond variant for "
             + contnrs[miss_indx].orig_smi
             + " ("
@@ -212,9 +210,8 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
 
     # Let the user know.
     if dbl_bnd_count > 0:
-        utils.log(
-            "\t"
-            + mol.smiles(True)
+        logger.info(
+            mol.smiles(True)
             + " has "
             # + str(dbl_bnd_count)
             + str(

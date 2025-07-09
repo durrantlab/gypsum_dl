@@ -3,8 +3,10 @@ A module to so the 2D to 3D conversion, though the actual code for that
 conversion is in Molecule.make_first_3d_conf_no_min()
 """
 
+from loguru import logger
+
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import chem_utils, utils
+from gypsum_dl import chem_utils
 
 
 def convert_2d_to_3d(
@@ -39,7 +41,7 @@ def convert_2d_to_3d(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    utils.log("Converting all molecules to 3D structures.")
+    logger.info("Converting all molecules to 3D structures.")
 
     # Make the inputs to pass to the parallelizer.
     params = []
@@ -97,8 +99,8 @@ def parallel_make_3d(mol):
 
     if show_error_msg:
         # Something's gone wrong, so show this error.
-        utils.log(
-            "\tWARNING: Could not generate 3D geometry for "
+        logger.warning(
+            "Could not generate 3D geometry for "
             + str(mol.smiles())
             + " ("
             + mol.name

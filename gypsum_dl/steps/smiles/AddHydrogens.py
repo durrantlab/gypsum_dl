@@ -4,6 +4,7 @@ molecules.
 """
 
 from dimorphite_dl import protonate_smiles
+from loguru import logger
 from rdkit import Chem
 
 import gypsum_dl.parallelizer as Parallelizer
@@ -52,7 +53,7 @@ def add_hydrogens(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    utils.log("Ionizing all molecules...")
+    logger.info("Ionizing all molecules...")
 
     # Make a simple directory with the ionization parameters.
     protonation_settings = {
@@ -84,8 +85,8 @@ def add_hydrogens(
     # For those molecules, just use the original SMILES string, with hydrogen
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
-        utils.log(
-            "\tWARNING: Gypsum-DL produced no valid ionization states for "
+        logger.warning(
+            "Gypsum-DL produced no valid ionization states for "
             + contnrs[miss_indx].orig_smi
             + " ("
             + contnrs[miss_indx].name
@@ -128,11 +129,11 @@ def parallel_add_H(contnr, protonation_settings):
 
     # Make sure the canonical SMILES is actually a string.
     if not isinstance(contnr.orig_smi_canonical, str):
-        utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
-        utils.log(
+        logger.error(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        logger.error(
             f"type container.orig_smi_canonical: {str(type(contnr.orig_smi_canonical))}"
         )
-        utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        raise ValueError(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
 
     # Add the SMILES string to the protonation parameters.
     protonation_settings["smiles_input"] = contnr.orig_smi_canonical

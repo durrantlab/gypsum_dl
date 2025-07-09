@@ -1,7 +1,8 @@
 import argparse
 import copy
 
-from gypsum_dl import utils
+from loguru import logger
+
 from gypsum_dl.start import prepare_molecules
 
 
@@ -243,4 +244,4 @@ def main():
         if v is None:
             del INPUTS[k]
     prepare_molecules(INPUTS)
-    utils.log("Finished Gypsum-DL")
+    logger.info("Finished Gypsum-DL")

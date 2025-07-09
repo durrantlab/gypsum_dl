@@ -3,7 +3,6 @@ The proccess_output definition determines which formats are saved to the
 disk (output).
 """
 
-from gypsum_dl import utils
 from gypsum_dl.steps.io.SaveToPDB import convert_sdfs_to_PDBs
 from gypsum_dl.steps.io.SaveToSDF import save_to_sdf
 from gypsum_dl.steps.io.Web2DOutput import web_2d_output
@@ -26,5 +25,5 @@ def proccess_output(contnrs, params):
 
     # Also write to PDB files, if requested.
     if params["add_pdb_output"] == True:
-        utils.log("\nMaking PDB output files\n")
+        logger.info("Making PDB output files")
         convert_sdfs_to_PDBs(contnrs, output_folder)

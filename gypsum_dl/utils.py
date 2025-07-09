@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any
 import contextlib
 import random
 import string
-import textwrap
+
+from loguru import logger
 
 if TYPE_CHECKING:
     from gypsum_dl import Molecule, MoleculeContainer
@@ -71,31 +72,8 @@ def random_sample(lst: list, num: int, msg_if_cut: str = "") -> list:
         # Keep the top ones.
         lst = lst[:num]
         if msg_if_cut != "":
-            log(msg_if_cut)
+            logger.debug(msg_if_cut)
     return lst
-
-
-def log(txt: str, trailing_whitespace: str = "") -> None:
-    """Prints a message to the screen.
-
-    Args:
-        txt: The message to print.
-        trailing_whitespace: White space to add to the end of the
-            message, after the trim. "" by default.
-    """
-
-    whitespace_before = txt[: len(txt) - len(txt.lstrip())].replace("\t", "    ")
-    print(
-        (
-            textwrap.fill(
-                txt.strip(),
-                width=80,
-                initial_indent=whitespace_before,
-                subsequent_indent=f"{whitespace_before}    ",
-            )
-            + trailing_whitespace
-        )
-    )
 
 
 def fnd_contnrs_not_represntd(
@@ -143,29 +121,11 @@ def print_current_smiles(contnrs: list["MoleculeContainer"]) -> None:
     Args:
         contnrs: A list of containers (container.MoleculeContainer).
     """
-
-    # For debugging.
-    log("    Contents of MoleculeContainers")
+    logger.debug("    Contents of MoleculeContainers")
     for i, mol_cont in enumerate(contnrs):
-        log("\t\tMoleculeContainer #" + str(i) + " (" + mol_cont.name + ")")
+        logger.debug("\t\tMoleculeContainer #" + str(i) + " (" + mol_cont.name + ")")
         for i, s in enumerate(mol_cont.all_can_noh_smiles()):
-            log("\t\t\tMol #" + str(i) + ": " + s)
-
-
-def exception(msg: str) -> None:
-    """Prints an error to the screen and raises an exception.
-
-    Args:
-        msg: The error message.
-    """
-
-    log(msg)
-    log("\n" + "=" * 79)
-    log("For help with usage:")
-    log("\tpython run_gypsum_dl.py --help")
-    log("=" * 79)
-    log("")
-    raise Exception(msg)
+            logger.debug("\t\t\tMol #" + str(i) + ": " + s)
 
 
 def slug(strng: str) -> str:

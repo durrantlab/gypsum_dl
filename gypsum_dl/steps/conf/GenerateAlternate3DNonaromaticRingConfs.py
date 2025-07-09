@@ -7,25 +7,14 @@ conformations.
 import copy
 import warnings
 
+import numpy
+from loguru import logger
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from scipy.cluster.vq import kmeans2
+
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import utils
 from gypsum_dl.molecule import MyConformer
-
-try:
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
-
-try:
-    import numpy
-except Exception:
-    utils.exception("You need to install numpy and its dependencies.")
-
-try:
-    from scipy.cluster.vq import kmeans2
-except Exception:
-    utils.exception("You need to install scipy and its dependencies.")
 
 
 def generate_alternate_3d_nonaromatic_ring_confs(
@@ -74,7 +63,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     """
 
     # Let the user know you've started this step.
-    utils.log(
+    logger.info(
         "Generating several conformers of molecules with non-aromatic "
         + "rings (boat vs. chair, etc.)..."
     )

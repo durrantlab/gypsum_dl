@@ -5,13 +5,11 @@ A module for generating alternate chiralities.
 import copy
 import itertools
 
+from loguru import logger
+from rdkit import Chem
+
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import Molecule, chem_utils, utils
-
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
 
 
 def enumerate_chiral_molecules(
@@ -52,7 +50,7 @@ def enumerate_chiral_molecules(
     if max_variants_per_compound == 0:
         return
 
-    utils.log("Enumerating all possible enantiomers for all molecules...")
+    logger.info("Enumerating all possible enantiomers for all molecules...")
 
     # Group the molecules so you can feed them to parallelizer.
     params = []
@@ -80,8 +78,8 @@ def enumerate_chiral_molecules(
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
-        utils.log(
-            "\tCould not generate valid enantiomers for "
+        logger.warning(
+            "Could not generate valid enantiomers for "
             + contnrs[miss_indx].orig_smi
             + " ("
             + contnrs[miss_indx].name
@@ -151,9 +149,8 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
             options = [list(itertools.chain(c[0], c[1])) for c in options]
 
     # Let the user know the number of chiral centers.
-    utils.log(
-        "\t"
-        + mol.smiles(True)
+    logger.info(
+        mol.smiles(True)
         + " ("
         + mol.name
         + ") has "

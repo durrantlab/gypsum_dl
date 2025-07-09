@@ -4,12 +4,10 @@ Saves output files to SDF.
 
 import os
 
-from gypsum_dl import utils
+from loguru import logger
+from rdkit import Chem
 
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+from gypsum_dl import utils
 
 
 def save_to_sdf(contnrs, params, separate_output_files, output_folder):
@@ -43,14 +41,14 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
         w.close()
 
     # Also save the file or files containing the output molecules.
-    utils.log("Saving molecules associated with...")
+    logger.info("Saving molecules associated with...")
     for i, contnr in enumerate(contnrs):
         # Add the container properties to the rdkit_mol object so they get
         # written to the SDF file.
         contnr.add_container_properties()
 
         # Let the user know which molecule you're on.
-        utils.log("\t" + contnr.orig_smi)
+        logger.info("\t" + contnr.orig_smi)
 
         # Save the file(s).
         if separate_output_files == True:

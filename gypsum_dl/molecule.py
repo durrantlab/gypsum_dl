@@ -10,14 +10,13 @@ import copy
 import operator
 import sys
 
+from loguru import logger
 from molvs import standardize_smiles as ssmiles
-from rdkit import Chem, RDLogger
+from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import BondStereo
 
-from gypsum_dl import handlers, utils
-
-RDLogger.DisableLog("rdApp.*")
+from gypsum_dl import handlers
 
 
 class Molecule:
@@ -61,8 +60,8 @@ class Molecule:
                 # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
                 self.can_smi = False
                 id_to_print = name if name != "" else str(starter)
-                utils.log(
-                    "\tERROR: Could not generate one of the structures "
+                logger.error(
+                    "Could not generate one of the structures "
                     + "for ("
                     + id_to_print
                     + ")."
@@ -102,7 +101,7 @@ class Molecule:
         try:
             self.stdrd_smiles = ssmiles(self.smiles())
         except Exception:
-            utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
+            logger.info("Could not standardize " + self.smiles(True) + ". Skipping.")
             self.stdrd_smiles = self.smiles()
 
         return self.stdrd_smiles
@@ -266,8 +265,8 @@ class Molecule:
                     self.rdkit_mol, isomericSmiles=True, canonical=True
                 )
             except Exception:
-                utils.log(
-                    f"Warning: Couldn't put {self.orig_smi} ({self.name}) in canonical form. Got this error: {str(sys.exc_info()[0])}. This molecule will be discarded."
+                logger.warning(
+                    f"Couldn't put {self.orig_smi} ({self.name}) in canonical form. Got this error: {str(sys.exc_info()[0])}. This molecule will be discarded."
                 )
                 self.can_smi = None
                 return None
@@ -430,7 +429,7 @@ class Molecule:
             # First just match strings... could be faster, but not 100%
             # accurate.
             if s in self.orig_smi or s in self.orig_smi_deslt or s in self.can_smi:
-                utils.log("\tDetected unusual substructure: " + s)
+                logger.info("Detected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -438,9 +437,7 @@ class Molecule:
         for s in prohibited_substructures:
             pattrn = Chem.MolFromSmarts(s)
             if self.rdkit_mol.HasSubstructMatch(pattrn):
-                # utils.log("\tRemoving a molecule because it has an odd
-                # substructure: " + s)
-                utils.log("\tDetected unusual substructure: " + s)
+                logger.info("Detected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
 
@@ -728,8 +725,8 @@ class MyConformer:
                 ff = AllChem.UFFGetMoleculeForceField(self.mol)
                 self.energy = ff.CalcEnergy()
             except Exception:
-                utils.log(
-                    "Warning: Could not calculate energy for molecule "
+                logger.warning(
+                    "Could not calculate energy for molecule "
                     + Chem.MolToSmiles(self.mol)
                 )
                 # Example of smiles that cause problem here without try...catch:
@@ -771,9 +768,8 @@ class MyConformer:
             ff.Minimize()
             self.energy = ff.CalcEnergy()
         except Exception:
-            utils.log(
-                "Warning: Could not calculate energy for molecule "
-                + Chem.MolToSmiles(self.mol)
+            logger.warning(
+                "Could not calculate energy for molecule " + Chem.MolToSmiles(self.mol)
             )
             self.energy = 9999
         self.minimized = True
@@ -810,7 +806,7 @@ class MyConformer:
         mol_copy = copy.deepcopy(self.mol_copy)  # Use it as a template.
         mol_copy.RemoveAllConformers()
         mol_copy.AddConformer(self.conformer)
-        utils.log(Chem.MolToMolBlock(mol_copy)[:500])
+        logger.debug(Chem.MolToMolBlock(mol_copy)[:500])
 
     def rmsd_to_me(self, other_conf):
         """Calculate the rms distance between this conformer and another one.

@@ -3,13 +3,11 @@ This module removes molecules with prohibited substructures, per Durrant-lab
 filters.
 """
 
-import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import chem_utils, utils
+from loguru import logger
+from rdkit import Chem
 
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import chem_utils
 
 # Get the substructures you won't permit (per substructure matching, not
 # substring matching)
@@ -85,7 +83,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    utils.log("Applying Durrant-lab filters to all molecules...")
+    logger.info("Applying Durrant-lab filters to all molecules...")
 
     prohibited_substructs = [
         Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc
@@ -153,9 +151,8 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
             if durrant_lab_contains_bad_substr(
                 m.orig_smi_deslt
             ) or m.rdkit_mol.HasSubstructMatch(pattrn):
-                utils.log(
-                    "\t"
-                    + m.smiles(True)
+                logger.warning(
+                    m.smiles(True)
                     + ", a variant generated "
                     + "from "
                     + contnr.orig_smi

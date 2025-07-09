@@ -1,5 +1,6 @@
 """The module includes definitions to manipulate the molecules."""
 
+from loguru import logger
 from rdkit import Chem
 
 from gypsum_dl import utils
@@ -78,10 +79,8 @@ def remove_highly_charged_molecules(mol_lst):
         if abs(charge - charge_closest_to_neutral) <= 4:
             new_mol_lst.append(mol_lst[i])
         else:
-            utils.log(
-                "\tWARNING: Discarding highly charged form: "
-                + mol_lst[i].smiles()
-                + "."
+            logger.warning(
+                "Discarding highly charged form: " + mol_lst[i].smiles() + "."
             )
 
     return new_mol_lst
@@ -162,8 +161,8 @@ def bst_for_each_contnr_no_opt(
         if none_generated:
             if crry_ovr_frm_lst_step_if_no_fnd:
                 # Just use previous ones.
-                utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: "
+                logger.warning(
+                    "Unable to find low-energy conformations: "
                     + contnr.orig_smi_deslt
                     + " ("
                     + contnr.name
@@ -172,8 +171,8 @@ def bst_for_each_contnr_no_opt(
                 )
             else:
                 # Discard the conformation.
-                utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: "
+                logger.warning(
+                    "Unable to find low-energy conformations: "
                     + contnr.orig_smi_deslt
                     + " ("
                     + contnr.name

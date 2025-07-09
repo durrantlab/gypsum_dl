@@ -3,8 +3,10 @@ Desalts the input SMILES strings. If an input SMILES string contains to
 molecule, keep the larger one.
 """
 
+from loguru import logger
+
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import Molecule, utils
+from gypsum_dl import Molecule
 
 
 def desalt_orig_smi(
@@ -23,7 +25,7 @@ def desalt_orig_smi(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    utils.log("Desalting all molecules (i.e., keeping only largest fragment).")
+    logger.info("Desalting all molecules (i.e., keeping only largest fragment).")
 
     # Desalt each of the molecule containers. This step is very fast, so let's
     # just run it on a single processor always.
@@ -60,8 +62,8 @@ def desalter(contnr):
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
         return contnr.mol_orig_frm_inp_smi
-    utils.log(
-        "\tMultiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
+    logger.debug(
+        "Multiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
     )
 
     # Find the biggest fragment
