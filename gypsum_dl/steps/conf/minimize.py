@@ -31,6 +31,7 @@ def minimize_3d(
     best.
 
 
+    Args:
         contnrs: A list of containers (container.MoleculeContainer).
         max_variants_per_compound: To control the combinatorial explosion,
             only this number of variants (molecules) will be advanced to the next

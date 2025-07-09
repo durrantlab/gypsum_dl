@@ -17,8 +17,7 @@ class MoleculeContainer:
     def __init__(
         self, smiles: str, name: str, index: int, properties: dict[str, Any]
     ) -> None:
-        """The constructor.
-
+        """
         Args:
             smiles: A list of SMILES strings.
             name: The name of the molecule.
@@ -63,16 +62,16 @@ class MoleculeContainer:
         # Get the non-acidic carbon-hydrogen footprint.
         self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
 
-    def mol_with_smiles_is_in_contnr(self, smiles: str) -> bool | Molecule:
+    def mol_with_smiles_is_in_contnr(self, smiles: str) -> Molecule | None:
         """Checks whether or not a given smiles string is already in this
-           container.
+        container.
 
-        Args:
-            smiles: The smiles string to check.
+         Args:
+             smiles: The smiles string to check.
 
-        Returns:
-            True if it is present, otherwise a new Molecule object
-                corresponding to that smiles.
+         Returns:
+             True if it is present, otherwise a new Molecule object
+                 corresponding to that smiles.
         """
 
         # Checks all the mols in this container to see if a given smiles is
@@ -87,11 +86,11 @@ class MoleculeContainer:
         # Determine whether it is already in the container, and act
         # accordingly.
         amol = Molecule(smiles)
-        return True if amol.smiles() in can_smi_in_this_container else amol
+        return None if amol.smiles() in can_smi_in_this_container else amol
 
     def add_smiles(self, smiles: list[str]) -> None:
         """Adds smiles strings to this container. SMILES are always isomeric
-           and always unique (canonical).
+        and always unique (canonical).
 
         Args:
             smiles: A list of SMILES strings. If it's a string, it is
@@ -105,7 +104,7 @@ class MoleculeContainer:
         # Keep only the mols with smiles that are not already present.
         for s in smiles:
             result = self.mol_with_smiles_is_in_contnr(s)
-            if not result:
+            if result:
                 # Much of the contnr info should be passed to each molecule,
                 # too, for convenience.
                 result.name = self.name
