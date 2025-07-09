@@ -55,6 +55,3 @@ def web_2d_output(contnrs, output_folder):
                     + "</div>"
                     + "</div>"
                 )
-
-    # Open the browser to show the file.
-    # webbrowser.open("file://" + os.path.abspath(html_file))

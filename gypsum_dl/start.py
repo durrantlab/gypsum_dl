@@ -55,7 +55,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     if "json" in args:
         # "json" is one of the parameters, so we'll be ignoring the rest.
         try:
-            params = json.load(open(args["json"]))
+            params = json.load(open(args["json"], encoding="utf-8"))
         except Exception as e:
             raise ValueError("Is your input json file properly formed?") from e
 
@@ -84,13 +84,6 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             printout = "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
             raise ValueError(printout)
 
-        # Check mpi4py import
-        try:
-            import mpi4py
-        except Exception as e:
-            printout = "\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
-            raise ImportError(printout) from e
-
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":
@@ -116,25 +109,25 @@ def prepare_molecules(args: dict[str, Any]) -> None:
 
     # Let the user know that their command-line parameters will be ignored, if
     # they have specified a json file.
-    if need_to_print_override_warning == True:
+    if need_to_print_override_warning:
         logger.warning("Using the --json flag overrides all other flags.")
 
     # If running in mpi mode, separate_output_files must be set to true.
-    if params["job_manager"] == "mpi" and params["separate_output_files"] == False:
+    if params["job_manager"] == "mpi" and not params["separate_output_files"]:
         logger.warning(
             "Running in mpi mode, but separate_output_files is not set to True. Setting separate_output_files to True anyway."
         )
         params["separate_output_files"] = True
 
     # Outputing HTML files not supported in mpi mode.
-    if params["job_manager"] == "mpi" and params["add_html_output"] == True:
+    if params["job_manager"] == "mpi" and params["add_html_output"]:
         logger.warning(
             "Running in mpi mode, but add_html_output is set to True. HTML output is not supported in mpi mode."
         )
         params["add_html_output"] = False
 
     # Warn the user if he or she is not using the Durrant lab filters.
-    if params["use_durrant_lab_filters"] == -False:
+    if params["use_durrant_lab_filters"]:
         logger.warning(
             "Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated "
             + "variants, we have identified a number of substructures that, though technically possible, strike us "
@@ -476,10 +469,10 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
     if params["output_folder"] == "" and params["source"] != "":
         params["output_folder"] = f"{source_dir}output{str(os.sep)}"
 
-    if params["add_pdb_output"] == True and params["output_folder"] == "":
+    if params["add_pdb_output"] and params["output_folder"] == "":
         raise RuntimeError("To output files as .pdbs, specify the output_folder.")
 
-    if params["separate_output_files"] == True and params["output_folder"] == "":
+    if params["separate_output_files"] and params["output_folder"] == "":
         raise RuntimeError("For separate_output_files, specify the output_folder.")
 
     # Make sure job_manager is always lower case.
@@ -528,6 +521,8 @@ def deal_with_failed_molecules(
 
         # Write the failures to an smi file.
         with open(
-            params["output_folder"] + os.sep + "gypsum_dl_failed.smi", "w"
+            params["output_folder"] + os.sep + "gypsum_dl_failed.smi",
+            "w",
+            encoding="utf-8",
         ) as outfile:
             outfile.write("\n".join(failed_ones))

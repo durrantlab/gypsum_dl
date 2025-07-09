@@ -100,7 +100,6 @@ def fnd_contnrs_not_represntd(
     # smiles.
     idx_to_smi = {}
     for idx in range(len(contnrs)):
-        contnr = contnrs[idx]
         if idx not in idx_to_smi:
             idx_to_smi[idx] = contnrs[idx].orig_smi_deslt
 
@@ -121,11 +120,11 @@ def print_current_smiles(contnrs: list["MoleculeContainer"]) -> None:
     Args:
         contnrs: A list of containers (container.MoleculeContainer).
     """
-    logger.debug("    Contents of MoleculeContainers")
+    logger.debug("Contents of MoleculeContainers")
     for i, mol_cont in enumerate(contnrs):
-        logger.debug("\t\tMoleculeContainer #" + str(i) + " (" + mol_cont.name + ")")
+        logger.debug("MoleculeContainer #" + str(i) + " (" + mol_cont.name + ")")
         for i, s in enumerate(mol_cont.all_can_noh_smiles()):
-            logger.debug("\t\t\tMol #" + str(i) + ": " + s)
+            logger.debug("Mol #" + str(i) + ": " + s)
 
 
 def slug(strng: str) -> str:

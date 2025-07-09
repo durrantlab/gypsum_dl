@@ -2,33 +2,32 @@
 This module describes the MoleculeContainer, which contains different Molecule
 objects. Each object in this container is derived from the same input molecule
 (so they are variants). Note that conformers (3D coordinate sets) live inside
-Molecule. So, just to clarify:
-
-container.MoleculeContainer > Molecule > MyMol.MyConformers
+Molecule.
 """
 
-from gypsum_dl import Molecule, chem_utils, utils
+from typing import Any
+
+from gypsum_dl import Molecule, chem_utils
 
 
 class MoleculeContainer:
-    """The molecucle container class. It stores all the molecules (tautomers,
+    """The molecule container class. It stores all the molecules (tautomers,
     etc.) associated with a single input SMILES entry."""
 
-    def __init__(self, smiles, name, index, properties):
+    def __init__(
+        self, smiles: str, name: str, index: int, properties: dict[str, Any]
+    ) -> None:
         """The constructor.
 
-        :param smiles: A list of SMILES strings.
-        :type smiles: str
-        :param name: The name of the molecule.
-        :type name: str
-        :param index: The index of this MoleculeContainer in the main MoleculeContainer
-           list.
-        :type index: int
-        :param properties: A dictionary of properties from the sdf.
-        :type properties: dict
+        Args:
+            smiles: A list of SMILES strings.
+            name: The name of the molecule.
+            index: The index of this MoleculeContainer in the main MoleculeContainer
+                list.
+            properties: A dictionary of properties from the sdf.
         """
 
-        # Set some variables are set on the container level (not the MyMol
+        # Set some variables are set on the container level (not the Molecule
         # level)
         self.contnr_idx = index
         self.contnr_idx_orig = index  # Because if some circumstances (mpi),
@@ -64,19 +63,20 @@ class MoleculeContainer:
         # Get the non-acidic carbon-hydrogen footprint.
         self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
 
-    def mol_with_smiles_is_in_contnr(self, smiles):
+    def mol_with_smiles_is_in_contnr(self, smiles: str) -> bool | Molecule:
         """Checks whether or not a given smiles string is already in this
            container.
 
-        :param smiles: The smiles string to check.
-        :type smiles: str
-        :return: True if it is present, otherwise a new Molecule object
-           corresponding to that smiles.
-        :rtype: bool or Molecule
+        Args:
+            smiles: The smiles string to check.
+
+        Returns:
+            True if it is present, otherwise a new Molecule object
+                corresponding to that smiles.
         """
 
         # Checks all the mols in this container to see if a given smiles is
-        # already present. Returns a new MyMol object if it isn't, True
+        # already present. Returns a new Molecule object if it isn't, True
         # otherwise.
 
         # First, get the set of all cannonical smiles.
@@ -89,13 +89,13 @@ class MoleculeContainer:
         amol = Molecule(smiles)
         return True if amol.smiles() in can_smi_in_this_container else amol
 
-    def add_smiles(self, smiles):
+    def add_smiles(self, smiles: list[str]) -> None:
         """Adds smiles strings to this container. SMILES are always isomeric
            and always unique (canonical).
 
-        :param smiles: A list of SMILES strings. If it's a string, it is
-           converted into a list.
-        :type smiles: str
+        Args:
+            smiles: A list of SMILES strings. If it's a string, it is
+                converted into a list.
         """
 
         # Convert it into a list if it comes in as a string.
@@ -105,7 +105,7 @@ class MoleculeContainer:
         # Keep only the mols with smiles that are not already present.
         for s in smiles:
             result = self.mol_with_smiles_is_in_contnr(s)
-            if result != True:
+            if not result:
                 # Much of the contnr info should be passed to each molecule,
                 # too, for convenience.
                 result.name = self.name
@@ -116,32 +116,31 @@ class MoleculeContainer:
 
                 self.mols.append(result)
 
-    def add_mol(self, mol):
+    def add_mol(self, mol: Molecule) -> None:
         """Adds a molecule to this container. Does NOT check for uniqueness.
 
-        :param mol: The Molecule object to add.
-        :type mol: Molecule
+        Args:
+            mol: The Molecule object to add.
         """
 
         self.mols.append(mol)
 
-    def all_can_noh_smiles(self):
+    def all_can_noh_smiles(self) -> str:
         """Gets a list of all the noh canonical smiles in this container.
 
-        :return: The canonical, noh smiles string.
-        :rtype: str
+        Args:
+            The canonical, noh smiles string.
         """
 
         # True means noh
         return [m.smiles(True) for m in self.mols if m.rdkit_mol is not None]
 
-    def get_frags_of_orig_smi(self):
+    def get_frags_of_orig_smi(self) -> list:
         """Gets a list of the fragments found in the original smiles string
            passed to this container.
 
-        :return: A list of the fragments, as rdkit.Mol objects. Also saves to
-           self.frgs.
-        :rtype: list
+        Returns:
+            A list of the fragments, as rdkit.Mol objects. Also saves to self.frgs.
         """
 
         if self.frgs != "":
@@ -151,12 +150,12 @@ class MoleculeContainer:
         self.frgs = frags
         return frags
 
-    def update_orig_smi(self, orig_smi):
+    def update_orig_smi(self, orig_smi: str) -> None:
         """Updates the orig_smi string. Used by desalter (to replace with
            largest fragment).
 
-        :param orig_smi: The replacement smiles string.
-        :type orig_smi: str
+        Args:
+            orig_smi: The replacement smiles string.
         """
 
         # Update the MoleculeContainer object
@@ -178,7 +177,7 @@ class MoleculeContainer:
         # None of the mols derived to date, if present, are accurate.
         self.mols = []
 
-    def add_container_properties(self):
+    def add_container_properties(self) -> None:
         """Adds all properties from the container to the molecules. Used when
         saving final files, to keep a record in the file itself."""
 
@@ -186,8 +185,8 @@ class MoleculeContainer:
             mol.mol_props.update(self.properties)
             mol.set_all_rdkit_mol_props()
 
-    def remove_identical_mols_from_contnr(self):
-        """Removes itentical molecules from this container."""
+    def remove_identical_mols_from_contnr(self) -> None:
+        """Removes identical molecules from this container."""
 
         # For reasons I don't understand, the following doesn't give unique
         # canonical smiles:
@@ -200,7 +199,7 @@ class MoleculeContainer:
 
         # wrong_cannonical_smiles = [
         #     Chem.MolToSmiles(
-        #         m.rdkit_mol,  # Using the RdKit mol stored in MyMol
+        #         m.rdkit_mol,  # Using the RdKit mol stored in Molecule
         #         isomericSmiles=True,
         #         canonical=True
         #     ) for m in self.mols
@@ -208,7 +207,7 @@ class MoleculeContainer:
 
         # right_cannonical_smiles = [
         #     Chem.MolToSmiles(
-        #         Chem.MolFromSmiles(  # Regenerating the RdKit mol from the smiles string stored in MyMol
+        #         Chem.MolFromSmiles(  # Regenerating the RdKit mol from the smiles string stored in Molecule
         #             m.smiles()
         #         ),
         #         isomericSmiles=True,
@@ -257,14 +256,14 @@ class MoleculeContainer:
 
         self.mols = chem_utils.uniq_mols_in_list(self.mols)
 
-    def update_idx(self, new_idx):
+    def update_idx(self, new_idx: int) -> None:
         """Updates the index of this container.
 
-        :param new_idx: The new index.
-        :type new_idx: int
+        Args:
+            new_idx: The new index.
         """
 
-        if type(new_idx) != int:
+        if not isinstance(new_idx, int):
             raise TypeError("New idx value must be an int.")
         self.contnr_idx = new_idx
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx

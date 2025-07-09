@@ -3,52 +3,52 @@ This module performs a final 3D minimization to improve the small-molecule
 geometry.
 """
 
+from typing import TYPE_CHECKING
+
 import copy
 
 from loguru import logger
 
-from gypsum_dl.molecule import MyConformer
+from gypsum_dl import Conformation
+
+if TYPE_CHECKING:
+    import gypsum_dl.parallelizer as Parallelizer
+    from gypsum_dl import Molecule, MoleculeContainer
 
 
 def minimize_3d(
-    contnrs,
-    max_variants_per_compound,
-    thoroughness,
-    num_procs,
-    second_embed,
-    job_manager,
-    parallelizer_obj,
+    contnrs: list["MoleculeContainer"],
+    max_variants_per_compound: int,
+    thoroughness: int,
+    num_procs: int,
+    second_embed: bool,
+    job_manager: str,
+    parallelizer_obj: "Parallelizer.Parallelizer",
 ):
     """This function minimizes a 3D molecular conformation. In an attempt to
-       not get trapped in a local minimum, it actually generates a number of
-       conformers, minimizes the best ones, and then saves the best of the
-       best.
+    not get trapped in a local minimum, it actually generates a number of
+    conformers, minimizes the best ones, and then saves the best of the
+    best.
 
-    :param contnrs: A list of containers (container.MoleculeContainer).
-    :type contnrs: list
-    :param max_variants_per_compound: To control the combinatorial explosion,
-       only this number of variants (molecules) will be advanced to the next
-       step.
-    :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
-    :type thoroughness: int
-    :param num_procs: The number of processors to use.
-    :type num_procs: int
-    :param second_embed: Whether to try to generate 3D coordinates using an
-        older algorithm if the better (default) algorithm fails. This can add
-        run time, but sometimes converts certain molecules that would
-        otherwise fail.
-    :type second_embed: bool
-    :param job_manager: The multithred mode to use.
-    :type job_manager: string
-    :param parallelizer_obj: The Parallelizer object.
-    :type parallelizer_obj: Parallelizer.Parallelizer
+
+        contnrs: A list of containers (container.MoleculeContainer).
+        max_variants_per_compound: To control the combinatorial explosion,
+            only this number of variants (molecules) will be advanced to the next
+            step.
+        thoroughness: How many molecules to generate per variant (molecule)
+            retained, for evaluation. For example, perhaps you want to advance five
+            molecules (max_variants_per_compound = 5). You could just generate five
+            and advance them all. Or you could generate ten and advance the best
+            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            computational expense, but it also increases the chances of finding good
+            molecules.
+        num_procs: The number of processors to use.
+        second_embed: Whether to try to generate 3D coordinates using an
+            older algorithm if the better (default) algorithm fails. This can add
+            run time, but sometimes converts certain molecules that would
+            otherwise fail.
+        job_manager: The multithred mode to use.
+        parallelizer_obj: The Parallelizer object.
     """
     logger.info("Minimizing all 3D molecular structures...")
 
@@ -103,31 +103,34 @@ def minimize_3d(
                 mol.conformers = []
 
 
-def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
+def parallel_minit(
+    mol: "Molecule",
+    max_variants_per_compound: int,
+    thoroughness: int,
+    second_embed: bool,
+) -> "Molecule":
     """Minimizes the geometries of a Molecule object. Meant to be run
     within parallelizer.
 
-    :param mol: The molecule to minimize.
-    :type mol: Molecule
-    :param max_variants_per_compound: To control the combinatorial explosion,
-       only this number of variants (molecules) will be advanced to the next
-       step.
-    :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
-    :type thoroughness: int
-    :param second_embed: Whether to try to generate 3D coordinates using an
-        older algorithm if the better (default) algorithm fails. This can add
-        run time, but sometimes converts certain molecules that would
-        otherwise fail.
-    :type second_embed: bool
-    :return: A molecule with the minimized conformers inside it.
-    :rtype: Molecule
+    Args:
+        mol: The molecule to minimize.
+        max_variants_per_compound: To control the combinatorial explosion,
+            only this number of variants (molecules) will be advanced to the next
+            step.
+        thoroughness: How many molecules to generate per variant (molecule)
+            retained, for evaluation. For example, perhaps you want to advance five
+            molecules (max_variants_per_compound = 5). You could just generate five
+            and advance them all. Or you could generate ten and advance the best
+            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            computational expense, but it also increases the chances of finding good
+            molecules.
+        second_embed: Whether to try to generate 3D coordinates using an
+            older algorithm if the better (default) algorithm fails. This can add
+            run time, but sometimes converts certain molecules that would
+            otherwise fail.
+
+    Returns:
+        A molecule with the minimized conformers inside it.
     """
 
     # Not minimizing. Just adding the conformers.
@@ -150,7 +153,7 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
 
         # Get the best scoring (lowest energy) of these minimized conformers
         new_mol = copy.deepcopy(mol)
-        c = MyConformer(new_mol, mol.conformers[0].conformer(), second_embed)
+        c = Conformation(new_mol, mol.conformers[0].conformer(), second_embed)
         new_mol.conformers = [c]
         best_energy = c.energy
 

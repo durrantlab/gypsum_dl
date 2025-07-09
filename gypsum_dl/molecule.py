@@ -5,6 +5,8 @@ the same container.MoleculeContainer object. Each Molecule is also associated
 with conformers described here (3D coordinate sets).
 """
 
+from typing import Any
+
 import contextlib
 import copy
 import operator
@@ -27,14 +29,13 @@ class Molecule:
     functions.
     """
 
-    def __init__(self, starter, name=""):
-        """Initialize the MyMol object.
+    def __init__(self, starter: str | Chem.Mol, name: str = ""):
+        """Initialize the Molecule object.
 
-        :param starter: The object (smiles or rdkit.Mol) on which to build this
-           class.
-        :type starter: str or rdkit.Mol
-        :param name: An optional string, the name of this molecule. Defaults to "".
-        :param name: str, optional
+        Args:
+            starter: The object (smiles or rdkit.Mol) on which to build this
+                class.
+            name: An optional string, the name of this molecule. Defaults to "".
         """
 
         if isinstance(starter, str):
@@ -94,7 +95,7 @@ class Molecule:
         # regardless.
         self.make_mol_frm_smiles_sanitze()
 
-    def standardize_smiles(self):
+    def standardize_smiles(self) -> None:
         """Standardize the smiles string if you can."""
 
         if self.stdrd_smiles != "":
@@ -108,7 +109,7 @@ class Molecule:
 
         return self.stdrd_smiles
 
-    def __hash__(self):
+    def __hash__(self) -> None:
         """Allows you to compare Molecule objects.
 
         :return: The hashed canonical smiles.
@@ -120,93 +121,98 @@ class Molecule:
         # So it hashes based on the cannonical smiles.
         return hash(can_smi)
 
-    def __eq__(self, other):
+    def __eq__(self, other: "Molecule") -> bool:
         """Allows you to compare Molecule objects.
 
-        :param other: The other molecule.
-        :type other: Molecule
-        :return: Whether the other molecule is the same as this one.
-        :rtype: bool
+        Args:
+            other: The other molecule.
+
+        Returns:
+            Whether the other molecule is the same as this one.
         """
 
         return False if other is None else self.__hash__() == other.__hash__()
 
-    def __ne__(self, other):
+    def __ne__(self, other: "Molecule") -> bool:
         """Allows you to compare Molecule objects.
 
-        :param other: The other molecule.
-        :type other: Molecule
-        :return: Whether the other molecule is different from this one.
-        :rtype: bool
+        Args:
+            other: The other molecule.
+
+        Returns:
+            Whether the other molecule is different from this one.
         """
 
         return not self.__eq__(other)
 
     def __lt__(self, other):
-        """Is this MyMol less than another one? Gypsum-DL often sorts
-        molecules by sorting tuples of the form (energy, MyMol). On rare
+        """Is this Molecule less than another one? Gypsum-DL often sorts
+        molecules by sorting tuples of the form (energy, Molecule). On rare
         occasions, the energies are identical, and the sorting algorithm
-        attempts to compare MyMol directly.
+        attempts to compare Molecule directly.
 
-        :param other: The other molecule.
-        :type other: Molecule
-        :return: True or False, if less than or not.
-        :rtype: boolean
+        Args:
+            other: The other molecule.
+
+        Returns:
+            True or False, if less than or not.
         """
 
         return self.__hash__() < other.__hash__()
 
-    def __le__(self, other):
-        """Is this MyMol less than or equal to another one? Gypsum-DL often
-        sorts molecules by sorting tuples of the form (energy, MyMol). On rare
+    def __le__(self, other: "Molecule") -> bool:
+        """Is this Molecule less than or equal to another one? Gypsum-DL often
+        sorts molecules by sorting tuples of the form (energy, Molecule). On rare
         occasions, the energies are identical, and the sorting algorithm
-        attempts to compare MyMol directly.
+        attempts to compare Molecule directly.
 
-        :param other: The other molecule.
-        :type other: Molecule
-        :return: True or False, if less than or equal to, or not.
-        :rtype: boolean
+        Args:
+            other: The other molecule.
+
+        Returns:
+            True or False, if less than or equal to, or not.
         """
 
         return self.__hash__() <= other.__hash__()
 
-    def __gt__(self, other):
-        """Is this MyMol greater than another one? Gypsum-DL often sorts
-        molecules by sorting tuples of the form (energy, MyMol). On rare
+    def __gt__(self, other: "Molecule") -> bool:
+        """Is this Molecule greater than another one? Gypsum-DL often sorts
+        molecules by sorting tuples of the form (energy, Molecule). On rare
         occasions, the energies are identical, and the sorting algorithm
-        attempts to compare MyMol directly.
+        attempts to compare Molecule directly.
 
-        :param other: The other molecule.
-        :type other: Molecule
-        :return: True or False, if greater than or not.
-        :rtype: boolean
+        Args:
+            other: The other molecule.
+
+        Returns:
+            True or False, if greater than or not.
         """
 
         return self.__hash__() > other.__hash__()
 
-    def __ge__(self, other):
-        """Is this MyMol greater than or equal to another one? Gypsum-DL often
-        sorts molecules by sorting tuples of the form (energy, MyMol). On rare
+    def __ge__(self, other: "Molecule") -> bool:
+        """Is this Molecule greater than or equal to another one? Gypsum-DL often
+        sorts molecules by sorting tuples of the form (energy, Molecule). On rare
         occasions, the energies are identical, and the sorting algorithm
-        attempts to compare MyMol directly.
+        attempts to compare Molecule directly.
 
-        :param other: The other molecule.
-        :type other: Molecule
-        :return: True or False, if greater than or equal to, or not.
-        :rtype: boolean
+        Args:
+            other: The other molecule.
+
+        Returns:
+            True or False, if greater than or equal to, or not.
         """
 
         return self.__hash__() >= other.__hash__()
 
-    def make_mol_frm_smiles_sanitze(self):
+    def make_mol_frm_smiles_sanitze(self) -> None:
         """Construct a rdkit.mol for this object, in case you only received
         the smiles. Also, sanitize the molecule regardless.
 
-        :return: Returns the rdkit.mol object, though it's also stored in
-           self.rdkit_mol.
-        :rtype: rdkit.mol object.
+        Returns:
+            Returns the rdkit.mol object, though it's also stored in
+                self.rdkit_mol.
         """
-
         # If given a SMILES string.
         if self.rdkit_mol == "":
             try:
@@ -224,7 +230,7 @@ class Molecule:
         self.rdkit_mol = m
         return m
 
-    def make_first_3d_conf_no_min(self):
+    def make_first_3d_conf_no_min(self) -> None:
         """Makes the associated rdkit.mol object 3D by adding the first
         conformer. This also adds hydrogen atoms to the associated rdkit.mol
         object. Note that it does not perform a minimization, so it is not
@@ -243,20 +249,21 @@ class Molecule:
         # will be accepted. And not minimizing (False).
         self.add_conformers(1, 1e60, False)
 
-    def smiles(self, noh=False):
+    def smiles(self, noh: bool = False) -> str | None:
         """Get the desalted, canonical smiles string associated with this
            object. (Not the input smiles!)
 
-        :param noh: Whether or not hydrogen atoms should be included in the
-           canonical smiles string., defaults to False
-        :param noh: bool, optional
-        :return: The canonical smiles string, or None if it cannot be
-           determined.
-        :rtype: str or None
+        Args:
+            noh: Whether or not hydrogen atoms should be included in the
+                canonical smiles string., defaults to False
+
+        Returns:
+            The canonical smiles string, or None if it cannot be
+                determined.
         """
 
         # See if it's already been calculated. They want the hydrogen atoms.
-        if noh == False:
+        if not noh:
             if self.can_smi != "":
                 # Return previously determined canonical SMILES.
                 return self.can_smi
@@ -290,13 +297,13 @@ class Molecule:
             )
             return self.can_smi_noh
 
-    def get_idxs_of_nonaro_rng_atms(self):
+    def get_idxs_of_nonaro_rng_atms(self) -> list[list[int, int, int]]:
         """Identifies which rings in a given molecule are nonaromatic, if any.
 
-        :return: A [[int, int, int]]. A list of lists, where each inner list is
-           a list of the atom indecies of the members of a non-aromatic ring.
-           Also saved to self.nonaro_ring_atom_idx.
-        :rtype: list
+        Returns:
+            A [[int, int, int]]. A list of lists, where each inner list is
+                a list of the atom indecies of the members of a non-aromatic ring.
+                Also saved to self.nonaro_ring_atom_idx.
         """
 
         if self.nonaro_ring_atom_idx != "":
@@ -324,11 +331,12 @@ class Molecule:
         self.nonaro_ring_atom_idx = nonaro_rngs
         return nonaro_rngs
 
-    def chiral_cntrs_w_unasignd(self):
+    def chiral_cntrs_w_unasignd(self) -> list[tuple[Any, ...], ...]:
         """Get the chiral centers that haven't been assigned.
 
-        :return: The chiral centers. Also saved to
-           self.chiral_cntrs_include_unasignd. Looks like [(10, '?')]
+        Returns:
+            The chiral centers. Also saved to
+                self.chiral_cntrs_include_unasignd. Looks like [(10, '?')]
         :rtype: list
         """
 
@@ -362,12 +370,12 @@ class Molecule:
         self.chiral_cntrs_only_assigned = ccs
         return ccs
 
-    def get_double_bonds_without_stereochemistry(self):
+    def get_double_bonds_without_stereochemistry(self) -> list[int]:
         """Get the double bonds that don't have specified stereochemistry.
 
-        :return: The unasignd double bonds (indexes). Looks like this:
-           [2, 4, 7]
-        :rtype: list
+        Returns:
+            The unasignd double bonds (indexes). Looks like this:
+                `[2, 4, 7]`.
         """
 
         if self.rdkit_mol is None:
@@ -379,13 +387,13 @@ class Molecule:
             if b.GetBondTypeAsDouble() == 2 and b.GetStereo() is BondStereo.STEREONONE
         ]
 
-    def remove_bizarre_substruc(self):
+    def remove_bizarre_substruc(self) -> bool:
         """Removes molecules with improbable substuctures, likely generated
            from the tautomerization process. Used to find artifacts.
 
-        :return: Boolean, whether or not there are impossible substructures.
-           Also saves to self.bizarre_substruct.
-        :rtype: bool
+        Returns:
+            Boolean, whether or not there are impossible substructures.
+                Also saves to self.bizarre_substruct.
         """
 
         if self.bizarre_substruct != "":
@@ -449,11 +457,11 @@ class Molecule:
         self.bizarre_substruct = False
         return False
 
-    def get_frags_of_orig_smi(self):
+    def get_frags_of_orig_smi(self) -> list[Chem.Mol]:
         """Divide the current molecule into fragments.
 
-        :return: A list of the fragments, as rdkit.Mol objects.
-        :rtype: list
+        Returns:
+            A list of the fragments, as rdkit.Mol objects.
         """
 
         if self.frgs != "":
@@ -470,12 +478,12 @@ class Molecule:
         self.frgs = frags
         return frags
 
-    def inherit_contnr_props(self, other):
+    def inherit_contnr_props(self, other: "Molecule") -> None:
         """Copies a few key properties from a different Molecule object to
            this one.
 
-        :param other: The other Molecule object to copy these properties to.
-        :type other: Molecule
+        Args:
+            other: The other Molecule object to copy these properties to.
         """
 
         # other can be a contnr or Molecule object. These are properties
@@ -486,13 +494,12 @@ class Molecule:
         self.orig_smi_deslt = other.orig_smi_deslt  # initial assumption
         self.name = other.name
 
-    def set_rdkit_mol_prop(self, key, val):
+    def set_rdkit_mol_prop(self, key: str, val: str) -> None:
         """Set a molecular property.
 
-        :param key: The name of the molecular property.
-        :type key: str
-        :param val: The value of that property.
-        :type val: str
+        Args:
+            key: The name of the molecular property.
+            val: The value of that property.
         """
 
         val = str(val)
@@ -502,9 +509,9 @@ class Molecule:
         with contextlib.suppress(Exception):
             self.rdkit_mol.SetProp(key, val)
 
-    def set_all_rdkit_mol_props(self):
+    def set_all_rdkit_mol_props(self) -> None:
         """Set all the stored molecular properties. Copies ones from the
-        Molecule object to the MyMol.rdkit_mol object."""
+        Molecule object to the Molecule.rdkit_mol object."""
 
         self.set_rdkit_mol_prop("SMILES", self.smiles(True))
         # self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
@@ -514,18 +521,18 @@ class Molecule:
         self.set_rdkit_mol_prop("Genealogy", genealogy)
         self.set_rdkit_mol_prop("_Name", self.name)
 
-    def add_conformers(self, num, rmsd_cutoff=0.1, minimize=True):
+    def add_conformers(
+        self, num: int, rmsd_cutoff: int = 0.1, minimize: bool = True
+    ) -> None:
         """Add conformers to this molecule.
 
-        :param num: The total number of conformers to generate, including ones
-           that have been generated previously.
-        :type num: int
-        :param rmsd_cutoff: Don't keep conformers that come within this rms
-           distance of other conformers. Defaults to 0.1
-        :param rmsd_cutoff: float, optional
-        :param minimize: Whether or not to minimize the geometry of all these
-           conformers. Defaults to True.
-        :param minimize: bool, optional
+        Args:
+            num: The total number of conformers to generate, including ones
+                that have been generated previously.
+            rmsd_cutoff: Don't keep conformers that come within this rms
+                distance of other conformers.
+            minimize: Whether or not to minimize the geometry of all these
+                conformers.
         """
 
         # First, do you need to add new conformers? Some might have already
@@ -534,16 +541,16 @@ class Molecule:
         for _ in range(num_new_confs):
             if len(self.conformers) == 0:
                 # For the first one, don't start from random coordinates.
-                new_conf = MyConformer(self)
+                new_conf = Conformation(self)
             else:
                 # For all subsequent ones, do start from random coordinates.
-                new_conf = MyConformer(self, None, False, True)
+                new_conf = Conformation(self, None, False, True)
 
             if new_conf.mol is not False:
                 self.conformers.append(new_conf)
 
         # Are the current ones minimized if necessary?
-        if minimize == True:
+        if minimize:
             for conf in self.conformers:
                 conf.minimize()  # Won't reminimize if it's already been done.
 
@@ -565,11 +572,11 @@ class Molecule:
         # Remove ones that are very structurally similar.
         self.eliminate_structurally_similar_conformers(rmsd_cutoff)
 
-    def eliminate_structurally_similar_conformers(self, rmsd_cutoff=0.1):
+    def eliminate_structurally_similar_conformers(self, rmsd_cutoff: float = 0.1):
         """Eliminates conformers that are very geometrically similar.
 
-        :param rmsd_cutoff: The RMSD cutoff to use. Defaults to 0.1
-        :param rmsd_cutoff: float, optional
+        Args:
+            rmsd_cutoff: The RMSD cutoff to use. Defaults to 0.1
         """
 
         # Eliminate redundant ones.
@@ -596,7 +603,7 @@ class Molecule:
 
         # Those that remains are only the distinct conformers.
 
-    def count_hyd_bnd_to_carb(self):
+    def count_hyd_bnd_to_carb(self) -> int:
         """Count the number of Hydrogens bound to carbons."""
 
         if self.rdkit_mol is None:
@@ -612,8 +619,8 @@ class Molecule:
 
         return total_hydrogens_counted
 
-    def load_conformers_into_rdkit_mol(self):
-        """Load the conformers stored as MyConformers objects (in
+    def load_conformers_into_rdkit_mol(self) -> None:
+        """Load the conformers stored as Conformers objects (in
         self.conformers) into the rdkit Mol object."""
 
         self.rdkit_mol.RemoveAllConformers()
@@ -621,16 +628,20 @@ class Molecule:
             self.rdkit_mol.AddConformer(conformer.conformer())
 
 
-class MyConformer:
+class Conformation:
     """A wrapper around a rdkit Conformer object. Allows me to associate extra
     values with conformers. These are 3D coordinate sets for a given
     Molecule object (different molecule conformations).
     """
 
     def __init__(
-        self, mol, conformer=None, second_embed=False, use_random_coordinates=False
+        self,
+        mol: "Molecule",
+        conformer=None,
+        second_embed=False,
+        use_random_coordinates=False,
     ):
-        """Create a MyConformer objects.
+        """Create a Conformer objects.
 
         :param mol: The Molecule associated with this conformer.
         :type mol: Molecule
@@ -780,18 +791,18 @@ class MyConformer:
         """Align another conformer to this one.
 
         :param other_conf: The other conformer to align.
-        :type other_conf: MyConformer
-        :return: The aligned MyConformer object.
-        :rtype: MyConformer
+        :type other_conf: Conformer
+        :return: The aligned Conformer object.
+        :rtype: Conformer
         """
 
-        # Add the conformer of the other MyConformer object.
+        # Add the conformer of the other Conformer object.
         self.mol.AddConformer(other_conf.conformer(), assignId=True)
 
         # Align them.
         AllChem.AlignMolConformers(self.mol, atomIds=self.ids_hvy_atms)
 
-        # Reset the conformer of the other MyConformer object.
+        # Reset the conformer of the other Conformer object.
         last_conf = self.mol.GetConformers()[-1]
         other_conf.conformer(last_conf)
 
@@ -814,7 +825,7 @@ class MyConformer:
         """Calculate the rms distance between this conformer and another one.
 
         :param other_conf: The other conformer to align.
-        :type other_conf: MyConformer
+        :type other_conf: Conformer
         :return: The rmsd, a float.
         :rtype: float
         """
@@ -824,7 +835,7 @@ class MyConformer:
         amol = handlers.check_sanitization(amol)
         amol = handlers.try_reprotanation(amol)
 
-        # Add the conformer of the other MyConformer object.
+        # Add the conformer of the other Conformer object.
         amol.AddConformer(self.conformer(), assignId=True)
         amol.AddConformer(other_conf.conformer(), assignId=True)
 
@@ -856,7 +867,7 @@ class MyConformer:
         mol = copy.deepcopy(self.mol)
         mol.RemoveAllConformers()
 
-        # Add the conformer of the other MyConformer object.
+        # Add the conformer of the other Conformer object.
         mol.AddConformer(self.conformer(), assignId=True)
 
         # Write the PDB file.

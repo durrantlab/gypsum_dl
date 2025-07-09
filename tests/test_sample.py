@@ -7,7 +7,6 @@ import glob
 import os
 import shutil
 
-from gypsum_dl import utils
 from gypsum_dl.start import prepare_molecules
 
 

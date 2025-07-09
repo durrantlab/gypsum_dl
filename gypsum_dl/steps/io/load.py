@@ -6,13 +6,14 @@ from loguru import logger
 from rdkit import Chem
 
 
-def load_smiles_file(filename):
+def load_smiles_file(filename: str) -> list[tuple[Chem.Mol, str]]:
     """Loads a smiles file.
 
-    :param filename: The filename.
-    :type filename: str
-    :return: A list of tuples, (SMILES, Name).
-    :rtype: list
+    Args:
+        filename: The filename.
+
+    Returns:
+        A list of tuples, (SMILES, Name).
     """
 
     # A smiles file contains one molecule on each line. Each line is a string,
@@ -64,13 +65,14 @@ def load_smiles_file(filename):
     return data
 
 
-def load_sdf_file(filename):
+def load_sdf_file(filename: str) -> list[tuple[Chem.Mol, str]]:
     """Loads an sdf file.
 
-    :param filename: The filename.
-    :type filename: str
-    :return: A list of tuples, (SMILES, Name).
-    :rtype: list
+    Args:
+        filename: The filename.
+
+    Returns:
+        A list of tuples, (SMILES, Name).
     """
 
     suppl = Chem.SDMolSupplier(filename)

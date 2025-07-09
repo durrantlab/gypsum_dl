@@ -20,7 +20,7 @@ def make_tauts(
     """Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
     substructure keeps popping up, add it to the list in the
-    `prohibited_substructures` definition found with MyMol.py, in the function
+    `prohibited_substructures` definition found with Molecule.py, in the function
     remove_bizarre_substruc().
 
     :param contnrs: A list of containers (container.MoleculeContainer).
