@@ -62,7 +62,7 @@ def pick_lowest_enrgy_mols(
     return [mol_lst[d[1]] for d in data]
 
 
-def remove_highly_charged_molecules(mol_lst: list[Molecule]) -> list[Molecule]:
+def remove_highly_charged_molecules(mol_lst: list["Molecule"]) -> list["Molecule"]:
     """Remove molecules that are highly charged.
 
     Args:
@@ -94,8 +94,8 @@ def remove_highly_charged_molecules(mol_lst: list[Molecule]) -> list[Molecule]:
 
 
 def bst_for_each_contnr_no_opt(
-    contnrs: list[MoleculeContainer],
-    mol_lst: list[Molecule],
+    contnrs: list["MoleculeContainer"],
+    mol_lst: list["Molecule"],
     max_variants_per_compound: int,
     thoroughness: int,
     crry_ovr_frm_lst_step_if_no_fnd: bool = True,
