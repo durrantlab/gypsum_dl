@@ -3,9 +3,6 @@ This module contains classes and functions for processing individual molecules
 (variants). All variants of the same input molecule are grouped together in
 the same container.MoleculeContainer object. Each Molecule is also associated
 with conformers described here (3D coordinate sets).
-
-So just to clarify: container.MoleculeContainer > Molecule >
-MyMol.MyConformer
 """
 
 import contextlib
@@ -14,14 +11,11 @@ import operator
 import sys
 
 from molvs import standardize_smiles as ssmiles
-
-# Disable the unnecessary RDKit warnings
 from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import BondStereo
 
-import gypsum_dl.MolObjectHandling as MOH
-from gypsum_dl import utils
+from gypsum_dl import handlers, utils
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -225,7 +219,7 @@ class Molecule:
         if m is not None:
             # Sanitize and hopefully correct errors in the smiles string such
             # as incorrect nitrogen charges.
-            m = MOH.check_sanitization(m)
+            m = handlers.check_sanitization(m)
         self.rdkit_mol = m
         return m
 
@@ -242,7 +236,7 @@ class Molecule:
 
         # Add hydrogens. This adds explicit hydrogens, while respecting
         # Dimorphite-DL protonation states.
-        self.rdkit_mol = MOH.try_reprotanation(self.rdkit_mol)
+        self.rdkit_mol = handlers.try_reprotanation(self.rdkit_mol)
 
         # Add a single conformer. RMSD cutoff very small so all conformers
         # will be accepted. And not minimizing (False).
@@ -289,7 +283,7 @@ class Molecule:
             # So remove hydrogens. Note that this assumes you will have called
             # this function previously with noh = False
             amol = copy.copy(self.rdkit_mol)
-            amol = MOH.try_deprotanation(amol)
+            amol = handlers.try_deprotanation(amol)
             self.can_smi_noh = Chem.MolToSmiles(
                 amol, isomericSmiles=True, canonical=True
             )
@@ -829,8 +823,8 @@ class MyConformer:
 
         # Make a new molecule.
         amol = Chem.MolFromSmiles(self.smiles, sanitize=False)
-        amol = MOH.check_sanitization(amol)
-        amol = MOH.try_reprotanation(amol)
+        amol = handlers.check_sanitization(amol)
+        amol = handlers.try_reprotanation(amol)
 
         # Add the conformer of the other MyConformer object.
         amol.AddConformer(self.conformer(), assignId=True)
@@ -841,7 +835,7 @@ class MyConformer:
         # last_conf = amol.GetConformers()[-1]
 
         # Return the RMSD.
-        amol = MOH.try_deprotanation(amol)
+        amol = handlers.try_deprotanation(amol)
         return AllChem.GetConformerRMS(amol, 0, 1, prealigned=True)
 
     def coords(self):

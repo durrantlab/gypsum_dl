@@ -1,9 +1,4 @@
-##### MolObjectHandling.py
-
-# Disable the unnecessary RDKit warnings
-from rdkit import Chem, RDLogger
-
-RDLogger.DisableLog("rdApp.*")
+from rdkit import Chem
 
 
 def check_sanitization(mol):
@@ -103,9 +98,6 @@ def handleHs(mol, protanate_step):
     return mol
 
 
-#
-
-
 def try_deprotanation(sanitized_mol):
     """
     Given an already sanitize Chem.rdchem.Mol object, we will try to deprotanate the mol of all non-explicit
@@ -148,9 +140,6 @@ def try_reprotanation(sanitized_deprotanated_mol):
     return check_sanitization(mol)
 
 
-#
-
-
 def remove_atoms(mol, list_of_idx_to_remove):
     """
     This function removes atoms from an rdkit mol based on
@@ -184,9 +173,6 @@ def remove_atoms(mol, list_of_idx_to_remove):
         return em1.GetMol()
     except Exception:
         return None
-
-
-#
 
 
 def Nitrogen_charge_adjustment(mol):
@@ -233,9 +219,6 @@ def Nitrogen_charge_adjustment(mol):
     return mol
 
 
-#
-
-
 def check_for_unassigned_atom(mol):
     """
     Check there isn't a missing atom group ie. '*'
@@ -253,9 +236,6 @@ def check_for_unassigned_atom(mol):
         if atom.GetAtomicNum() == 0:
             return None
     return mol
-
-
-#
 
 
 def handle_frag_check(mol):
@@ -295,6 +275,3 @@ def handle_frag_check(mol):
         largest_frag_idx = frag_info_list[0][0]
         largest_frag = frags[largest_frag_idx]
         return largest_frag
-
-
-#

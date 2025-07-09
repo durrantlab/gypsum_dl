@@ -1,8 +1,7 @@
 """This module makes alternate tautomeric states, using MolVS."""
 
-import gypsum_dl.MolObjectHandling as MOH
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import Molecule, chem_utils, utils
+from gypsum_dl import Molecule, chem_utils, handlers, utils
 
 try:
     from rdkit import Chem
@@ -142,7 +141,7 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     # Molecules should be kekulized already, but let's double check that.
     # Because MolVS requires kekulized input.
     Chem.Kekulize(m)
-    m = MOH.check_sanitization(m)
+    m = handlers.check_sanitization(m)
     if m is None:
         return None
 

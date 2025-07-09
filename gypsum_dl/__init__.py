@@ -8,8 +8,8 @@ from ast import literal_eval
 
 from loguru import logger
 
-from .container import MoleculeContainer
 from .molecule import Molecule
+from .container import MoleculeContainer
 
 __all__ = ["Molecule", "MoleculeContainer"]
 
