@@ -1,4 +1,6 @@
-from rdkit import Chem
+from rdkit import Chem, RDLogger
+
+RDLogger.DisableLog("rdApp.*")
 
 
 def check_sanitization(mol):

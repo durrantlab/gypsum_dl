@@ -12,11 +12,13 @@ import sys
 
 from loguru import logger
 from molvs import standardize_smiles as ssmiles
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import BondStereo
 
 from gypsum_dl import handlers
+
+RDLogger.DisableLog("rdApp.*")
 
 
 class Molecule:

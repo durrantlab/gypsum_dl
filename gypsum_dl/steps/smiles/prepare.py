@@ -6,15 +6,15 @@ tautomeric, chiral forms, etc.
 from loguru import logger
 
 from gypsum_dl import utils
-from gypsum_dl.steps.smiles.AddHydrogens import add_hydrogens
-from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
-from gypsum_dl.steps.smiles.DurrantLabFilter import (
+from gypsum_dl.steps.smiles.bonds import enumerate_double_bonds
+from gypsum_dl.steps.smiles.chiral import enumerate_chiral_molecules
+from gypsum_dl.steps.smiles.desalt import desalt_orig_smi
+from gypsum_dl.steps.smiles.dl_filter import (
     durrant_lab_contains_bad_substr,
     durrant_lab_filters,
 )
-from gypsum_dl.steps.smiles.EnumerateChiralMols import enumerate_chiral_molecules
-from gypsum_dl.steps.smiles.EnumerateDoubleBonds import enumerate_double_bonds
-from gypsum_dl.steps.smiles.MakeTautomers import make_tauts
+from gypsum_dl.steps.smiles.hydrogens import add_hydrogens
+from gypsum_dl.steps.smiles.tautomers import make_tauts
 
 
 def prepare_smiles(contnrs, params):

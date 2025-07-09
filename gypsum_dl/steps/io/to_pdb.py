@@ -6,8 +6,11 @@ import os
 import sys
 
 import rdkit.Chem as Chem
+from rdkit import RDLogger
 
 from gypsum_dl import utils
+
+RDLogger.DisableLog("rdApp.*")
 
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), "gypsum_dl"))
 

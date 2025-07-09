@@ -19,9 +19,9 @@ import sys
 try:
     import mpi4py
 
-    MPI_installed = True
+    HAS_MPI = True
 except ImportError:
-    MPI_installed = False
+    HAS_MPI = False
 
 
 class Parallelizer(object):
@@ -154,7 +154,7 @@ class Parallelizer(object):
         :returns: bol bol:  Returns True if MPI can be run and there aren't any flags against running mpi mode
                         Returns False if it cannot or should not run mpi mode.
         """
-        if MPI_installed == False:
+        if HAS_MPI == False:
             # mpi4py isn't installed and we will need to multiprocess
             return False
 
