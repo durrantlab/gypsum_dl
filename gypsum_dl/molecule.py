@@ -11,6 +11,7 @@ import contextlib
 import copy
 import operator
 import sys
+from collections.abc import Container
 
 from loguru import logger
 from molvs import standardize_smiles as ssmiles
@@ -20,7 +21,7 @@ from rdkit.Chem.rdchem import BondStereo
 
 from gypsum_dl import handlers
 
-RDLogger.DisableLog("rdApp.*")
+RDLogger.DisableLog("rdApp.*")  # type: ignore
 
 
 class Molecule:
@@ -109,17 +110,17 @@ class Molecule:
 
         return self.stdrd_smiles
 
-    def __hash__(self) -> None:
+    def __hash__(self) -> str:
         """Allows you to compare Molecule objects.
 
-        :return: The hashed canonical smiles.
-        :rtype: str
+        Returns:
+            The hashed canonical smiles.
         """
 
         can_smi = self.smiles()
 
         # So it hashes based on the cannonical smiles.
-        return hash(can_smi)
+        return str(hash(can_smi))
 
     def __eq__(self, other: "Molecule") -> bool:
         """Allows you to compare Molecule objects.
@@ -145,7 +146,7 @@ class Molecule:
 
         return not self.__eq__(other)
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         """Is this Molecule less than another one? Gypsum-DL often sorts
         molecules by sorting tuples of the form (energy, Molecule). On rare
         occasions, the energies are identical, and the sorting algorithm
@@ -205,7 +206,7 @@ class Molecule:
 
         return self.__hash__() >= other.__hash__()
 
-    def make_mol_frm_smiles_sanitze(self) -> None:
+    def make_mol_frm_smiles_sanitze(self) -> Chem.Mol | None:
         """Construct a rdkit.mol for this object, in case you only received
         the smiles. Also, sanitize the molecule regardless.
 
@@ -213,11 +214,12 @@ class Molecule:
             Returns the rdkit.mol object, though it's also stored in
                 self.rdkit_mol.
         """
-        # If given a SMILES string.
         if self.rdkit_mol == "":
             try:
                 # sanitize = False makes it respect double-bond stereochemistry
-                m = Chem.MolFromSmiles(self.orig_smi_deslt, sanitize=False)
+                m: Chem.Mol | None = Chem.MolFromSmiles(
+                    self.orig_smi_deslt, sanitize=False
+                )
             except Exception:
                 m = None
         else:  # If given a RDKit Mol Obj
@@ -231,10 +233,12 @@ class Molecule:
         return m
 
     def make_first_3d_conf_no_min(self) -> None:
-        """Makes the associated rdkit.mol object 3D by adding the first
+        """
+        Makes the associated rdkit.mol object 3D by adding the first
         conformer. This also adds hydrogen atoms to the associated rdkit.mol
         object. Note that it does not perform a minimization, so it is not
-        too expensive."""
+        too expensive.
+        """
 
         # Set the first 3D conformer
         if len(self.conformers) > 0:
@@ -258,10 +262,9 @@ class Molecule:
                 canonical smiles string., defaults to False
 
         Returns:
-            The canonical smiles string, or None if it cannot be
+            The canonical smiles string, or `None` if it cannot be
                 determined.
         """
-
         # See if it's already been calculated. They want the hydrogen atoms.
         if not noh:
             if self.can_smi != "":
@@ -297,7 +300,7 @@ class Molecule:
             )
             return self.can_smi_noh
 
-    def get_idxs_of_nonaro_rng_atms(self) -> list[list[int, int, int]]:
+    def get_idxs_of_nonaro_rng_atms(self) -> list[list[int]]:
         """Identifies which rings in a given molecule are nonaromatic, if any.
 
         Returns:
@@ -324,20 +327,19 @@ class Molecule:
         nonaro_rngs = []
         for rng_indx_set in ring_indecies:
             for atm_idx in rng_indx_set:
-                if self.rdkit_mol.GetAtomWithIdx(atm_idx).GetIsAromatic() == False:
+                if not self.rdkit_mol.GetAtomWithIdx(atm_idx).GetIsAromatic():
                     # One of the ring atoms is not aromatic! Let's keep it.
                     nonaro_rngs.append(rng_indx_set)
                     break
         self.nonaro_ring_atom_idx = nonaro_rngs
         return nonaro_rngs
 
-    def chiral_cntrs_w_unasignd(self) -> list[tuple[Any, ...], ...]:
+    def chiral_cntrs_w_unasignd(self) -> list[tuple[Any]]:
         """Get the chiral centers that haven't been assigned.
 
         Returns:
-            The chiral centers. Also saved to
-                self.chiral_cntrs_include_unasignd. Looks like [(10, '?')]
-        :rtype: list
+            The chiral centers. Also saved to self.chiral_cntrs_include_unasignd.
+                Looks like `[(10, "?")]`
         """
 
         # No chiral centers if the molecule is None.
@@ -353,11 +355,11 @@ class Molecule:
         self.chiral_cntrs_include_unasignd = ccs
         return ccs
 
-    def chiral_cntrs_only_asignd(self):
+    def chiral_cntrs_only_asignd(self) -> list:
         """Get the chiral centers that have been assigned.
 
-        :return: The chiral centers. Also saved to self.chiral_cntrs_only_assigned.
-        :rtype: list
+        Returns:
+            The chiral centers. Also saved to `self.chiral_cntrs_only_assigned`.
         """
 
         if self.chiral_cntrs_only_assigned != "":
@@ -392,7 +394,7 @@ class Molecule:
            from the tautomerization process. Used to find artifacts.
 
         Returns:
-            Boolean, whether or not there are impossible substructures.
+            Whether or not there are impossible substructures.
                 Also saves to self.bizarre_substruct.
         """
 
@@ -457,7 +459,7 @@ class Molecule:
         self.bizarre_substruct = False
         return False
 
-    def get_frags_of_orig_smi(self) -> list[Chem.Mol]:
+    def get_frags_of_orig_smi(self) -> Container[Chem.Mol]:
         """Divide the current molecule into fragments.
 
         Returns:
@@ -474,7 +476,7 @@ class Molecule:
             return [self]
 
         # Get the fragments.
-        frags = Chem.GetMolFrags(self.rdkit_mol, asMols=True)
+        frags: tuple[Chem.Mol] = Chem.GetMolFrags(self.rdkit_mol, asMols=True)
         self.frgs = frags
         return frags
 
@@ -522,7 +524,7 @@ class Molecule:
         self.set_rdkit_mol_prop("_Name", self.name)
 
     def add_conformers(
-        self, num: int, rmsd_cutoff: int = 0.1, minimize: bool = True
+        self, num: int, rmsd_cutoff: float = 0.1, minimize: bool = True
     ) -> None:
         """Add conformers to this molecule.
 
@@ -637,28 +639,25 @@ class Conformation:
     def __init__(
         self,
         mol: "Molecule",
-        conformer=None,
-        second_embed=False,
-        use_random_coordinates=False,
+        conformer: Chem.Conformer | None = None,
+        second_embed: bool = False,
+        use_random_coordinates: bool = False,
     ):
         """Create a Conformer objects.
 
-        :param mol: The Molecule associated with this conformer.
-        :type mol: Molecule
-        :param conformer: An optional variable specifying the conformer to use.
-           If not specified, it will create a new conformer. Defaults to None.
-        :type conformer: rdkit.Conformer, optional
-        :param second_embed: Whether to try to generate 3D coordinates using an
-            older algorithm if the better (default) algorithm fails. This can add
-            run time, but sometimes converts certain molecules that would
-            otherwise fail. Defaults to False.
-        :type second_embed: bool, optional
-        :param use_random_coordinates: The first conformer should not start
-           from random coordinates, but rather the eigenvalues-based
-           coordinates rdkit defaults to. But Gypsum-DL generates subsequent
-           conformers to try to consider alternate geometries. So they should
-           start from random coordinates. Defaults to False.
-        :type use_random_coordinates: bool, optional
+        Args:
+            mol: The Molecule associated with this conformer.
+            conformer: An optional variable specifying the conformer to use.
+                If not specified, it will create a new conformer. Defaults to None.
+            second_embed: Whether to try to generate 3D coordinates using an
+                older algorithm if the better (default) algorithm fails. This can add
+                run time, but sometimes converts certain molecules that would
+                otherwise fail.
+            use_random_coordinates: The first conformer should not start
+                from random coordinates, but rather the eigenvalues-based
+                coordinates rdkit defaults to. But Gypsum-DL generates subsequent
+                conformers to try to consider alternate geometries. So they should
+                start from random coordinates.
         """
 
         # Save some values to the object.
@@ -679,17 +678,17 @@ class Conformation:
             try:
                 # Newest version
                 # print("HERE")
-                params = AllChem.ETKDGv3()
+                params = AllChem.ETKDGv3()  # type: ignore
             except Exception:
                 try:
                     # Try to use ETKDGv2, but it is only present in the python 3.6
                     # version of RDKit.
-                    params = AllChem.ETKDGv2()
+                    params = AllChem.ETKDGv2()  # type: ignore
                 except Exception:
                     # Use the original version of ETKDG if python 2.7 RDKit. This
                     # may be resolved in next RDKit update so we encased this in a
                     # try statement.
-                    params = AllChem.ETKDG()
+                    params = AllChem.ETKDG()  # type: ignore
 
             # The default, but just a sanity check.
             params.enforceChirality = True
@@ -705,22 +704,22 @@ class Conformation:
 
             # AllChem.EmbedMolecule uses geometry to create inital molecule
             # coordinates. This sometimes takes a very long time.
-            AllChem.EmbedMolecule(self.mol, params)
+            AllChem.EmbedMolecule(self.mol, params)  # type: ignore
 
             # On rare occasions, the new conformer generating algorithm fails
             # because params.useRandomCoords = False. So if it fails, try
             # again with True.
-            if self.mol.GetNumConformers() == 0 and use_random_coordinates == False:
+            if self.mol.GetNumConformers() == 0 and not use_random_coordinates:
                 params.useRandomCoords = True
-                AllChem.EmbedMolecule(self.mol, params)
+                AllChem.EmbedMolecule(self.mol, params)  # type: ignore
 
             # On very rare occasions, the new conformer generating algorithm
             # fails. For example, COC(=O)c1cc(C)nc2c(C)cc3[nH]c4ccccc4c3c12 .
             # In this case, the old one still works. So if no coordinates are
             # assigned, try that one. Parameters must have second_embed set to
             # True for this to happen.
-            if second_embed == True and self.mol.GetNumConformers() == 0:
-                AllChem.EmbedMolecule(self.mol, useRandomCoords=use_random_coordinates)
+            if second_embed and self.mol.GetNumConformers() == 0:
+                AllChem.EmbedMolecule(self.mol, useRandomCoords=use_random_coordinates)  # type: ignore
 
             # On rare occasions, both methods fail. For example,
             # O=c1cccc2[C@H]3C[NH2+]C[C@@H](C3)Cn21 Another example:
@@ -735,7 +734,7 @@ class Conformation:
         # Calculate some energies, other housekeeping.
         if self.mol is not False:
             try:
-                ff = AllChem.UFFGetMoleculeForceField(self.mol)
+                ff = AllChem.UFFGetMoleculeForceField(self.mol)  # type: ignore
                 self.energy = ff.CalcEnergy()
             except Exception:
                 logger.warning(
@@ -750,15 +749,16 @@ class Conformation:
                 a.GetIdx() for a in self.mol.GetAtoms() if a.GetAtomicNum() != 1
             ]
 
-    def conformer(self, conf=None):
+    def conformer(self, conf: Chem.Conformer | None = None) -> Chem.Conformer | None:
         """Get or set the conformer. An optional variable can specify the
            conformer to set. If not specified, this function acts as a get for
            the conformer.
 
-        :param conf: The conformer to set, defaults to None
-        :param conf: rdkit.Conformer, optional
-        :return: An rdkit.Conformer object, if conf is not specified.
-        :rtype: rdkit.Conformer
+        Args:
+            conf: The conformer to set, defaults to None
+
+        Returns:
+            An rdkit.Conformer object, if conf is not specified.
         """
 
         if conf is None:
@@ -768,16 +768,18 @@ class Conformation:
         self.mol.AddConformer(conf)
 
     def minimize(self):
-        """Minimize (optimize) the geometry of the current conformer if it
-        hasn't already been optimized."""
+        """
+        Minimize (optimize) the geometry of the current conformer if it
+        hasn't already been optimized.
+        """
 
-        if self.minimized == True:
+        if self.minimizedTrue:
             # Already minimized. Don't do it again.
             return
 
         # Perform the minimization, and save the energy.
         try:
-            ff = AllChem.UFFGetMoleculeForceField(self.mol)
+            ff = AllChem.UFFGetMoleculeForceField(self.mol)  # type: ignore
             ff.Minimize()
             self.energy = ff.CalcEnergy()
         except Exception:
@@ -787,20 +789,21 @@ class Conformation:
             self.energy = 9999
         self.minimized = True
 
-    def align_to_me(self, other_conf):
+    def align_to_me(self, other_conf: "Conformation") -> "Conformation":
         """Align another conformer to this one.
 
-        :param other_conf: The other conformer to align.
-        :type other_conf: Conformer
-        :return: The aligned Conformer object.
-        :rtype: Conformer
+        Args:
+            other_conf: The other conformer to align.
+
+        Returns:
+            The aligned Conformer object.
         """
 
         # Add the conformer of the other Conformer object.
         self.mol.AddConformer(other_conf.conformer(), assignId=True)
 
         # Align them.
-        AllChem.AlignMolConformers(self.mol, atomIds=self.ids_hvy_atms)
+        AllChem.AlignMolConformers(self.mol, atomIds=self.ids_hvy_atms)  # type: ignore
 
         # Reset the conformer of the other Conformer object.
         last_conf = self.mol.GetConformers()[-1]
@@ -812,7 +815,7 @@ class Conformation:
         # Return that other object.
         return other_conf
 
-    def MolToMolBlock(self):
+    def MolToMolBlock(self) -> None:
         """Prints out the first 500 letters of the molblock version of this
         conformer. Good for debugging."""
 
@@ -821,23 +824,30 @@ class Conformation:
         mol_copy.AddConformer(self.conformer)
         logger.debug(Chem.MolToMolBlock(mol_copy)[:500])
 
-    def rmsd_to_me(self, other_conf):
+    def rmsd_to_me(self, other_conf: "Conformation") -> float:
         """Calculate the rms distance between this conformer and another one.
 
-        :param other_conf: The other conformer to align.
-        :type other_conf: Conformer
-        :return: The rmsd, a float.
-        :rtype: float
+        Args:
+            other_conf: The other conformer to align.
+
+        Returns:
+            The rmsd, a float.
         """
 
         # Make a new molecule.
         amol = Chem.MolFromSmiles(self.smiles, sanitize=False)
+        if amol is None:
+            raise RuntimeError("Molecule cannot be None")
         amol = handlers.check_sanitization(amol)
+        if amol is None:
+            raise RuntimeError("Molecule cannot be None")
         amol = handlers.try_reprotanation(amol)
+        if amol is None:
+            raise RuntimeError("Molecule cannot be None")
 
         # Add the conformer of the other Conformer object.
-        amol.AddConformer(self.conformer(), assignId=True)
-        amol.AddConformer(other_conf.conformer(), assignId=True)
+        amol.AddConformer(self.conformer(), assignId=True)  # type: ignore
+        amol.AddConformer(other_conf.conformer(), assignId=True)  # type: ignore
 
         # Get the two confs.
         # first_conf = amol.GetConformers()[0]
@@ -847,20 +857,20 @@ class Conformation:
         amol = handlers.try_deprotanation(amol)
         return AllChem.GetConformerRMS(amol, 0, 1, prealigned=True)
 
-    def coords(self):
+    def coords(self) -> list[Any]:
         """Get the coordinates of this conformer. For debugging.
 
-        :return: A list of coordinates.
-        :rtype: list
+        Returns:
+            A list of coordinates.
         """
 
         return self.conformer().GetPositions()
 
-    def write_pdb_file(self, filename: str):
+    def write_pdb_file(self, filename: str) -> None:
         """Write this conformer to a PDB file. For debugging.
 
-        :param filename: The name of the file to write.
-        :type filename: str
+        Args:
+            filename: The name of the file to write.
         """
 
         # Make a new molecule.
@@ -871,14 +881,14 @@ class Conformation:
         mol.AddConformer(self.conformer(), assignId=True)
 
         # Write the PDB file.
-        AllChem.MolToPDBFile(mol, filename)
+        AllChem.MolToPDBFile(mol, filename)  # type: ignore
 
     def get_energy(self) -> float:
         """Get the energy of this conformer. For debugging.
 
-        :return: The energy.
-        :rtype: float
+        Returns:
+            The energy.
         """
 
-        ff = AllChem.UFFGetMoleculeForceField(self.mol)
+        ff = AllChem.UFFGetMoleculeForceField(self.mol)  # type: ignore
         return ff.CalcEnergy()

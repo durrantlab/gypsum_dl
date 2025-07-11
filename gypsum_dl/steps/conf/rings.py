@@ -141,7 +141,7 @@ def parallel_get_ring_confs(
     max_variants_per_compound: int,
     thoroughness: int,
     second_embed: bool,
-) -> list["Molecule"]:
+) -> list["Molecule"] | None:
     """Gets alternate ring conformations. Meant to run with the parallelizer class.
 
     Args:
@@ -217,7 +217,7 @@ def parallel_get_ring_confs(
         list_of_rmslists = [[]] * len(ring_mols)
         for k in range(len(ring_mols)):
             list_of_rmslists[k] = []
-            AllChem.AlignMolConformers(ring_mols[k], RMSlist=list_of_rmslists[k])
+            AllChem.AlignMolConformers(ring_mols[k], RMSlist=list_of_rmslists[k])  # type: ignore
 
         # Get points for each conformer (rmsd_ring1, rmsd_ring2, rmsd_ring3)
         pts = numpy.array(list_of_rmslists).T
@@ -262,16 +262,17 @@ def parallel_get_ring_confs(
             energy = c.energy
 
             new_mol.genealogy = mol.genealogy[:]
-            new_mol.genealogy.append(
-                new_mol.smiles(True)
-                + " (nonaromatic ring conformer: "
-                + str(energy)
-                + " kcal/mol)"
-            )
+            smiles: str | None = new_mol.smiles(noh=True)
+            if smiles is not None:
+                new_mol.genealogy.append(
+                    smiles
+                    + " (nonaromatic ring conformer: "
+                    + str(energy)
+                    + " kcal/mol)"
+                )
 
-            results.append(new_mol)  # i is mol index
+            results.append(new_mol)
 
         return results
 
-    # If you get here, something went wrong.
     return None

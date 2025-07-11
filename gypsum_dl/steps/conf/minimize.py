@@ -1,6 +1,5 @@
 """
-This module performs a final 3D minimization to improve the small-molecule
-geometry.
+This module performs a final 3D minimization to improve the small-molecule geometry.
 """
 
 from typing import TYPE_CHECKING
@@ -30,17 +29,16 @@ def minimize_3d(
     conformers, minimizes the best ones, and then saves the best of the
     best.
 
-
     Args:
-        contnrs: A list of containers (container.MoleculeContainer).
+        contnrs: A list of molecule containers.
         max_variants_per_compound: To control the combinatorial explosion,
             only this number of variants (molecules) will be advanced to the next
             step.
         thoroughness: How many molecules to generate per variant (molecule)
             retained, for evaluation. For example, perhaps you want to advance five
-            molecules (max_variants_per_compound = 5). You could just generate five
+            molecules (`max_variants_per_compound = 5`). You could just generate five
             and advance them all. Or you could generate ten and advance the best
-            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            five (so `thoroughness = 2`). Using `thoroughness > 1` increases the
             computational expense, but it also increases the chances of finding good
             molecules.
         num_procs: The number of processors to use.
@@ -109,7 +107,7 @@ def parallel_minit(
     max_variants_per_compound: int,
     thoroughness: int,
     second_embed: bool,
-) -> "Molecule":
+) -> "Molecule" | None:
     """Minimizes the geometries of a Molecule object. Meant to be run
     within parallelizer.
 
@@ -160,12 +158,11 @@ def parallel_minit(
 
         # Save to the genealogy record.
         new_mol.genealogy = mol.genealogy[:]
-        new_mol.genealogy.append(
-            new_mol.smiles(True)
-            + " (optimized conformer: "
-            + str(best_energy)
-            + " kcal/mol)"
-        )
+        smiles: str | None = new_mol.smiles(noh=True)
+        if smiles is not None:
+            new_mol.genealogy.append(
+                smiles + " (optimized conformer: " + str(best_energy) + " kcal/mol)"
+            )
 
         # Save best conformation. For some reason molecular properties
         # attached to mol are lost when returning from multiple

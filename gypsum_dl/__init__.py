@@ -11,7 +11,7 @@ from loguru import logger
 from .molecule import Molecule, Conformation
 from .container import MoleculeContainer
 
-__all__ = ["Molecule", "Conformation", "MoleculeContainer"]
+__all__: list[str] = ["Molecule", "Conformation", "MoleculeContainer"]
 
 logger.disable("gypsum_dl")
 

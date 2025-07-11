@@ -15,6 +15,7 @@ from typing import Any
 
 import multiprocessing
 import sys
+from collections.abc import Collection
 
 try:
     import mpi4py
@@ -267,7 +268,7 @@ class Parallelizer(object):
 
     def run(
         self,
-        args: list[Any],
+        args: Collection[Any],
         func: Any,
         num_procs: int | None = None,
         mode: str | None = None,
