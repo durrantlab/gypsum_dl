@@ -65,7 +65,7 @@ def convert_2d_to_3d(
     )
 
 
-def parallel_make_3d(mol: "Molecule") -> "Molecule" | None:
+def parallel_make_3d(mol: "Molecule") -> "Molecule | None":
     """Does the 2D to 3D conversion. Meant to run within parallelizer.
 
     Args:

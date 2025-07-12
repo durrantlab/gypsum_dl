@@ -107,7 +107,7 @@ def parallel_minit(
     max_variants_per_compound: int,
     thoroughness: int,
     second_embed: bool,
-) -> "Molecule" | None:
+) -> "Molecule | None":
     """Minimizes the geometries of a Molecule object. Meant to be run
     within parallelizer.
 
