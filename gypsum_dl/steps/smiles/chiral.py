@@ -9,7 +9,8 @@ from loguru import logger
 from rdkit import Chem
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import Molecule, chem_utils, utils
+from gypsum_dl import chem_utils, utils
+from gypsum_dl.models import Molecule
 
 
 def enumerate_chiral_molecules(

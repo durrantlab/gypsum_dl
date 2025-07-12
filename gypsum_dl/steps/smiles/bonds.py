@@ -11,10 +11,11 @@ from loguru import logger
 from rdkit import Chem
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import Molecule, chem_utils, utils
+from gypsum_dl import chem_utils, utils
+from gypsum_dl.models import Molecule
 
 if TYPE_CHECKING:
-    from gypsum_dl import MoleculeContainer
+    from gypsum_dl.models import MoleculeContainer
 
 
 def enumerate_double_bonds(

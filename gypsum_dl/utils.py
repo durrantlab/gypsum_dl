@@ -9,7 +9,7 @@ import string
 from loguru import logger
 
 if TYPE_CHECKING:
-    from gypsum_dl import Molecule, MoleculeContainer
+    from gypsum_dl.models import Molecule, MoleculeContainer
 
 
 def group_mols_by_container_index(

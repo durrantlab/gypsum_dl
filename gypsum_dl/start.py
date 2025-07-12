@@ -14,7 +14,8 @@ from datetime import datetime
 from loguru import logger
 from rdkit import Chem
 
-from gypsum_dl import MoleculeContainer, utils
+from gypsum_dl import utils
+from gypsum_dl.models import Molecule, MoleculeContainer
 from gypsum_dl.parallelizer import Parallelizer
 from gypsum_dl.steps.conf.prepare import prepare_3d
 from gypsum_dl.steps.io.load import load_sdf_file, load_smiles_file
@@ -187,23 +188,15 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             logger.warning("Throwing out SMILES because of unassigned bonds: " + smiles)
             continue
 
-        new_contnr = MoleculeContainer(smiles, name, idx_counter, props)
-        if (
-            new_contnr.orig_smi_canonical == None
-            or type(new_contnr.orig_smi_canonical) != str
-        ):
+        new_mol = Molecule.from_smiles(smiles, name)
+        new_smiles = new_mol.canonical_smiles()
+        if new_smiles is None or not isinstance(new_smiles, str):
             logger.warning(
                 "Throwing out SMILES because of it couldn't convert to mol: " + smiles
             )
             continue
-
-        contnrs.append(new_contnr)
+        contnrs.append(MoleculeContainer(new_mol, idx_counter))
         idx_counter += 1
-
-    # Remove None types from failed conversion
-    contnrs = [x for x in contnrs if x.orig_smi_canonical != None]
-    if len(contnrs) != idx_counter:
-        raise RuntimeError("There is a corrupted container")
 
     # In multiprocessing mode, Gypsum-DL parallelizes each small-molecule
     # preparation step separately. But this scheme is inefficient in MPI mode

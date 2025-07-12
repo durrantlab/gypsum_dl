@@ -11,7 +11,7 @@ import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils
 
 if TYPE_CHECKING:
-    from gypsum_dl import Molecule, MoleculeContainer
+    from gypsum_dl.models import Molecule, MoleculeContainer
 
 
 def convert_2d_to_3d(

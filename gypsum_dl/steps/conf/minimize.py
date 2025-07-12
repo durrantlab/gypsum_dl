@@ -8,11 +8,11 @@ import copy
 
 from loguru import logger
 
-from gypsum_dl import Conformation
+from gypsum_dl.models import Conformer
 
 if TYPE_CHECKING:
     import gypsum_dl.parallelizer as Parallelizer
-    from gypsum_dl import Molecule, MoleculeContainer
+    from gypsum_dl.models import Molecule, MoleculeContainer
 
 
 def minimize_3d(
@@ -152,7 +152,7 @@ def parallel_minit(
 
         # Get the best scoring (lowest energy) of these minimized conformers
         new_mol = copy.deepcopy(mol)
-        c = Conformation(new_mol, mol.conformers[0].conformer(), second_embed)
+        c = Conformer(new_mol, mol.conformers[0].conformer(), second_embed)
         new_mol.conformers = [c]
         best_energy = c.energy
 

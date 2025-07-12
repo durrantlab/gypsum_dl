@@ -8,7 +8,7 @@ from rdkit import Chem
 from gypsum_dl import utils
 
 if TYPE_CHECKING:
-    from gypsum_dl import Molecule, MoleculeContainer
+    from gypsum_dl.models import Molecule, MoleculeContainer
 
 
 def pick_lowest_enrgy_mols(

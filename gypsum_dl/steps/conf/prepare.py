@@ -9,7 +9,7 @@ from gypsum_dl.steps.conf.minimize import minimize_3d
 from gypsum_dl.steps.conf.rings import generate_alternate_3d_nonaromatic_ring_confs
 
 if TYPE_CHECKING:
-    from gypsum_dl import MoleculeContainer
+    from gypsum_dl.models import MoleculeContainer
 
 
 def prepare_3d(contnrs: list["MoleculeContainer"], params: dict[str, Any]) -> None:

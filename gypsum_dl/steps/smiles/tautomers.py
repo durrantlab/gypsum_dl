@@ -5,7 +5,8 @@ from molvs import tautomer
 from rdkit import Chem
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import Molecule, chem_utils, handlers
+from gypsum_dl import chem_utils, handlers
+from gypsum_dl.models import Molecule
 
 
 def make_tauts(

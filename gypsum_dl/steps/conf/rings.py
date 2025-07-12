@@ -16,10 +16,10 @@ from rdkit.Chem import AllChem
 from scipy.cluster.vq import kmeans2
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import Conformation
+from gypsum_dl.models import Conformer
 
 if TYPE_CHECKING:
-    from gypsum_dl import Molecule, MoleculeContainer
+    from gypsum_dl.models import Molecule, MoleculeContainer
 
 
 def generate_alternate_3d_nonaromatic_ring_confs(
@@ -257,7 +257,7 @@ def parallel_get_ring_confs(
         results = []
         for conf in best_confs:
             new_mol = copy.deepcopy(mol)
-            c = Conformation(new_mol, conf.conformer(), second_embed)
+            c = Conformer(new_mol, conf.conformer(), second_embed)
             new_mol.conformers = [c]
             energy = c.energy
 

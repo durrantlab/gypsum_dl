@@ -6,7 +6,7 @@ molecule, keep the larger one.
 from loguru import logger
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import Molecule
+from gypsum_dl.models import Molecule
 
 
 def desalt_orig_smi(
@@ -56,14 +56,18 @@ def desalter(contnr):
     """
 
     # Split it into fragments
-    frags = contnr.get_frags_of_orig_smi()
+    frags = contnr.initial_molecule.fragments
 
     if len(frags) == 1:
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
         return contnr.mol_orig_frm_inp_smi
     logger.debug(
-        "Multiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
+        "Multiple fragments found in "
+        + contnr.initial_molecule.canonical_smiles()
+        + " ("
+        + contnr.initial_molecule.name
+        + ")"
     )
 
     # Find the biggest fragment
@@ -79,8 +83,8 @@ def desalter(contnr):
 
     # Return info about that biggest fragment.
     new_mol = Molecule(biggest_frag)
-    new_mol.contnr_idx = contnr.contnr_idx
+    new_mol.contnr_idx = contnr.container_id
     new_mol.name = contnr.name
-    new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy
+    new_mol.genealogy = contnr.mol.genealogy
     new_mol.make_mol_frm_smiles_sanitze()  # Need to update the mol.
     return new_mol
