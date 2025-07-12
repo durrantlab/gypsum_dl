@@ -2,22 +2,22 @@
 Runs the 3D preparation process.
 """
 
-import __future__
+from typing import TYPE_CHECKING, Any
 
-from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d
-from gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs import (
-    generate_alternate_3d_nonaromatic_ring_confs,
-)
-from gypsum_dl.steps.conf.Minimize3D import minimize_3d
+from gypsum_dl.steps.conf.convert import convert_2d_to_3d
+from gypsum_dl.steps.conf.minimize import minimize_3d
+from gypsum_dl.steps.conf.rings import generate_alternate_3d_nonaromatic_ring_confs
+
+if TYPE_CHECKING:
+    from gypsum_dl.models import MoleculeContainer
 
 
-def prepare_3d(contnrs, params):
+def prepare_3d(contnrs: list["MoleculeContainer"], params: dict[str, Any]) -> None:
     """Runs the pipeline for generating the 3D small-molecule models.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
-    :param params: The parameters.
-    :type params: dict
+    Args:
+        contnrs: A list of containers (container.MoleculeContainer).
+        params: The parameters.
     """
 
     # Do the 2d to 3d conversion, if requested.

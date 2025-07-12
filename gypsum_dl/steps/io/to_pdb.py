@@ -2,20 +2,15 @@
 Contains the function for saving the output to PDB files.
 """
 
-import __future__
-
-import glob
 import os
 import sys
-from os.path import basename
 
-import rdkit
 import rdkit.Chem as Chem
+from rdkit import RDLogger
 
 from gypsum_dl import utils
 
-# Disable the unnecessary RDKit warnings
-rdkit.RDLogger.DisableLog("rdApp.*")
+RDLogger.DisableLog("rdApp.*")
 
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), "gypsum_dl"))
 
@@ -24,7 +19,7 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
     """This will convert every conformer into a PDB file, which is saved in
        the output_folder.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param output_folder: The name of the output folder.
     :type output_folder: str

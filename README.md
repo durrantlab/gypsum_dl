@@ -45,72 +45,72 @@ pip install https://github.com/durrantlab/gypsum_dl.git
 Gypsum-DL accepts the following command-line parameters:
 
 ```text
-  -h, --help            show this help message and exit
-  --json param.json, -j param.json
-                        Name of a json file containing all parameters.
-                        Overrides all other arguments specified at the
-                        commandline.
-  --source input.smi, -s input.smi
-                        Name of the source file (e.g., input.smi). Note:
-                        support for SMI (SMILES) files is better than support
-                        for SDF files, though Gypsum-DL can handle both.
-  --output_folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
-                        The path to an existing folder where the Gypsum-DL
-                        output file(s) will be saved.
-  --job_manager {mpi,multiprocessing,serial}
-                        Determine what style of multiprocessing to use: mpi,
-                        multiprocessing, or serial. Serial will override the
-                        num_processors flag, forcing it to be one. MPI mode
-                        requires mpi4py 2.1.0 or higher and should be executed
-                        as: mpirun -n $NTASKS python -m mpi4py
-                        run_gypsum_dl.py ...-settings...
-  --num_processors N, -p N
-                        Number of processors to use for parallel calculations.
-  --max_variants_per_compound V, -m V
-                        The maximum number of variants to create per input
-                        molecule.
-  --thoroughness THOROUGHNESS, -t THOROUGHNESS
-                        How widely to search for low-energy conformers. Larger
-                        values increase run times but can produce better
-                        results.
-  --separate_output_files
-                        Indicates that the outputs should be split between
-                        files. If true, each output .sdf file will correspond
-                        to a single input file, but different 3D conformers
-                        will still be stored in the same file.
-  --add_pdb_output      Indicates that the outputs should also be written in
-                        the .pdb format. Creates one PDB file for each
-                        molecular variant.
-  --add_html_output     Indicates that the outputs should also be written in
-                        the .html format, for debugging. Attempts to open a
-                        browser for viewing.
-  --min_ph MIN          Minimum pH to consider.
-  --max_ph MAX          Maximum pH to consider.
-  --pka_precision D     Size of pH substructure ranges. See Dimorphite-DL
-                        publication for details.
-  --skip_optimize_geometry
-                        Skips the optimization step.
-  --skip_alternate_ring_conformations
-                        Skips the non-aromatic ring-conformation generation
-                        step.
-  --skip_adding_hydrogen
-                        Skips the ionization step.
-  --skip_making_tautomers
-                        Skips tautomer-generation step.
-  --skip_enumerate_chiral_mol
-                        Skips the ennumeration of unspecified chiral centers.
-  --skip_enumerate_double_bonds
-                        Skips the ennumeration of double bonds.
-  --let_tautomers_change_chirality
-                        Allow tautomers that change the total number of chiral
-                        centers (see README.md for further explanation).
-  --use_durrant_lab_filters
-                        Use substructure filters to remove molecular variants
-                        that, though technically possible, were judged
-                        improbable by members of the Durrant lab. See
-                        README.md for more details.
-  --2d_output_only      Skips the generate-3D-models step.
-  --cache_prerun, -c    Run this before running Gypsum-DL in mpi mode.
+-h, --help            show this help message and exit
+--json param.json, -j param.json
+                    Name of a json file containing all parameters.
+                    Overrides all other arguments specified at the
+                    commandline.
+--source input.smi, -s input.smi
+                    Name of the source file (e.g., input.smi). Note:
+                    support for SMI (SMILES) files is better than support
+                    for SDF files, though Gypsum-DL can handle both.
+--output_folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
+                    The path to an existing folder where the Gypsum-DL
+                    output file(s) will be saved.
+--job_manager {mpi,multiprocessing,serial}
+                    Determine what style of multiprocessing to use: mpi,
+                    multiprocessing, or serial. Serial will override the
+                    num_processors flag, forcing it to be one. MPI mode
+                    requires mpi4py 2.1.0 or higher and should be executed
+                    as: mpirun -n $NTASKS python -m mpi4py
+                    run_gypsum_dl.py ...-settings...
+--num_processors N, -p N
+                    Number of processors to use for parallel calculations.
+--max_variants_per_compound V, -m V
+                    The maximum number of variants to create per input
+                    molecule.
+--thoroughness THOROUGHNESS, -t THOROUGHNESS
+                    How widely to search for low-energy conformers. Larger
+                    values increase run times but can produce better
+                    results.
+--separate_output_files
+                    Indicates that the outputs should be split between
+                    files. If true, each output .sdf file will correspond
+                    to a single input file, but different 3D conformers
+                    will still be stored in the same file.
+--add_pdb_output      Indicates that the outputs should also be written in
+                    the .pdb format. Creates one PDB file for each
+                    molecular variant.
+--add_html_output     Indicates that the outputs should also be written in
+                    the .html format, for debugging. Attempts to open a
+                    browser for viewing.
+--min_ph MIN          Minimum pH to consider.
+--max_ph MAX          Maximum pH to consider.
+--pka_precision D     Size of pH substructure ranges. See Dimorphite-DL
+                    publication for details.
+--skip_optimize_geometry
+                    Skips the optimization step.
+--skip_alternate_ring_conformations
+                    Skips the non-aromatic ring-conformation generation
+                    step.
+--skip_adding_hydrogen
+                    Skips the ionization step.
+--skip_making_tautomers
+                    Skips tautomer-generation step.
+--skip_enumerate_chiral_mol
+                    Skips the ennumeration of unspecified chiral centers.
+--skip_enumerate_double_bonds
+                    Skips the ennumeration of double bonds.
+--let_tautomers_change_chirality
+                    Allow tautomers that change the total number of chiral
+                    centers (see README.md for further explanation).
+--use_durrant_lab_filters
+                    Use substructure filters to remove molecular variants
+                    that, though technically possible, were judged
+                    improbable by members of the Durrant lab. See
+                    README.md for more details.
+--2d_output_only      Skips the generate-3D-models step.
+--cache_prerun, -c    Run this before running Gypsum-DL in mpi mode.
 ```
 
 ### Examples
@@ -119,13 +119,13 @@ Prepare a virtual library and save all 3D models to a single SDF file in the
 present directory:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi
 ```
 
 Instead save all 3D models to a different, existing folder:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
    --output_folder /my/folder/
 ```
 
@@ -133,7 +133,7 @@ Additionally save the models associated with each input molecule to separate
 files:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --separate_output_files
 ```
 
@@ -141,42 +141,42 @@ In addition to saving a 3D SDF file, also save 3D PDB files and an HTML file
 with 2D structures (for debugging).
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --add_pdb_output --add_html_output
 ```
 
 Save at most two variants per input molecule:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --max_variants_per_compound 2
 ```
 
 Control how Gypsum-DL ionizes the input molecules:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --min_ph 12 --max_ph 14 --pka_precision 1
 ```
 
 Run Gypsum-DL in serial mode (using only one processor):
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --job_manager serial
 ```
 
 Run Gypsum-DL in multiprocessing mode, using 4 processors:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --job_manager multiprocessing --num_processors 4
 ```
 
 Run Gypsum-DL in mpi mode using all available processors:
 
 ```bash
-mpirun -n $NTASKS python -m mpi4py  run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+mpirun -n $NTASKS python -m mpi4py  run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \
     --job_manager mpi --num_processors -1
 ```
 
@@ -190,7 +190,7 @@ Where `myparams.json` might look like:
 
 ```json
 {
-    "source": "./examples/sample_molecules.smi",
+    "source": "./tests/files/sample/sample_molecules.smi",
     "separate_output_files": true,
     "job_manager": "multiprocessing",
     "output_folder": "/my/folder/",
@@ -225,17 +225,17 @@ As always, be sure to examine the structures that Gypsum-DL outputs to ensure th
 In looking over many Gypsum-DL-generated variants, we have identified a number of substructures that, though technically possible, strike us as improbable or otherwise poorly suited for virtual screening.
 Here are some examples:
 
-- `C=[N-]`
-- `[N-]C=[N+]`
-- `[nH+]c[n-]`
-- `[#7+]~[#7+]`
-- `[#7-]~[#7-]`
-- `[!#7]~[#7+]~[#7-]~[!#7]`
-- `[#5]` (boron)
-- `O=[PH](=O)([#8])([#8])`
-- `N=c1cc[#7]c[#7]1`
-- `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
-- Metals
+-   `C=[N-]`
+-   `[N-]C=[N+]`
+-   `[nH+]c[n-]`
+-   `[#7+]~[#7+]`
+-   `[#7-]~[#7-]`
+-   `[!#7]~[#7+]~[#7-]~[!#7]`
+-   `[#5]` (boron)
+-   `O=[PH](=O)([#8])([#8])`
+-   `N=c1cc[#7]c[#7]1`
+-   `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
+-   Metals
 
 If you'd like to discard molecular variants with substructures such as these, use the `--use_durrant_lab_filters` flag.
 
@@ -255,15 +255,12 @@ To correct the problem, either increase the available memory, or divide your lib
 Gypsum-DL aims to enumerate many possible variant forms, including forms that are not necessarily probable.
 Beyond applying Durrant-Lab filters, several methods allow users to exclude other potentially problematic forms:
 
-1. Identify the steps Gypsum-DL takes to generate a given problematic form (see the "Genealogy" field of every output SDF file).
+1.  Identify the steps Gypsum-DL takes to generate a given problematic form (see the "Genealogy" field of every output SDF file).
     Then use parameters such as `--skip_optimize_geometry`, `--skip_alternate_ring_conformations`, `--skip_adding_hydrogen`, `--skip_making_tautomers`, `--skip_enumerate_chiral_mol`, or `--skip_enumerate_double_bonds` to skip the problem-causing step.
     This fix is easy, but it may unexpectedly impact unrelated compounds.
 2.  Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision` parameters if Gypsum-DL is producing compounds with undesired protonation states.
-    Alternatively, you can delete specific protonation rules by modifying the
-   `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
 3.  Add to the Durrant-Lab filters if there is a specific substructure you would like to avoid (e.g., imidic acid due to amide/imidic-acid tautomerization).
-    Simplify modify the `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.
-
+    Simplify modify the `gypsum_dl/Steps/smiles/dl_filter.py` file.
 
 ## Citation
 

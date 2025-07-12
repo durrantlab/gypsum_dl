@@ -1,0 +1,2 @@
+[environment]
+python = ".pixi/envs/dev"

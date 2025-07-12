@@ -1,7 +1,8 @@
 import argparse
 import copy
 
-from gypsum_dl import utils
+from loguru import logger
+
 from gypsum_dl.start import prepare_molecules
 
 
@@ -19,49 +20,49 @@ def main():
     1. Prepare a virtual library and save all 3D models to a single SDF file in the
     present directory:
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi
 
     2. Instead save all 3D models to a different, existing folder:
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \\
     --output_folder /my/folder/
 
     3. Additionally save the models associated with each input molecule to
     separate files:
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \\
         --output_folder /my/folder/ --separate_output_files
 
     4. In addition to saving a 3D SDF file, also save 3D PDB files and an HTML file
     with 2D structures (for debugging).
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \\
         --output_folder /my/folder/ --add_pdb_output --add_html_output
 
     5. Save at most two variants per input molecule:
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \\
         --output_folder /my/folder/ --max_variants_per_compound 2
 
     6. Control how Gypsum-DL ionizes the input molecules:
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \\
         --output_folder /my/folder/ --min_ph 12 --max_ph 14 --pka_precision 1
 
     7. Run Gypsum-DL in serial mode (using only one processor):
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \\
         --job_manager serial
 
     8. Run Gypsum-DL in multiprocessing mode, using 4 processors:
 
-    python run_gypsum_dl.py --source ./examples/sample_molecules.smi \\
+    python run_gypsum_dl.py --source ./tests/files/sample/sample_molecules.smi \\
         --job_manager multiprocessing --num_processors 4
 
     9. Run Gypsum-DL in mpi mode using all available processors:
 
     mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py \\
-        --source ./examples/sample_molecules.smi \\
+        --source ./tests/files/sample/sample_molecules.smi \\
         --job_manager mpi --num_processors -1
 
     10. Gypsum-DL can also take parameters from a JSON file:
@@ -71,7 +72,7 @@ def main():
     Where myparams.json might look like:
 
     {
-        "source": "./examples/sample_molecules.smi",
+        "source": "./tests/files/sample/sample_molecules.smi",
         "separate_output_files": true,
         "job_manager": "multiprocessing",
         "output_folder": "/my/folder/",
@@ -243,4 +244,4 @@ def main():
         if v is None:
             del INPUTS[k]
     prepare_molecules(INPUTS)
-    utils.log("Finished Gypsum-DL")
+    logger.info("Finished Gypsum-DL")
