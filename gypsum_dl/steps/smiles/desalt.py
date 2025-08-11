@@ -6,11 +6,16 @@ molecule, keep the larger one.
 from loguru import logger
 
 import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl.models import MoleculeContainer
 from gypsum_dl.models import Molecule
 
 
 def desalt_orig_smi(
-    contnrs, num_procs, job_manager, parallelizer_obj, durrant_lab_filters=False
+    contnrs: list[MoleculeContainer],
+    num_procs: int,
+    job_manager: str,
+    parallelizer_obj,
+    durrant_lab_filters: bool = False,
 ):
     """If an input molecule has multiple unconnected fragments, this removes
        all but the largest fragment.
@@ -46,7 +51,7 @@ def desalt_orig_smi(
         cont.add_mol(desalt_mol)
 
 
-def desalter(contnr):
+def desalter(contnr: MoleculeContainer):
     """Desalts molecules in a molecule container.
 
     :param contnr: The molecule container.
@@ -64,7 +69,7 @@ def desalter(contnr):
         return contnr.mol_orig_frm_inp_smi
     logger.debug(
         "Multiple fragments found in "
-        + contnr.initial_molecule.canonical_smiles()
+        + contnr.name
         + " ("
         + contnr.initial_molecule.name
         + ")"
@@ -85,6 +90,6 @@ def desalter(contnr):
     new_mol = Molecule(biggest_frag)
     new_mol.contnr_idx = contnr.container_id
     new_mol.name = contnr.name
-    new_mol.genealogy = contnr.mol.genealogy
+    new_mol.genealogy = contnr
     new_mol.make_mol_frm_smiles_sanitze()  # Need to update the mol.
     return new_mol

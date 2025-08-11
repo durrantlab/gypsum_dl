@@ -25,6 +25,7 @@ class MoleculeContainer:
 
         # Initialize a conformer set for the initial molecule
         initial_mol_key = initial_molecule.canonical_smiles(True)
+        self.name: str = initial_molecule.name
         if initial_mol_key is None:
             logger.warning(
                 f"Initial molecule {initial_molecule.name} has no canonical SMILES, cannot manage conformers effectively."

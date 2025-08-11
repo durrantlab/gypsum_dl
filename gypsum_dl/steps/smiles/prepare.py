@@ -15,9 +15,10 @@ from gypsum_dl.steps.smiles.dl_filter import (
 )
 from gypsum_dl.steps.smiles.hydrogens import add_hydrogens
 from gypsum_dl.steps.smiles.tautomers import make_tauts
+from gypsum_dl.models import MoleculeContainer
 
 
-def prepare_smiles(contnrs, params):
+def prepare_smiles(contnrs: list[MoleculeContainer], params: dict):
     """Runs the appropriate steps for processing the SMILES strings.
 
     :param contnrs: A list of containers (container.MoleculeContainer).
@@ -47,7 +48,7 @@ def prepare_smiles(contnrs, params):
     # Filter the containers to remove ones that have bad substrings (metal,
     # etc.) in the desalted smiles, assuming durrant lab filter turned on. Note
     # that some compounds aren't filtered until later.
-    if params["use_durrant_lab_filters"] == True:
+    if params["use_durrant_lab_filters"]:
         contnrs = [
             c for c in contnrs if not durrant_lab_contains_bad_substr(c.orig_smi_deslt)
         ]
