@@ -3,17 +3,12 @@ Saves the output to an HTML file (2D images only). This is mostly for
 debugging.
 """
 
-# import webbrowser
 import os
 
-from gypsum_dl import chem_utils, utils
-
-try:
-    from rdkit import Chem
-    from rdkit.Chem import rdDepictor
-    from rdkit.Chem.Draw import PrepareMolForDrawing, rdMolDraw2D
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+from loguru import logger
+from rdkit import Chem
+from rdkit.Chem import rdDepictor
+from rdkit.Chem.Draw import PrepareMolForDrawing, rdMolDraw2D
 
 
 def web_2d_output(contnrs, output_folder):
@@ -21,13 +16,13 @@ def web_2d_output(contnrs, output_folder):
     a browser. Then opens a browser automatically to view them. This is mostly
     for debugging."""
 
-    utils.log("Saving html image of molecules associated with...")
+    logger.info("Saving html image of molecules associated with...")
 
     # Let's not parallelize it for now. This will rarely be used.
     html_file = output_folder + os.sep + "gypsum_dl_success.html"
     with open(html_file, "w") as f:
         for contnr in contnrs:
-            utils.log("\t" + contnr.orig_smi)
+            logger.info("\t" + contnr.orig_smi)
             for mol in contnr.mols:
                 # See
                 # http://rdkit.org/docs/source/rdkit.Chem.rdmolops.html#rdkit.Chem.rdmolops.RemoveHs
@@ -60,6 +55,3 @@ def web_2d_output(contnrs, output_folder):
                     + "</div>"
                     + "</div>"
                 )
-
-    # Open the browser to show the file.
-    # webbrowser.open("file://" + os.path.abspath(html_file))

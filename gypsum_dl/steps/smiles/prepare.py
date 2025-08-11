@@ -3,24 +3,25 @@ Runs the smile preparation process. Generates alternate ionization,
 tautomeric, chiral forms, etc.
 """
 
-import __future__
+from loguru import logger
 
 from gypsum_dl import utils
-from gypsum_dl.steps.smiles.AddHydrogens import add_hydrogens
-from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
-from gypsum_dl.steps.smiles.DurrantLabFilter import (
+from gypsum_dl.steps.smiles.bonds import enumerate_double_bonds
+from gypsum_dl.steps.smiles.chiral import enumerate_chiral_molecules
+from gypsum_dl.steps.smiles.desalt import desalt_orig_smi
+from gypsum_dl.steps.smiles.dl_filter import (
     durrant_lab_contains_bad_substr,
     durrant_lab_filters,
 )
-from gypsum_dl.steps.smiles.EnumerateChiralMols import enumerate_chiral_molecules
-from gypsum_dl.steps.smiles.EnumerateDoubleBonds import enumerate_double_bonds
-from gypsum_dl.steps.smiles.MakeTautomers import make_tauts
+from gypsum_dl.steps.smiles.hydrogens import add_hydrogens
+from gypsum_dl.steps.smiles.tautomers import make_tauts
+from gypsum_dl.models import MoleculeContainer
 
 
-def prepare_smiles(contnrs, params):
+def prepare_smiles(contnrs: list[MoleculeContainer], params: dict):
     """Runs the appropriate steps for processing the SMILES strings.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     :param params: The user parameters.
     :type params: dict
@@ -41,14 +42,13 @@ def prepare_smiles(contnrs, params):
 
     # Desalt the molecules. Note that the program always desalts (can't turn it
     # off).
-    # utils.log("Begin Desaltings")
+    logger.debug("Begin Desaltings")
     desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj)
-    # utils.log("Done with Desalting")
 
     # Filter the containers to remove ones that have bad substrings (metal,
     # etc.) in the desalted smiles, assuming durrant lab filter turned on. Note
     # that some compounds aren't filtered until later.
-    if params["use_durrant_lab_filters"] == True:
+    if params["use_durrant_lab_filters"]:
         contnrs = [
             c for c in contnrs if not durrant_lab_contains_bad_substr(c.orig_smi_deslt)
         ]
@@ -58,7 +58,6 @@ def prepare_smiles(contnrs, params):
 
     # Add hydrogens for user-specified pH, if requested.
     if not params["skip_adding_hydrogen"]:
-        # utils.log("Ionizing Molecules")
         add_hydrogens(
             contnrs,
             min_ph,
@@ -70,9 +69,8 @@ def prepare_smiles(contnrs, params):
             job_manager,
             parallelizer_obj,
         )
-        # utils.log("Done with Ionization")
     else:
-        utils.log("Skipping ionization")
+        logger.info("Skipping ionization")
         wrap_molecules(contnrs)
 
     if debug:
@@ -80,7 +78,6 @@ def prepare_smiles(contnrs, params):
 
     # Make alternate tautomeric forms, if requested.
     if not params["skip_making_tautomers"]:
-        # utils.log("Tautomerizing Molecules")
         make_tauts(
             contnrs,
             max_variants_per_compound,
@@ -90,27 +87,23 @@ def prepare_smiles(contnrs, params):
             let_tautomers_change_chirality,
             parallelizer_obj,
         )
-        # utils.log("Done with Tautomerization")
     else:
-        utils.log("Skipping tautomerization")
+        logger.info("Skipping tautomerization")
 
     if debug:
         utils.print_current_smiles(contnrs)
 
     # Apply Durrant-lab filters if requested
     if params["use_durrant_lab_filters"]:
-        # utils.log("Applying Durrant-Lab Filters")
         durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj)
-        # utils.log("Done Applying Durrant-Lab Filters")
     else:
-        utils.log("Not applying Durrant-lab filters")
+        logger.info("Not applying Durrant-lab filters")
 
     if debug:
         utils.print_current_smiles(contnrs)
 
     # Make alternate chiral forms, if requested.
     if not params["skip_enumerate_chiral_mol"]:
-        # utils.log("Enumerating Chirality")
         enumerate_chiral_molecules(
             contnrs,
             max_variants_per_compound,
@@ -119,16 +112,14 @@ def prepare_smiles(contnrs, params):
             job_manager,
             parallelizer_obj,
         )
-        # utils.log("Done with Chirality Enumeration")
     else:
-        utils.log("Skipping chirality enumeration")
+        logger.info("Skipping chirality enumeration")
 
     if debug:
         utils.print_current_smiles(contnrs)
 
     # Make alternate double-bond isomers, if requested.
     if not params["skip_enumerate_double_bonds"]:
-        # utils.log("Enumerating Double Bonds")
         enumerate_double_bonds(
             contnrs,
             max_variants_per_compound,
@@ -137,9 +128,8 @@ def prepare_smiles(contnrs, params):
             job_manager,
             parallelizer_obj,
         )
-        # utils.log("Done with Double Bond Enumeration")
     else:
-        utils.log("Skipping double bond enumeration")
+        logger.info("Skipping double bond enumeration")
 
     if debug:
         utils.print_current_smiles(contnrs)
@@ -159,7 +149,7 @@ def wrap_molecules(contnrs):
     In this case, the one SMILES needs to be converted to a RDKit mol object
     for subsequent steps to work. Let's do that here.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
     """
 

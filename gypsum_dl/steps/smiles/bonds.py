@@ -1,60 +1,57 @@
 """Module for enumerating unspecified double bonds (cis vs. trans)."""
 
-import __future__
+from typing import TYPE_CHECKING
 
 import copy
 import itertools
 import math
 import random
 
-import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
+from loguru import logger
+from rdkit import Chem
 
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+import gypsum_dl.parallelizer as Parallelizer
+from gypsum_dl import chem_utils, utils
+from gypsum_dl.models import Molecule
+
+if TYPE_CHECKING:
+    from gypsum_dl.models import MoleculeContainer
 
 
 def enumerate_double_bonds(
-    contnrs,
-    max_variants_per_compound,
-    thoroughness,
-    num_procs,
-    job_manager,
-    parallelizer_obj,
-):
+    contnrs: list["MoleculeContainer"],
+    max_variants_per_compound: int,
+    thoroughness: int,
+    num_procs: int,
+    job_manager: str,
+    parallelizer_obj: object,
+) -> None:
     """Enumerates all possible cis-trans isomers. If the stereochemistry of a
        double bond is specified, it is not varied. All unspecified double bonds
        are varied.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: A list.
-    :param max_variants_per_compound: To control the combinatorial explosion,
-       only this number of variants (molecules) will be advanced to the next
-       step.
-    :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
-    :type thoroughness: int
-    :param num_procs: The number of processors to use.
-    :type num_procs: int
-    :param job_manager: The multithred mode to use.
-    :type job_manager: string
-    :param parallelizer_obj: The Parallelizer object.
-    :type parallelizer_obj: Parallelizer.Parallelizer
+    Args:
+        contnrs: A list of containers (container.MoleculeContainer).
+        max_variants_per_compound: To control the combinatorial explosion,
+            only this number of variants (molecules) will be advanced to the next
+            step.
+        thoroughness: How many molecules to generate per variant (molecule)
+            retained, for evaluation. For example, perhaps you want to advance five
+            molecules (max_variants_per_compound = 5). You could just generate five
+            and advance them all. Or you could generate ten and advance the best
+            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            computational expense, but it also increases the chances of finding good
+            molecules.
+        num_procs: The number of processors to use.
+        job_manager: The multithred mode to use.
+        parallelizer_obj: The Parallelizer object.
     """
 
     # No need to continue if none are requested.
     if max_variants_per_compound == 0:
         return
 
-    utils.log("Enumerating all possible cis-trans isomers for all molecules...")
+    logger.debug("Enumerating all possible cis-trans isomers for all molecules...")
 
     # Group the molecule containers so they can be passed to the parallelizer.
     params = []
@@ -84,7 +81,7 @@ def enumerate_double_bonds(
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
-        utils.log(
+        logger.warning(
             "\tCould not generate valid double-bond variant for "
             + contnrs[miss_indx].orig_smi
             + " ("
@@ -109,7 +106,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating double bonds.
 
     :param mol: The molecule with a potentially unspecified double bond.
-    :type mol: MyMol.MyMol
+    :type mol: Molecule
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
        step.
@@ -214,9 +211,8 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
 
     # Let the user know.
     if dbl_bnd_count > 0:
-        utils.log(
-            "\t"
-            + mol.smiles(True)
+        logger.info(
+            mol.smiles(True)
             + " has "
             # + str(dbl_bnd_count)
             + str(
@@ -274,8 +270,8 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     ]
     results = []
     for smile_to_consider in smiles_to_consider:
-        # Make a new MyMol.MyMol object with the specified smiles.
-        new_mol = MyMol.MyMol(smile_to_consider)
+        # Make a new Molecule object with the specified smiles.
+        new_mol = Molecule(smile_to_consider)
 
         # Sometimes you get an error if there's a bad structure otherwise. Add
         # the new molecule to the list of results, if it does not have a bizarre

@@ -1,22 +1,12 @@
 """This module makes alternate tautomeric states, using MolVS."""
 
-import __future__
+from loguru import logger
+from molvs import tautomer
+from rdkit import Chem
 
-import random
-
-import gypsum_dl.MolObjectHandling as MOH
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
-
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
-
-try:
-    from molvs import tautomer
-except Exception:
-    utils.exception("You need to install molvs and its dependencies.")
+from gypsum_dl import chem_utils, handlers
+from gypsum_dl.models import Molecule
 
 
 def make_tauts(
@@ -31,10 +21,10 @@ def make_tauts(
     """Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
     substructure keeps popping up, add it to the list in the
-    `prohibited_substructures` definition found with MyMol.py, in the function
+    `prohibited_substructures` definition found with Molecule.py, in the function
     remove_bizarre_substruc().
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: A list.
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
@@ -54,7 +44,7 @@ def make_tauts(
       change the total number of chiral centers.
     :type let_tautomers_change_chirality: bool
     :param job_manager: The multithred mode to use.
-    :type job_manager: string
+    :type job_manager: stringutils.log
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
@@ -63,7 +53,7 @@ def make_tauts(
     if max_variants_per_compound == 0:
         return
 
-    utils.log("Generating tautomers for all molecules...")
+    logger.info("Generating tautomers for all molecules...")
 
     # Create the parameters to feed into the parallelizer object.
     params = []
@@ -111,42 +101,40 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
        function that gets fed into the parallelizer.
 
     :param contnr: The molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :param mol_index: The molecule index.
     :type mol_index: int
     :param max_variants_per_compound: To control the combinatorial explosion,
        only this number of variants (molecules) will be advanced to the next
        step.
     :type max_variants_per_compound: int
-    :return: A list of MyMol.MyMol objects, containing the alternate
+    :return: A list of Molecule objects, containing the alternate
         tautomeric forms.
     :rtype: list
     """
 
-    # Get the MyMol.MyMol within the molecule container corresponding to the
+    # Get the Molecule within the molecule container corresponding to the
     # given molecule index.
     mol = contnr.mols[mol_index]
 
     # Create a temporary RDKit mol object, since that's what MolVS works with.
     # TODO: There should be a copy function
-    m = MyMol.MyMol(mol.smiles()).rdkit_mol
+    m = Molecule(mol.smiles()).rdkit_mol
 
     # For tautomers to work, you need to not have any explicit hydrogens.
     m = Chem.RemoveHs(m)
 
     # Make sure it's not None.
     if m is None:
-        utils.log(
-            "\tCould not generate tautomers for "
-            + contnr.orig_smi
-            + ". I'm deleting it."
+        logger.warning(
+            "Could not generate tautomers for " + contnr.orig_smi + ". I'm deleting it."
         )
         return
 
     # Molecules should be kekulized already, but let's double check that.
     # Because MolVS requires kekulized input.
     Chem.Kekulize(m)
-    m = MOH.check_sanitization(m)
+    m = handlers.check_sanitization(m)
     if m is None:
         return None
 
@@ -157,15 +145,15 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     enum = tautomer.TautomerEnumerator(max_tautomers=max_variants_per_compound)
     tauts_rdkit_mols = enum.enumerate(m)
 
-    # Make all those tautomers into MyMol objects.
-    tauts_mols = [MyMol.MyMol(m) for m in tauts_rdkit_mols]
+    # Make all those tautomers into Molecule objects.
+    tauts_mols = [Molecule(m) for m in tauts_rdkit_mols]
 
     # Keep only those that have reasonable substructures.
     tauts_mols = [t for t in tauts_mols if t.remove_bizarre_substruc() == False]
 
     # If there's more than one, let the user know that.
     if len(tauts_mols) > 1:
-        utils.log("\t" + mol.smiles(True) + " has tautomers.")
+        logger.info(mol.smiles(True) + " has tautomers.")
 
     # Now collect the final results.
     results = []
@@ -190,9 +178,9 @@ def tauts_no_break_arom_rngs(
        regardless of tautization, ionization, etc. Any taut that breaks
        aromaticity is unlikely to be worth pursuing. So remove it.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: A list.
-    :param taut_data: A list of MyMol.MyMol objects.
+    :param taut_data: A list of Molecule objects.
     :type taut_data: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -200,7 +188,7 @@ def tauts_no_break_arom_rngs(
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
-    :return: A list of MyMol.MyMol objects, with certain bad ones removed.
+    :return: A list of Molecule objects, with certain bad ones removed.
     :rtype: list
     """
 
@@ -236,9 +224,9 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
        for the error in other folk's code, let's just require that the number
        of chiral centers remain unchanged with isomerization.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
-    :param taut_data: A list of MyMol.MyMol objects.
+    :param taut_data: A list of Molecule objects.
     :type taut_data: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -246,7 +234,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
-    :return: A list of MyMol.MyMol objects, with certain bad ones removed.
+    :return: A list of Molecule objects, with certain bad ones removed.
     :rtype: list
     """
 
@@ -283,9 +271,9 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
        tautomer-generating code you use makes these inappropriate tautomers.
        Remove them here.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: list
-    :param taut_data: A list of MyMol.MyMol objects.
+    :param taut_data: A list of Molecule objects.
     :type taut_data: list
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -293,7 +281,7 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
-    :return: A list of MyMol.MyMol objects, with certain bad ones removed.
+    :return: A list of Molecule objects, with certain bad ones removed.
     :rtype: list
     """
 
@@ -317,11 +305,11 @@ def parallel_check_nonarom_rings(taut, contnr):
        break any nonaromatic rings present in the original object.
 
     :param taut: The tautomer to evaluate.
-    :type taut: MyMol.MyMol
+    :type taut: Molecule
     :param contnr: The original molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :return: Either the tautomer or a None object.
-    :rtype: MyMol.MyMol | None
+    :rtype: Molecule | None
     """
 
     # How many nonaromatic rings in the original smiles?
@@ -334,9 +322,8 @@ def parallel_check_nonarom_rings(taut, contnr):
         # good ones.
         return taut
     else:
-        utils.log(
-            "\t"
-            + taut.smiles(True)
+        logger.warning(
+            taut.smiles(True)
             + ", a tautomer generated "
             + "from "
             + contnr.orig_smi
@@ -351,11 +338,11 @@ def parallel_check_chiral_centers(taut, contnr):
        any chiral centers in the original molecule.
 
     :param taut: The tautomer to evaluate.
-    :type taut: MyMol.MyMol
+    :type taut: Molecule
     :param contnr: The original molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :return: Either the tautomer or a None object.
-    :rtype: MyMol.MyMol | None
+    :rtype: Molecule | None
     """
 
     # How many chiral centers in the original smiles?
@@ -373,9 +360,8 @@ def parallel_check_chiral_centers(taut, contnr):
         # one.
         return taut
     else:
-        utils.log(
-            "\t"
-            + contnr.orig_smi
+        logger.warning(
+            contnr.orig_smi
             + " ==> "
             + taut.smiles(True)
             + " (tautomer transformation on "
@@ -395,11 +381,11 @@ def parallel_check_carbon_hydrogens(taut, contnr):
        change the hydrogens on inappropriate carbons.
 
     :param taut: The tautomer to evaluate.
-    :type taut: MyMol.MyMol
+    :type taut: Molecule
     :param contnr: The original molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :return: Either the tautomer or a None object.
-    :rtype: MyMol.MyMol | None
+    :rtype: Molecule | None
     """
 
     # What's the carbon-hydrogen fingerprint of the original smiles?
@@ -412,9 +398,8 @@ def parallel_check_carbon_hydrogens(taut, contnr):
     if orig_carbon_hydrogen_count == this_carbon_hydrogen_count:
         return taut
     else:
-        utils.log(
-            "\t"
-            + contnr.orig_smi
+        logger.warning(
+            contnr.orig_smi
             + " ==> "
             + taut.smiles(True)
             + " (tautomer transformation on "

@@ -2,21 +2,18 @@
 A module for loading in files.
 """
 
-from gypsum_dl import utils
-
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+from loguru import logger
+from rdkit import Chem
 
 
-def load_smiles_file(filename):
+def load_smiles_file(filename: str) -> list[tuple[Chem.Mol, str]]:
     """Loads a smiles file.
 
-    :param filename: The filename.
-    :type filename: str
-    :return: A list of tuples, (SMILES, Name).
-    :rtype: list
+    Args:
+        filename: The filename.
+
+    Returns:
+        A list of tuples, (SMILES, Name).
     """
 
     # A smiles file contains one molecule on each line. Each line is a string,
@@ -37,9 +34,9 @@ def load_smiles_file(filename):
             # Handle unnamed ligands.
             if not name:
                 name = f"untitled_line_{line_counter + 1}"
-                utils.log(
+                logger.info(
                     (
-                        "\tUntitled ligand on line {}. Naming that ligand "
+                        "Untitled ligand on line {}. Naming that ligand "
                         + "{}. All associated files will be referred to with "
                         + "this name."
                     ).format(line_counter + 1, name)
@@ -53,11 +50,11 @@ def load_smiles_file(filename):
                 else:
                     duplicate_names[name] = 2
                 new_name = f"{name}_copy_{duplicate_names[name]}"
-                utils.log(f"\nMultiple entries with the ligand name: {name}")
-                utils.log(
-                    f"\tThe version of the ligand on line {line_counter} will be retitled {new_name}"
+                logger.info(f"Multiple entries with the ligand name: {name}")
+                logger.info(
+                    f"The version of the ligand on line {line_counter} will be retitled {new_name}"
                 )
-                utils.log("\tAll associated files will be referred to with this name")
+                logger.info("All associated files will be referred to with this name")
                 name = new_name
             # Save the data for this line and advance.
             name_list.append(name)
@@ -68,13 +65,14 @@ def load_smiles_file(filename):
     return data
 
 
-def load_sdf_file(filename):
+def load_sdf_file(filename: str) -> list[tuple[Chem.Mol, str]]:
     """Loads an sdf file.
 
-    :param filename: The filename.
-    :type filename: str
-    :return: A list of tuples, (SMILES, Name).
-    :rtype: list
+    Args:
+        filename: The filename.
+
+    Returns:
+        A list of tuples, (SMILES, Name).
     """
 
     suppl = Chem.SDMolSupplier(filename)
@@ -89,8 +87,8 @@ def load_sdf_file(filename):
         if mol:
             smiles = Chem.MolToSmiles(mol, isomericSmiles=True, canonical=True)
         else:
-            utils.log(
-                "\tWarning: Could not convert some SDF-formatted files to SMILES. Consider using an SMI (SMILES) file instead."
+            logger.warning(
+                "Could not convert some SDF-formatted files to SMILES. Consider using an SMI (SMILES) file instead."
             )
             continue
 
@@ -101,17 +99,17 @@ def load_sdf_file(filename):
 
         # Handle unnamed ligands
         if not name:
-            utils.log(
-                f"\tUntitled ligand for the {mol_obj_counter} molecule in the input SDF"
+            logger.info(
+                f"Untitled ligand for the {mol_obj_counter} molecule in the input SDF"
             )
             name = f"untitled_{missing_name_counter}_molnum_{mol_obj_counter}"
-            utils.log(f"\tNaming that ligand {name}")
-            utils.log("\tAll associated files will be referred to with this name")
+            logger.info(f"Naming that ligand {name}")
+            logger.info("All associated files will be referred to with this name")
             missing_name_counter += 1
 
             # Handle duplicate ligands in same list.
             if name in name_list:
-                utils.log(f"\nMultiple entries with the ligand name: {name}")
+                logger.info(f"Multiple entries with the ligand name: {name}")
                 # If multiple names.
                 if name in list(duplicate_names.keys()):
                     duplicate_names[name] = duplicate_names[name] + 1
@@ -120,10 +118,10 @@ def load_sdf_file(filename):
                     duplicate_names[name] = 2
                 new_name = f"{name}_copy_{duplicate_names[name]}"
                 name = new_name
-                utils.log(
-                    f"\tThe version of the ligand for the {mol_obj_counter} molecule in the SDF file will be retitled {name}"
+                logger.info(
+                    f"The version of the ligand for the {mol_obj_counter} molecule in the SDF file will be retitled {name}"
                 )
-                utils.log("\tAll associated files will be referred to with this name")
+                logger.info("All associated files will be referred to with this name")
             mol_obj_counter += 1
             name_list.append(name)
 

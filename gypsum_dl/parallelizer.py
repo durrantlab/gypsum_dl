@@ -1,6 +1,4 @@
 """
-Parallelizer.py
-
 Abstract parallel computation utility.
 
 The "parallelizer" object exposes a simple map interface that takes a function
@@ -17,13 +15,14 @@ from typing import Any
 
 import multiprocessing
 import sys
+from collections.abc import Collection
 
 try:
     import mpi4py
 
-    MPI_installed = True
-except Exception:
-    MPI_installed = False
+    HAS_MPI = True
+except ImportError:
+    HAS_MPI = False
 
 
 class Parallelizer(object):
@@ -128,35 +127,40 @@ class Parallelizer(object):
         else:
             self.num_procs = self.compute_nodes()
 
-    def test_import_MPI(self, mode, flag_for_low_level=False):
+    def test_import_MPI(self, mode: str, flag_for_low_level: bool = False) -> bool:
         """
         This tests for the ability of importing the MPI sublibrary from mpi4py.
 
-        This import is problematic when run inside a program which was already mpi parallelized (ie a program run inside an mpi program)
-            - for some reason from mpi4py import MPI is problematic in this sub-program structuring.
-        To prevent these errors we do a quick check outside the class with a Try statement to import mpi4py
-            - if it can't do the import mpi4py than the API isn't installed and we can't run MPI, so we won't even attempt from mpi4py import MPI
+        This import is problematic when run inside a program which was already mpi
+        parallelized (ie a program run inside an mpi program)
+        For some reason from mpi4py import MPI is problematic in this sub-program
+        structuring.
+
+        To prevent these errors we do a quick check outside the class with a
+        Try statement to import mpi4py if it can't do the import mpi4py than the
+        API isn't installed and we can't run MPI, so we won't even attempt from mpi4py
+        import MPI
 
         it then checks if the mode has been already establish or if there is a low level flag.
 
         If the user explicitly or implicitly asks for mpi  (ie mode=None or mode="mpi") without flags and mpi4py is installed, then we will
             run the from mpi4py import MPI check. if it passes then we will return a True and run mpi mode; if not we return False and run multiprocess
 
-        Inputs:
-        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
-                            if None then we will try to pick a possible multiprocessing choice. This should only be used for
-                            top level coding. It is best practice to specify which multiprocessing choice to use.
-                            if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
-        :param int num_procs:   the number of processors or nodes that will be used. If None than we will use all available nodes/processors
-                                        This will be overriden and fixed to a single processor if mode==serial
-        :param bol flag_for_low_level: this will override mode and number of processors and set it to a multiprocess as serial. This is useful because
-                                a low-level program in mpi mode referenced by a top level program in mpi mode will have terrible problems. This means you can't mpi-multiprocess inside an mpi-multiprocess.
+        Args:
+            mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
+                if None then we will try to pick a possible multiprocessing choice. This should only be used for
+                top level coding. It is best practice to specify which multiprocessing choice to use.
+                if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
+            num_procs: the number of processors or nodes that will be used. If None than we will use all available nodes/processors
+                This will be overriden and fixed to a single processor if mode==serial
+            flag_for_low_level: this will override mode and number of processors and set it to a multiprocess as serial. This is useful because
+                a low-level program in mpi mode referenced by a top level program in mpi mode will have terrible problems. This means you can't mpi-multiprocess inside an mpi-multiprocess.
 
         Returns:
-        :returns: bol bol:  Returns True if MPI can be run and there aren't any flags against running mpi mode
-                        Returns False if it cannot or should not run mpi mode.
+            Returns True if MPI can be run and there aren't any flags against running mpi mode
+                Returns False if it cannot or should not run mpi mode.
         """
-        if MPI_installed == False:
+        if HAS_MPI == False:
             # mpi4py isn't installed and we will need to multiprocess
             return False
 
@@ -204,7 +208,7 @@ class Parallelizer(object):
             return False
         return True
 
-    def start(self, mode: str | None = None):
+    def start(self, mode: str | None = None) -> "ParallelMPI | None":
         """
         One must call this method before `run()` in order to configure MPI parallelization
 
@@ -219,11 +223,12 @@ class Parallelizer(object):
                 if None then we will try to pick a possible multiprocessing choice. This should only be used for
                 top level coding. It is best practice to specify which multiprocessing choice to use.
                 if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
+
         Returns:
-        :returns: class parallel_obj: This is the obstantiated object of the class of parallizations.
-                            ie) if self.mode=='mpi' self.parallel_obj will be an instance of the mpi class
-                                This style of retained parallel_obj to be used later is important because this is the object which controls the work nodes and maintains the mpi universe
-                            self.parallel_obj will be set to None for simpler parallization methods like serial
+            This is the obstantiated object of the class of parallizations.
+                ie) if self.mode=='mpi' self.parallel_obj will be an instance of the mpi class
+                This style of retained parallel_obj to be used later is important because this is the object which controls the work nodes and maintains the mpi universe
+                self.parallel_obj will be set to None for simpler parallization methods like serial
         """
 
         if mode is None:
@@ -240,16 +245,15 @@ class Parallelizer(object):
 
         return None
 
-    def end(self, mode=None):
+    def end(self, mode: str | None = None) -> None:
         """
         Call this method before exit to terminate MPI workers
 
-
-        Inputs:
-        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
-                            if None then we will try to pick a possible multiprocessing choice. This should only be used for
-                            top level coding. It is best practice to specify which multiprocessing choice to use.
-                            if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
+        Args:
+            mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
+                if None then we will try to pick a possible multiprocessing choice. This should only be used for
+                top level coding. It is best practice to specify which multiprocessing choice to use.
+                if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
         """
 
         if mode is None:
@@ -262,7 +266,13 @@ class Parallelizer(object):
             else:
                 raise Exception("mpi4py package must be available to use mpi mode")
 
-    def run(self, args, func, num_procs=None, mode=None):
+    def run(
+        self,
+        args: Collection[Any],
+        func: Any,
+        num_procs: int | None = None,
+        mode: str | None = None,
+    ) -> list[Any]:
         """
         Run a task in parallel across the system.
 
@@ -278,18 +288,19 @@ class Parallelizer(object):
                     func = foo      The namespace of foo
 
 
-        Inputs:
-        :param python_obj func: This is the object of the function which will be used.
-        :param list args: a list of lists/tuples, each sublist/tuple must contain all information required by the function for a single object which will be multiprocessed
-        :param int num_procs:  (Primarily for Developers)  the number of processors or nodes that will be used. If None than we will use all available nodes/processors
-                                        This will be overriden and fixed to a single processor if mode==serial
-        :param str mode:  (Primarily for Developers) the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
-                            if None then we will try to pick a possible multiprocessing choice. This should only be used for
-                            top level coding. It is best practice to specify which multiprocessing choice to use.
-                            if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
-                            BEST TO LEAVE THIS BLANK
+        Args:
+            args: a list of lists/tuples, each sublist/tuple must contain all information required by the function for a single object which will be multiprocessed
+            func: This is the object of the function which will be used.
+            num_procs:  (Primarily for Developers)  the number of processors or nodes that will be used. If None than we will use all available nodes/processors
+                This will be overriden and fixed to a single processor if mode==serial
+            mode:  (Primarily for Developers) the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
+                if None then we will try to pick a possible multiprocessing choice. This should only be used for
+                top level coding. It is best practice to specify which multiprocessing choice to use.
+                if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
+                BEST TO LEAVE THIS BLANK
+
         Returns:
-        :returns: list results: A list containing all the results from the multiprocess
+            A list containing all the results from the multiprocess
         """
 
         # determine the mode
@@ -356,29 +367,26 @@ class Parallelizer(object):
         # default to multiprocessing
         return "multiprocessing"
 
-    def return_mode(self):
+    def return_mode(self) -> str:
         """
-        Returns the mode chosen for the parallelization cababilities of the system and returns one
+        Returns the mode chosen for the parallelization capabilities of the system and returns one
         of the following modes depending on the configuration:
-        :param str mode: the multiprocess mode to be used, ie) serial, multiprocessing, mpi, or None:
-                    if None then we will try to pick a possible multiprocessing choice. This should only be used for
-                    top level coding. It is best practice to specify which multiprocessing choice to use.
-                    if you have smaller programs used by a larger program, with both mpi enabled there will be problems, so specify multiprocessing is important.
-                    BEST TO LEAVE THIS BLANK
+
         Returns:
-        :returns: str mode: the mode which is to be used 'mpi', 'multiprocessing', 'serial'
+            the mode which is to be used 'mpi', 'multiprocessing', 'serial'
         """
         return self.mode
 
-    def compute_nodes(self, mode=None):
+    def compute_nodes(self, mode: str | None = None) -> int:
         """
         Computes the number of "compute nodes" according to the selected mode.
 
         For mpi, this is the universe size
         For multiprocessing this is the number of available cores
         For serial, this value is 1
+
         Returns:
-        :returns: int num_procs: the number of nodes/processors which is to be used
+            the number of nodes/processors which is to be used
         """
         if mode is None:
             mode = self.mode
@@ -392,15 +400,16 @@ class Parallelizer(object):
         else:
             return 1
 
-    def return_node(self):
+    def return_node(self) -> int:
         """
         Returns the number of "compute nodes" according to the selected mode.
 
         For mpi, this is the universe size
         For multiprocessing this is the number of available cores
         For serial, this value is 1
+
         Returns:
-        :returns: int num_procs: the number of nodes/processors which is to be used
+            the number of nodes/processors which is to be used
         """
         return self.num_procs
 
@@ -410,7 +419,7 @@ class ParallelMPI(object):
     Utility code for running tasks in parallel across an MPI cluster.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Default num_procs is all the processesors possible
         """
@@ -419,7 +428,7 @@ class ParallelMPI(object):
 
         self.Empty_object = Empty_obj()
 
-    def start(self):
+    def start(self) -> None:
         """
         Call this method at the beginning of program execution to put non-root processors
         into worker mode.
@@ -432,14 +441,14 @@ class ParallelMPI(object):
         else:
             worker = self._worker()
 
-    def end(self):
+    def end(self) -> None:
         """
         Call this method to terminate worker processes
         """
 
         self.COMM.bcast(None, root=0)
 
-    def _worker(self):
+    def _worker(self) -> None:
         """
         Worker processors wait in this function to receive new jobs
         """
@@ -543,7 +552,6 @@ class ParallelMPI(object):
             if type(args[i]) == item_type:
                 continue
             printout = "all items within args must be the same type and must be either a list or tuple"
-            print(printout)
             raise Exception(printout)
         if item_type == list:
             return args
@@ -559,8 +567,8 @@ class ParallelMPI(object):
         """
         Run a function in parallel across the current MPI cluster.
 
-        * func is a pure function of type (A)->(B)
-        * args is a list of type list(A)
+        - func is a pure function of type (A)->(B)
+        - args is a list of type list(A)
 
         This method batches the computation across the MPI cluster and returns
         the result of type list(B) where result[i] = func(args[i]).
@@ -583,7 +591,7 @@ class ParallelMPI(object):
         # scatter argument chunks to workers
         args_chunk = self.COMM.scatter(args_chunk, root=0)
 
-        if type(args_chunk) != list:
+        if not isinstance(args_chunk, list):
             raise Exception("args_chunk needs to be a list")
 
         # perform the calculation and get results
@@ -592,7 +600,7 @@ class ParallelMPI(object):
 
         result_chunk = self.COMM.gather(result_chunk, root=0)
 
-        if type(result_chunk) != list:
+        if not isinstance(result_chunk, list):
             raise Exception("result_chunk needs to be a list")
 
         # group results
@@ -602,7 +610,7 @@ class ParallelMPI(object):
             results = [x for x in results if type(x) != type(self.Empty_object)]
             results = flatten_list(results)
 
-        if type(results) != list:
+        if not isinstance(results, list):
             raise Exception("results needs to be a list")
 
         results = [x for x in results if type(x) != type(self.Empty_object)]
@@ -619,16 +627,6 @@ class Empty_obj(object):
     """
 
     pass
-
-
-#
-
-
-"""
-Run commands on multiple processors in python.
-
-Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
-"""
 
 
 def MultiThreading(inputs, num_procs, task_name):
@@ -671,11 +669,6 @@ def MultiThreading(inputs, num_procs, task_name):
     return results
 
 
-###
-# Worker function
-###
-
-
 def worker(input, output):
     for seq, job in iter(input.get, "STOP"):
         func, args = job
@@ -710,15 +703,17 @@ def check_and_format_inputs_to_list_of_tuples(args):
         raise Exception(printout)
 
 
-def count_processors(num_inputs, num_procs):
+def count_processors(num_inputs: int, num_procs: int) -> int:
     """
     Checks processors available and returns a safe number of them to
     utilize.
 
-    :param int num_inputs: The number of inputs.
-    :param int num_procs: The number of desired processors.
+    Args:
+        num_inputs: The number of inputs.
+        num_procs: The number of desired processors.
 
-    :returns: The number of processors to use.
+    Returns:
+        The number of processors to use.
     """
     # first, if num_procs <= 0, determine the number of processors to
     # use programatically
@@ -761,7 +756,7 @@ def start_processes(inputs, num_procs):
     return [item[1] for item in map(list, results)]
 
 
-def flatten_list(tier_list: list) -> list:
+def flatten_list(tier_list: list[Any]) -> list[Any]:
     """
     Given a list of lists, this returns a flat list of all items.
 
@@ -787,9 +782,11 @@ def strip_none(none_list: list[Any]) -> list[Any]:
     Given a list that might contain None items, this returns a list with no
     None items.
 
-    :params list none_list: A list that may contain None items.
+    Args:
+        none_list: A list that may contain None items.
 
-    :returns: A list stripped of None items.
+    Returns:
+        A list stripped of None items.
     """
 
     return [] if none_list is None else [x for x in none_list if x is not None]

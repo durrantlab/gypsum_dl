@@ -7,7 +7,6 @@ import glob
 import os
 import shutil
 
-from gypsum_dl import utils
 from gypsum_dl.start import prepare_molecules
 
 
@@ -39,19 +38,11 @@ def test_samples(test_dir):
 
     # Prepare the molecules.
     prepare_molecules(params)
-    utils.log("")
-    utils.log("TEST RESULTS")
-    utils.log("============")
 
     # Get the output sdf files.
     sdf_files = glob.glob(f"{output_folder}/*")
 
-    # There should be seven sdf files.
-    msg = f"Expected 15 output files, got {len(sdf_files)}."
-    if len(sdf_files) != 15:
-        utils.exception(f"FAILED. {msg}")
-    else:
-        utils.log(f"PASSED. {msg}")
+    assert len(sdf_files) == 15, f"Expected 15 output files, got {len(sdf_files)}."
 
     # Get all the smiles from the files.
     all_smiles = set([])
@@ -139,13 +130,6 @@ def test_samples(test_dir):
 
     # Azides can have adjacent +/- nitrogens.
     target_smiles |= {"CN=[N+]=[N-]", "CN=[N+]=N"}
-
-    # msg = "Expected " + str(len(target_smiles)) + " total SMILES, got " + \
-    #     str(len(all_smiles)) + "."
-    # if len(all_smiles) != len(target_smiles):
-    #     utils.exception("FAILED. " + msg)
-    # else:
-    #     utils.log("PASSED. " + msg)
 
     # Python3 gives some smiles that are different than thsoe obtain with
     # Python2. But they are just different representations of the same thing.

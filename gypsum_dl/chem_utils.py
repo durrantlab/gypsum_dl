@@ -1,29 +1,36 @@
 """The module includes definitions to manipulate the molecules."""
 
+from typing import TYPE_CHECKING
+
+from loguru import logger
 from rdkit import Chem
 
 from gypsum_dl import utils
 
+if TYPE_CHECKING:
+    from gypsum_dl.models import Molecule, MoleculeContainer
 
-def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
+
+def pick_lowest_enrgy_mols(
+    mol_lst: list["Molecule"], num: int, thoroughness: int
+) -> list["Molecule"]:
     """Pick molecules with low energies. If necessary, the definition also
        makes a conformer without minimization (so not too computationally
        expensive).
 
-    :param mol_lst: The list of MyMol.MyMol objects.
-    :type mol_lst: list
-    :param num: The number of the lowest-energy ones to keep.
-    :type num: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
-    :type thoroughness: int
-    :return: Returns a list of MyMol.MyMol, the best ones.
-    :rtype: list
+    Args:
+        mol_lst: The list of Molecule objects.
+        num: The number of the lowest-energy ones to keep.
+        thoroughness: How many molecules to generate per variant (molecule)
+            retained, for evaluation. For example, perhaps you want to advance five
+            molecules (max_variants_per_compound = 5). You could just generate five
+            and advance them all. Or you could generate ten and advance the best
+            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            computational expense, but it also increases the chances of finding good
+            molecules.
+
+    Returns:
+        Returns a list of Molecule, the best ones.
     """
 
     # Remove identical entries.
@@ -34,7 +41,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
         return mol_lst
 
     # First, generate 3D structures. How many? num * thoroughness. mols_3d is
-    # a list of Gypsum-DL MyMol.MyMol objects.
+    # a list of Gypsum-DL Molecule objects.
     mols_3d = utils.random_sample(mol_lst, num * thoroughness, "")
 
     # Now get the energies
@@ -55,13 +62,14 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     return [mol_lst[d[1]] for d in data]
 
 
-def remove_highly_charged_molecules(mol_lst):
+def remove_highly_charged_molecules(mol_lst: list["Molecule"]) -> list["Molecule"]:
     """Remove molecules that are highly charged.
 
-    :param mol_lst: The list of molecules to consider.
-    :type mol_lst: list
-    :return: A list of molecules that are not too charged.
-    :rtype: list
+    Args:
+        mol_lst: The list of molecules to consider.
+
+    Returns:
+        A list of molecules that are not too charged.
     """
 
     # First, find the molecule that is closest to being neutral.
@@ -78,46 +86,40 @@ def remove_highly_charged_molecules(mol_lst):
         if abs(charge - charge_closest_to_neutral) <= 4:
             new_mol_lst.append(mol_lst[i])
         else:
-            utils.log(
-                "\tWARNING: Discarding highly charged form: "
-                + mol_lst[i].smiles()
-                + "."
+            logger.warning(
+                "Discarding highly charged form: " + mol_lst[i].smiles() + "."
             )
 
     return new_mol_lst
 
 
 def bst_for_each_contnr_no_opt(
-    contnrs,
-    mol_lst,
-    max_variants_per_compound,
-    thoroughness,
-    crry_ovr_frm_lst_step_if_no_fnd=True,
-):
+    contnrs: list["MoleculeContainer"],
+    mol_lst: list["Molecule"],
+    max_variants_per_compound: int,
+    thoroughness: int,
+    crry_ovr_frm_lst_step_if_no_fnd: bool = True,
+) -> None:
     """Keep only the top few compound variants in each container, to prevent a
-       combinatorial explosion. This is run periodically on the growing
-       containers to keep them in check.
+    combinatorial explosion. This is run periodically on the growing
+    containers to keep them in check.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
-    :param mol_lst: The list of MyMol.MyMol objects.
-    :type mol_lst: list
-    :param max_variants_per_compound: To control the combinatorial explosion,
-       only this number of variants (molecules) will be advanced to the next
-       step.
-    :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
-    :type thoroughness: int
-    :param crry_ovr_frm_lst_step_if_no_fnd: If it can't find any low-energy
-       conformers, determines whether to just keep the old ones. Defaults to
-       True.
-    :param crry_ovr_frm_lst_step_if_no_fnd: bool, optional
+    Args:
+        contnrs: A list of containers (container.MoleculeContainer).
+        mol_lst: The list of Molecule objects.
+        max_variants_per_compound: To control the combinatorial explosion,
+            only this number of variants (molecules) will be advanced to the next
+            step.
+        thoroughness: How many molecules to generate per variant (molecule)
+            retained, for evaluation. For example, perhaps you want to advance five
+            molecules (max_variants_per_compound = 5). You could just generate five
+            and advance them all. Or you could generate ten and advance the best
+            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            computational expense, but it also increases the chances of finding good
+            molecules.
+        crry_ovr_frm_lst_step_if_no_fnd: If it can't find any low-energy
+            conformers, determines whether to just keep the old ones. Defaults to
+            True.
     """
 
     # Remove duplicate ligands from each container.
@@ -162,8 +164,8 @@ def bst_for_each_contnr_no_opt(
         if none_generated:
             if crry_ovr_frm_lst_step_if_no_fnd:
                 # Just use previous ones.
-                utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: "
+                logger.warning(
+                    "Unable to find low-energy conformations: "
                     + contnr.orig_smi_deslt
                     + " ("
                     + contnr.name
@@ -172,8 +174,8 @@ def bst_for_each_contnr_no_opt(
                 )
             else:
                 # Discard the conformation.
-                utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: "
+                logger.warning(
+                    "Unable to find low-energy conformations: "
                     + contnr.orig_smi_deslt
                     + " ("
                     + contnr.name
@@ -182,7 +184,7 @@ def bst_for_each_contnr_no_opt(
                 contnr.mols = []
 
 
-def uniq_mols_in_list(mol_lst):
+def uniq_mols_in_list(mol_lst: list[Chem.Mol]) -> list[str]:
     # You need to make new molecules to get it to work.
     # new_smiles = [m.smiles() for m in self.mols]
     # new_mols = [Chem.MolFromSmiles(smi) for smi in new_smiles]
@@ -191,7 +193,7 @@ def uniq_mols_in_list(mol_lst):
     can_smiles_already_set = set([])
     uniq_mols = []
     for m in mol_lst:
-        smi = m.smiles()
+        smi: str = m.smiles()
         if smi not in can_smiles_already_set:
             uniq_mols.append(m)
         can_smiles_already_set.add(smi)

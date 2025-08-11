@@ -4,10 +4,12 @@ molecules.
 """
 
 from dimorphite_dl import protonate_smiles
+from loguru import logger
 from rdkit import Chem
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
+from gypsum_dl import chem_utils, utils
+from gypsum_dl.models import Molecule
 
 
 def add_hydrogens(
@@ -24,7 +26,7 @@ def add_hydrogens(
     """Adds hydrogen atoms to molecule containers, as appropriate for a given
        pH.
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
+    :param contnrs: A list of containers (container.MoleculeContainer).
     :type contnrs: A list.
     :param min_pH: The minimum pH to consider.
     :type min_pH: float
@@ -52,7 +54,7 @@ def add_hydrogens(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
-    utils.log("Ionizing all molecules...")
+    logger.info("Ionizing all molecules...")
 
     # Make a simple directory with the ionization parameters.
     protonation_settings = {
@@ -84,8 +86,8 @@ def add_hydrogens(
     # For those molecules, just use the original SMILES string, with hydrogen
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
-        utils.log(
-            "\tWARNING: Gypsum-DL produced no valid ionization states for "
+        logger.warning(
+            "Gypsum-DL produced no valid ionization states for "
             + contnrs[miss_indx].orig_smi
             + " ("
             + contnrs[miss_indx].name
@@ -119,7 +121,7 @@ def parallel_add_H(contnr, protonation_settings):
        This is the function that gets fed into the parallelizer.
 
     :param contnr: The molecule container.
-    :type contnr: MolContainer.MolContainer
+    :type contnr: container.MoleculeContainer
     :param protonation_settings: Protonation settings to pass to Dimorphite-DL.
     :type protonation_settings: dict
     :return: [description]
@@ -128,11 +130,11 @@ def parallel_add_H(contnr, protonation_settings):
 
     # Make sure the canonical SMILES is actually a string.
     if not isinstance(contnr.orig_smi_canonical, str):
-        utils.log(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
-        utils.log(
+        logger.error(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        logger.error(
             f"type container.orig_smi_canonical: {str(type(contnr.orig_smi_canonical))}"
         )
-        utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
+        raise ValueError(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
 
     # Add the SMILES string to the protonation parameters.
     protonation_settings["smiles_input"] = contnr.orig_smi_canonical
@@ -144,14 +146,14 @@ def parallel_add_H(contnr, protonation_settings):
     # objects.
     rdkit_mols = [Chem.MolFromSmiles(smi.strip()) for smi in smis]
 
-    # Convert from rdkit mols to MyMol.MyMol.
-    addH_mols = [MyMol.MyMol(mol) for mol in rdkit_mols if mol is not None]
+    # Convert from rdkit mols to Molecule.
+    addH_mols = [Molecule(mol) for mol in rdkit_mols if mol is not None]
 
-    # Remove MyMols with odd substructures.
+    # Remove Molecule with odd substructures.
     addH_mols = [mol for mol in addH_mols if mol.remove_bizarre_substruc() is False]
 
     # I once saw it add a "C+"" here. So do a secondary check at this point to
-    # make sure it's valid. Recreate the list, moving new MyMol.MyMol objects
+    # make sure it's valid. Recreate the list, moving new Molecule objects
     # into the return_values list.
 
     return_values = []

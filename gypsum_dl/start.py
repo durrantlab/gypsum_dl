@@ -11,15 +11,16 @@ import sys
 from collections import OrderedDict
 from datetime import datetime
 
+from loguru import logger
 from rdkit import Chem
 
 from gypsum_dl import utils
-from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.models import Molecule, MoleculeContainer
 from gypsum_dl.parallelizer import Parallelizer
-from gypsum_dl.steps.conf.PrepareThreeD import prepare_3d
-from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
-from gypsum_dl.steps.io.ProcessOutput import proccess_output
-from gypsum_dl.steps.smiles.PrepareSmiles import prepare_smiles
+from gypsum_dl.steps.conf.prepare import prepare_3d
+from gypsum_dl.steps.io.load import load_sdf_file, load_smiles_file
+from gypsum_dl.steps.io.output import proccess_output
+from gypsum_dl.steps.smiles.prepare import prepare_smiles
 
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
@@ -55,9 +56,9 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     if "json" in args:
         # "json" is one of the parameters, so we'll be ignoring the rest.
         try:
-            params = json.load(open(args["json"]))
-        except:
-            utils.exception("Is your input json file properly formed?")
+            params = json.load(open(args["json"], encoding="utf-8"))
+        except Exception as e:
+            raise ValueError("Is your input json file properly formed?") from e
 
         params = set_parameters(params)
         if [i for i in json_warning_list if i in list(args.keys())]:
@@ -70,7 +71,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # If running in serial mode, make sure only one processor is used.
     if params["job_manager"] == "serial":
         if params["num_processors"] != 1:
-            utils.log(
+            logger.warning(
                 "Because --job_manager was set to serial, this will be run on a single processor."
             )
         params["num_processors"] = 1
@@ -82,36 +83,13 @@ def prepare_molecules(args: dict[str, Any]) -> None:
         sys_modules = sys.modules
         if "runpy" not in sys_modules.keys():
             printout = "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
-            print(printout)
-            utils.exception(printout)
-
-        # Check mpi4py import
-        try:
-            import mpi4py
-        except Exception:
-            printout = "\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
-            print(printout)
-            utils.exception(printout)
-
-        # Check mpi4py import version. This must be at version 2.1.0 and higher
-        mpi4py_version = mpi4py.__version__
-        mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
-
-        if mpi4py_version[0] == 2:
-            if mpi4py_version[1] < 1:
-                printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
-                print(printout)
-                utils.exception(printout)
-        elif mpi4py_version[0] < 2:
-            printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
-            print(printout)
-            utils.exception(printout)
+            raise ValueError(printout)
 
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.
     if sys.platform == "win32":
-        utils.log(
-            "WARNING: Multiprocessing is not supported on Windows. Tasks will be run in Serial mode."
+        logger.warning(
+            "Multiprocessing is not supported on Windows. Tasks will be run in Serial mode."
         )
         params["num_processors"] = 1
         params["job_manager"] = "serial"
@@ -132,27 +110,27 @@ def prepare_molecules(args: dict[str, Any]) -> None:
 
     # Let the user know that their command-line parameters will be ignored, if
     # they have specified a json file.
-    if need_to_print_override_warning == True:
-        utils.log("WARNING: Using the --json flag overrides all other flags.")
+    if need_to_print_override_warning:
+        logger.warning("Using the --json flag overrides all other flags.")
 
     # If running in mpi mode, separate_output_files must be set to true.
-    if params["job_manager"] == "mpi" and params["separate_output_files"] == False:
-        utils.log(
-            "WARNING: Running in mpi mode, but separate_output_files is not set to True. Setting separate_output_files to True anyway."
+    if params["job_manager"] == "mpi" and not params["separate_output_files"]:
+        logger.warning(
+            "Running in mpi mode, but separate_output_files is not set to True. Setting separate_output_files to True anyway."
         )
         params["separate_output_files"] = True
 
     # Outputing HTML files not supported in mpi mode.
-    if params["job_manager"] == "mpi" and params["add_html_output"] == True:
-        utils.log(
-            "WARNING: Running in mpi mode, but add_html_output is set to True. HTML output is not supported in mpi mode."
+    if params["job_manager"] == "mpi" and params["add_html_output"]:
+        logger.warning(
+            "Running in mpi mode, but add_html_output is set to True. HTML output is not supported in mpi mode."
         )
         params["add_html_output"] = False
 
     # Warn the user if he or she is not using the Durrant lab filters.
-    if params["use_durrant_lab_filters"] == -False:
-        utils.log(
-            "WARNING: Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated "
+    if params["use_durrant_lab_filters"]:
+        logger.warning(
+            "Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated "
             + "variants, we have identified a number of substructures that, though technically possible, strike us "
             + "as improbable or otherwise poorly suited for virtual screening. We strongly recommend removing these "
             + "by running Gypsum-DL with the --use_durrant_lab_filters option.",
@@ -161,7 +139,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
 
     # Load SMILES data
     if isinstance(params["source"], str):
-        utils.log(
+        logger.debug(
             "Loading molecules from " + os.path.basename(params["source"]) + "..."
         )
 
@@ -179,10 +157,10 @@ def prepare_molecules(args: dict[str, Any]) -> None:
         pass  # It's already in the required format.
 
     # Make the output directory if necessary.
-    if os.path.exists(params["output_folder"]) == False:
+    if not os.path.exists(params["output_folder"]):
         os.mkdir(params["output_folder"])
-        if os.path.exists(params["output_folder"]) == False:
-            utils.exception("Output folder directory couldn't be found or created.")
+        if not os.path.exists(params["output_folder"]):
+            raise RuntimeError("Output folder directory couldn't be found or created.")
 
     # For Debugging
     # print("")
@@ -200,35 +178,25 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     for i in range(0, len(smiles_data)):
         try:
             smiles, name, props = smiles_data[i]
-        except Exception:
-            msg = 'Unexpected error. Does your "source" parameter specify a '
-            msg = msg + "filename that ends in a .can, .smi, or .sdf extension?"
-            utils.exception(msg)
+        except Exception as e:
+            logger.exception(
+                'Unexpected error. Does your "source" parameter specify a filename that ends in a .can, .smi, or .sdf extension?'
+            )
+            raise e
 
         if detect_unassigned_bonds(smiles) is None:
-            utils.log(
-                "WARNING: Throwing out SMILES because of unassigned bonds: " + smiles
-            )
+            logger.warning("Throwing out SMILES because of unassigned bonds: " + smiles)
             continue
 
-        new_contnr = MolContainer(smiles, name, idx_counter, props)
-        if (
-            new_contnr.orig_smi_canonical == None
-            or type(new_contnr.orig_smi_canonical) != str
-        ):
-            utils.log(
-                "WARNING: Throwing out SMILES because of it couldn't convert to mol: "
-                + smiles
+        new_mol = Molecule.from_smiles(smiles, name)
+        new_smiles = new_mol.canonical_smiles()
+        if new_smiles is None or not isinstance(new_smiles, str):
+            logger.warning(
+                "Throwing out SMILES because of it couldn't convert to mol: " + smiles
             )
             continue
-
-        contnrs.append(new_contnr)
+        contnrs.append(MoleculeContainer(new_mol, idx_counter))
         idx_counter += 1
-
-    # Remove None types from failed conversion
-    contnrs = [x for x in contnrs if x.orig_smi_canonical != None]
-    if len(contnrs) != idx_counter:
-        utils.exception("There is a corrupted container")
 
     # In multiprocessing mode, Gypsum-DL parallelizes each small-molecule
     # preparation step separately. But this scheme is inefficient in MPI mode
@@ -263,9 +231,9 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     params["end_time"] = str(end_time)
     params["run_time"] = str(run_time)
 
-    utils.log("\nStart time at: " + str(start_time))
-    utils.log("End time at:   " + str(end_time))
-    utils.log("Total time at: " + str(run_time))
+    logger.info("Start time at: " + str(start_time))
+    logger.info("End time at:   " + str(end_time))
+    logger.info("Total time at: " + str(run_time))
 
     # Kill mpi workers if necessary.
     params["Parallelizer"].end(params["job_manager"])
@@ -398,10 +366,10 @@ def merge_parameters(default: dict[str, Any], params: dict[str, Any]) -> None:
     for param in params:
         # Throw an error if there's an unrecognized parameter.
         if param not in default:
-            utils.log(f'Parameter "{str(param)}" not recognized!')
-            utils.log("Here are the options:")
-            utils.log(" ".join(sorted(list(default.keys()))))
-            utils.exception(f"Unrecognized parameter: {str(param)}")
+            logger.warning(f'Parameter "{str(param)}" not recognized!')
+            logger.warning("Here are the options:")
+            logger.warning(" ".join(sorted(list(default.keys()))))
+            raise ValueError(f"Unrecognized parameter: {str(param)}")
 
         # Throw an error if the input parameter has a different type than
         # the default one.
@@ -411,7 +379,7 @@ def merge_parameters(default: dict[str, Any], params: dict[str, Any]) -> None:
                 params[param] = float(params[param])
             else:
                 # Seems to be a type mismatch.
-                utils.exception(
+                raise TypeError(
                     'The parameter "'
                     + param
                     + '" must be of '
@@ -449,8 +417,8 @@ def make_type_dict(dictionary: dict[str, Any]) -> dict[str, Any]:
 
         # The value ha san unacceptable type. Throw an error.
         if key not in type_dict:
-            utils.exception(
-                "ERROR: There appears to be an error in your parameter "
+            raise TypeError(
+                "There appears to be an error in your parameter "
                 + "JSON file. No value can have type "
                 + str(type(val))
                 + "."
@@ -471,7 +439,7 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
 
     # Throw an error if there's a missing parameter.
     if params["source"] == "":
-        utils.exception(
+        raise RuntimeError(
             'Missing parameter "source". You need to specify '
             + "the source of the input molecules (probably a SMI or SDF "
             + "file)."
@@ -487,25 +455,18 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
     # Check some required variables.
     try:
         params["source"] = os.path.abspath(params["source"])
-    except Exception:
-        utils.exception("Source file doesn't exist.")
+    except Exception as e:
+        raise RuntimeError("Source file doesn't exist.") from e
     source_dir = params["source"].strip(os.path.basename(params["source"]))
 
     if params["output_folder"] == "" and params["source"] != "":
         params["output_folder"] = f"{source_dir}output{str(os.sep)}"
 
-    if params["add_pdb_output"] == True and params["output_folder"] == "":
-        utils.exception("To output files as .pdbs, specify the output_folder.")
+    if params["add_pdb_output"] and params["output_folder"] == "":
+        raise RuntimeError("To output files as .pdbs, specify the output_folder.")
 
-    if params["separate_output_files"] == True and params["output_folder"] == "":
-        utils.exception("For separate_output_files, specify the output_folder.")
-
-    # if not os.path.exists(params["output_folder"]) or not os.path.isdir(params["output_folder"]):
-    #     utils.exception(
-    #         "The specified \"output_folder\", " + params["output_folder"] +
-    #         ", either does not exist or is a file rather than a folder. " +
-    #         "Please provide the path to an existing folder instead."
-    #     )
+    if params["separate_output_files"] and params["output_folder"] == "":
+        raise RuntimeError("For separate_output_files, specify the output_folder.")
 
     # Make sure job_manager is always lower case.
     params["job_manager"] = params["job_manager"].lower()
@@ -513,12 +474,12 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
     return params
 
 
-def add_mol_id_props(contnrs: list[MolContainer]) -> None:
+def add_mol_id_props(contnrs: list[MoleculeContainer]) -> None:
     """Once all molecules have been generated, go through each and add the
        name and a unique id (for writing to the SDF file, for example).
 
     Args:
-        contnrs: A list of containers (MolContainer.MolContainer).
+        contnrs: A list of containers (container.MoleculeContainer).
     """
 
     cont_id = 0
@@ -530,12 +491,12 @@ def add_mol_id_props(contnrs: list[MolContainer]) -> None:
 
 
 def deal_with_failed_molecules(
-    contnrs: list[MolContainer], params: dict[str, Any]
+    contnrs: list[MoleculeContainer], params: dict[str, Any]
 ) -> None:
     """Removes and logs failed molecules.
 
     Args:
-        contnrs: A list of containers (MolContainer.MolContainer).
+        contnrs: A list of containers (container.MoleculeContainer).
         params: The parameters, used to determine the filename that will
             contain the failed molecules.
     """
@@ -548,12 +509,13 @@ def deal_with_failed_molecules(
     ]
     # Let the user know if there's more than one failed molecule.
     if failed_ones:
-        utils.log("\n3D models could not be generated for the following entries:")
-        utils.log("\n".join(failed_ones))
-        utils.log("\n")
+        logger.warning("\n3D models could not be generated for the following entries:")
+        logger.warning("\n".join(failed_ones))
 
         # Write the failures to an smi file.
         with open(
-            params["output_folder"] + os.sep + "gypsum_dl_failed.smi", "w"
+            params["output_folder"] + os.sep + "gypsum_dl_failed.smi",
+            "w",
+            encoding="utf-8",
         ) as outfile:
             outfile.write("\n".join(failed_ones))

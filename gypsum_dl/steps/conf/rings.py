@@ -4,79 +4,66 @@ since most modern docking programs (e.g., Vina) can't consider alternate ring
 conformations.
 """
 
-import __future__
+from typing import TYPE_CHECKING
 
 import copy
 import warnings
 
+import numpy
+from loguru import logger
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from scipy.cluster.vq import kmeans2
+
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import chem_utils, utils
-from gypsum_dl.MyMol import MyConformer
+from gypsum_dl.models import Conformer
 
-try:
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
-
-try:
-    import numpy
-except Exception:
-    utils.exception("You need to install numpy and its dependencies.")
-
-try:
-    from scipy.cluster.vq import kmeans2
-except Exception:
-    utils.exception("You need to install scipy and its dependencies.")
+if TYPE_CHECKING:
+    from gypsum_dl.models import Molecule, MoleculeContainer
 
 
 def generate_alternate_3d_nonaromatic_ring_confs(
-    contnrs,
-    max_variants_per_compound,
-    thoroughness,
-    num_procs,
-    second_embed,
-    job_manager,
-    parallelizer_obj,
+    contnrs: list["MoleculeContainer"],
+    max_variants_per_compound: int,
+    thoroughness: int,
+    num_procs: int,
+    second_embed: bool,
+    job_manager: str,
+    parallelizer_obj: Parallelizer.Parallelizer,
 ):
     """Docking programs like Vina rotate chemical moieties around their
-       rotatable bonds, so it's not necessary to generate a larger rotomer
-       library for each molecule. The one exception to this rule is
-       non-aromatic rings, which can assume multiple conformations (boat vs.
-       chair, etc.). This function generates a few low-energy ring structures
-       for each molecule with a non-aromatic ring(s).
+    rotatable bonds, so it's not necessary to generate a larger rotomer
+    library for each molecule. The one exception to this rule is
+    non-aromatic rings, which can assume multiple conformations (boat vs.
+    chair, etc.). This function generates a few low-energy ring structures
+    for each molecule with a non-aromatic ring(s).
 
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
-    :param max_variants_per_compound: To control the combinatorial explosion,
-       only this number of variants (molecules) will be advanced to the next
-       step.
-    :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
-    :type thoroughness: int
-    :param num_procs: The number of processors to use.
-    :type num_procs: int
-    :param second_embed: Whether to try to generate 3D coordinates using an
-        older algorithm if the better (default) algorithm fails. This can add
-        run time, but sometimes converts certain molecules that would
-        otherwise fail.
-    :type second_embed: bool
-    :param job_manager: The multiprocess mode.
-    :type job_manager: string
-    :param parallelizer_obj: The Parallelizer object.
-    :type parallelizer_obj: Parallelizer.Parallelizer
-    :return: Returns None if no ring conformers are generated
-    :rtype: None
+    Args:
+        contnrs: A list of containers (container.MoleculeContainer).
+        max_variants_per_compound: To control the combinatorial explosion,
+            only this number of variants (molecules) will be advanced to the next
+            step.
+        thoroughness: How many molecules to generate per variant (molecule)
+            retained, for evaluation. For example, perhaps you want to advance five
+            molecules (max_variants_per_compound = 5). You could just generate five
+            and advance them all. Or you could generate ten and advance the best
+            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            computational expense, but it also increases the chances of finding good
+            molecules.
+        num_procs: The number of processors to use.
+        second_embed: Whether to try to generate 3D coordinates using an
+            older algorithm if the better (default) algorithm fails. This can add
+            run time, but sometimes converts certain molecules that would
+            otherwise fail.
+        job_manager: The multiprocess mode.
+        parallelizer_obj: The Parallelizer object.
+
+    Returns:
+        Returns None if no ring conformers are generated
     """
 
     # Let the user know you've started this step.
-    utils.log(
+    logger.info(
         "Generating several conformers of molecules with non-aromatic "
         + "rings (boat vs. chair, etc.)..."
     )
@@ -149,30 +136,33 @@ def generate_alternate_3d_nonaromatic_ring_confs(
                 )
 
 
-def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second_embed):
+def parallel_get_ring_confs(
+    mol: "Molecule",
+    max_variants_per_compound: int,
+    thoroughness: int,
+    second_embed: bool,
+) -> list["Molecule"] | None:
     """Gets alternate ring conformations. Meant to run with the parallelizer class.
 
-    :param mol: The molecule to process (with non-aromatic ring(s)).
-    :type mol: MyMol.MyMol
-    :param max_variants_per_compound: To control the combinatorial explosion,
-       only this number of variants (molecules) will be advanced to the next
-       step.
-    :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
-    :type thoroughness: int
-    :param second_embed: Whether to try to generate 3D coordinates using an
-        older algorithm if the better (default) algorithm fails. This can add
-        run time, but sometimes converts certain molecules that would
-        otherwise fail.
-    :type second_embed: bool
-    :return: A list of MyMol.MyMol objects, with alternate ring conformations.
-    :rtype: list
+    Args:
+        mol: The molecule to process (with non-aromatic ring(s)).
+        max_variants_per_compound: To control the combinatorial explosion,
+            only this number of variants (molecules) will be advanced to the next
+            step.
+        thoroughness: How many molecules to generate per variant (molecule)
+            retained, for evaluation. For example, perhaps you want to advance five
+            molecules (max_variants_per_compound = 5). You could just generate five
+            and advance them all. Or you could generate ten and advance the best
+            five (so thoroughness = 2). Using thoroughness > 1 increases the
+            computational expense, but it also increases the chances of finding good
+            molecules.
+        second_embed: Whether to try to generate 3D coordinates using an
+            older algorithm if the better (default) algorithm fails. This can add
+            run time, but sometimes converts certain molecules that would
+            otherwise fail.
+
+    Returns:
+        A list of Molecule objects, with alternate ring conformations.
     """
 
     # Make it easier to access the container index.
@@ -227,7 +217,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         list_of_rmslists = [[]] * len(ring_mols)
         for k in range(len(ring_mols)):
             list_of_rmslists[k] = []
-            AllChem.AlignMolConformers(ring_mols[k], RMSlist=list_of_rmslists[k])
+            AllChem.AlignMolConformers(ring_mols[k], RMSlist=list_of_rmslists[k])  # type: ignore
 
         # Get points for each conformer (rmsd_ring1, rmsd_ring2, rmsd_ring3)
         pts = numpy.array(list_of_rmslists).T
@@ -241,7 +231,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
 
         # When kmeans2 runs on insufficient clusters, it can sometimes throw an
         # error about empty clusters. This is not necessary to throw for the
-        # user and so we have supressed it here.
+        # user and so we have suppressed it here.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             groups = kmeans2(pts, num_clusters, minit="points")[1]
@@ -251,7 +241,7 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         # contribute similar conformations. In the end, you'll be selecting from
         # all these together, so similar ones could end up together.
 
-        # Key is group id from kmeans (int). Values are the MyMol.MyConformers
+        # Key is group id from kmeans (int). Values are the Conformers
         # objects.
         best_conf_per_group = {}
 
@@ -259,29 +249,30 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         for k, grp in enumerate(groups):
             if grp not in list(best_conf_per_group.keys()):
                 best_conf_per_group[grp] = mol.conformers[k]
-        # best_confs has the MyMol.MyConformers objects.
+        # best_confs has the Conformers objects.
         best_confs = best_conf_per_group.values()
 
-        # Convert rdkit mols to MyMol.MyMol and save those MyMol.MyMol objects
+        # Convert rdkit mols to Molecule and save those Molecule objects
         # for returning.
         results = []
         for conf in best_confs:
             new_mol = copy.deepcopy(mol)
-            c = MyConformer(new_mol, conf.conformer(), second_embed)
+            c = Conformer(new_mol, conf.conformer(), second_embed)
             new_mol.conformers = [c]
             energy = c.energy
 
             new_mol.genealogy = mol.genealogy[:]
-            new_mol.genealogy.append(
-                new_mol.smiles(True)
-                + " (nonaromatic ring conformer: "
-                + str(energy)
-                + " kcal/mol)"
-            )
+            smiles: str | None = new_mol.smiles(noh=True)
+            if smiles is not None:
+                new_mol.genealogy.append(
+                    smiles
+                    + " (nonaromatic ring conformer: "
+                    + str(energy)
+                    + " kcal/mol)"
+                )
 
-            results.append(new_mol)  # i is mol index
+            results.append(new_mol)
 
         return results
 
-    # If you get here, something went wrong.
     return None
