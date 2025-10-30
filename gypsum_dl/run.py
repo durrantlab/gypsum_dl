@@ -9,7 +9,7 @@ def main():
     PARSER = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
-    Gypsum-DL 1.2.1, a free, open-source program for preparing 3D small-molecule
+    Gypsum-DL 1.2.2, a free, open-source program for preparing 3D small-molecule
     models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
     alternate ionization, tautomeric, chiral, cis/trans isomeric, and
     ring-conformational forms.""",

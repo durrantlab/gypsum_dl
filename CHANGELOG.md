@@ -4,9 +4,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.2.2] - 2025-10-30
+
 ### Changed
 
-- Refactored codebase to use pixi as our development environment and make this package pip installable.
+-   Refactored codebase to use pixi as our development environment and make this package pip installable.
+
+### Fixed
+
+-   Fixed an `IndexError` that rarely occurred during non-aromatic ring conformation generation.
 
 ## [1.2.1]
 

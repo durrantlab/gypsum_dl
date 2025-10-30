@@ -185,6 +185,12 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
     # Get the ring atom indecies
     rings = mol.get_idxs_of_nonaro_rng_atms()
 
+    # It's possible a variant (e.g., a tautomer) is aromatic even if the
+    # original molecule was not. In that case, there are no non-aromatic
+    # rings to generate conformers for.
+    if len(rings) == 0:
+        return [mol]
+
     # Convert that into the bond indecies.
 
     # A list of lists, where each inner list has the indexes of the bonds that
@@ -231,8 +237,13 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
 
         # Get points for each conformer (rmsd_ring1, rmsd_ring2, rmsd_ring3)
         pts = numpy.array(list_of_rmslists).T
-        pts = numpy.vstack((numpy.array([[0.0] * pts.shape[1]]), pts))
 
+        # This can happen if, for example, tautomerization removes the
+        # non-aromatic ring.
+        if pts.shape == (0,):
+            return [mol]
+
+        pts = numpy.vstack((numpy.array([[0.0] * pts.shape[1]]), pts))
         # Cluster those points, get lowest-energy member of each.
         if len(pts) < max_variants_per_compound:
             num_clusters = len(pts)
