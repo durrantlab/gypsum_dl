@@ -660,6 +660,7 @@ class MyConformer:
         # Save some values to the object.
         self.mol = copy.deepcopy(mol.rdkit_mol)
         self.smiles = mol.smiles()
+        self.orig_smi = mol.orig_smi
 
         # Remove any previous conformers.
         self.mol.RemoveAllConformers()
@@ -701,28 +702,41 @@ class MyConformer:
 
             # AllChem.EmbedMolecule uses geometry to create inital molecule
             # coordinates. This sometimes takes a very long time.
-            AllChem.EmbedMolecule(self.mol, params)
+            try:
+                AllChem.EmbedMolecule(self.mol, params)
+            except RuntimeError as e:
+                self.mol = False
+                self.coord_3d_err_warning(e)
 
             # On rare occasions, the new conformer generating algorithm fails
             # because params.useRandomCoords = False. So if it fails, try
             # again with True.
-            if self.mol.GetNumConformers() == 0 and use_random_coordinates == False:
+            if self.mol is not False and self.mol.GetNumConformers() == 0 and use_random_coordinates == False:
                 params.useRandomCoords = True
-                AllChem.EmbedMolecule(self.mol, params)
+                try:
+                    AllChem.EmbedMolecule(self.mol, params)
+                except RuntimeError as e:
+                    self.mol = False
+                    self.coord_3d_err_warning(e)
 
             # On very rare occasions, the new conformer generating algorithm
             # fails. For example, COC(=O)c1cc(C)nc2c(C)cc3[nH]c4ccccc4c3c12 .
             # In this case, the old one still works. So if no coordinates are
             # assigned, try that one. Parameters must have second_embed set to
             # True for this to happen.
-            if second_embed == True and self.mol.GetNumConformers() == 0:
-                AllChem.EmbedMolecule(self.mol, useRandomCoords=use_random_coordinates)
+            if self.mol is not False and second_embed == True and self.mol.GetNumConformers() == 0:
+                try:
+                    AllChem.EmbedMolecule(self.mol, useRandomCoords=use_random_coordinates)
+                except RuntimeError as e:
+                    self.mol = False
+                    self.coord_3d_err_warning(e)
 
             # On rare occasions, both methods fail. For example,
             # O=c1cccc2[C@H]3C[NH2+]C[C@@H](C3)Cn21 Another example:
             # COc1cccc2c1[C@H](CO)[N@H+]1[C@@H](C#N)[C@@H]3C[C@@H](C(=O)[O-])[C@H]([C@H]1C2)[N@H+]3C
-            if self.mol.GetNumConformers() == 0:
+            if self.mol is not False and self.mol.GetNumConformers() == 0:
                 self.mol = False
+                self.coord_3d_err_warning(None)
         else:
             # The user has provided a conformer. Just add it.
             conformer.SetId(0)
@@ -745,6 +759,11 @@ class MyConformer:
             self.ids_hvy_atms = [
                 a.GetIdx() for a in self.mol.GetAtoms() if a.GetAtomicNum() != 1
             ]
+
+    def coord_3d_err_warning(self, err):
+        utils.log(
+            f'WARNING: RDKit failed to generate 3D coordinates for a molecule originating from "{self.orig_smi}". The problematic variant is "{self.smiles}". The molecule will be skipped. Specific RDKit error: {err}'
+        )
 
     def conformer(self, conf=None):
         """Get or set the conformer. An optional variable can specify the
