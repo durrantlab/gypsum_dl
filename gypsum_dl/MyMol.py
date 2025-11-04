@@ -762,7 +762,7 @@ class MyConformer:
 
     def coord_3d_err_warning(self, err):
         utils.log(
-            f'WARNING: RDKit failed to generate 3D coordinates for a molecule originating from "{self.orig_smi}". The problematic variant is "{self.smiles}". The molecule will be skipped. Specific RDKit error: {err}'
+            f'WARNING: RDKit failed to generate 3D coordinates for a molecule originating from "{self.orig_smi}". The SMILES string of the problematic variant is "{self.smiles}". The variant will be skipped. Specific RDKit error: {err}'
         )
 
     def conformer(self, conf=None):
