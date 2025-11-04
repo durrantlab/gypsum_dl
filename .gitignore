@@ -123,3 +123,6 @@ report.xml
 # pixi environments
 .pixi
 *.egg-info
+
+gypsum_dl/_version.py
+
