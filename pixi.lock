@@ -3928,7 +3928,7 @@ packages:
   timestamp: 1745436578592
 - pypi: ./
   name: gypsum-dl
-  version: 1.0.1.dev4+g441bece
+  version: 1.2.3.dev0+g918c85b05.d20251104171554
   sha256: 4942dec03a78254da84781c5236ca91e82023ce806a26b87f4aec53b3f04b492
   requires_dist:
   - loguru>=0.7.2,<1

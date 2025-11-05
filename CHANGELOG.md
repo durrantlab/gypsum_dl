@@ -4,7 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [1.2.2] - 2025-10-30
+## [1.2.3] - 2025-11-05
+
+-   Improved error handling for problematic input SMILES.
+
+## [1.2.2] - 2025-11-03
 
 ### Changed
 
