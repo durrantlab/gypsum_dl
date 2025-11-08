@@ -32,5 +32,7 @@ include = ["gypsum_dl*"]
 [tool.setuptools_scm]
 write_to = "gypsum_dl/_version.py"
 version_scheme = "guess-next-dev"
-local_scheme = "node-and-timestamp"
+#local_scheme = "node-and-timestamp"
+local_scheme = "no-local-version" 
+
 
