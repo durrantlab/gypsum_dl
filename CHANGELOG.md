@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-11-17
+
+-   Bumping version to 1.3.0 to match the version on PyPI.
+
 ## [1.2.3] - 2025-11-05
 
 -   Improved error handling for problematic input SMILES.

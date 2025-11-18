@@ -1,4 +1,4 @@
-<h1 align="center">Gypsum-DL 1.2.3</h1>
+<h1 align="center">Gypsum-DL 1.3.0</h1>
 
 <h4 align="center">Open-source tool to generate 3D-ready small molecules for virtual screening</h4>
 
