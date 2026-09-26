@@ -23,7 +23,7 @@ def load_smiles_file(filename):
     # separated by white space, followed by the molecule name.
     data = []
     duplicate_names = {}
-    name_list = []
+    name_set: set[str] = set()
     with open(filename, encoding="utf-8") as f:
         # enumerate over the raw file so reported line numbers match the file,
         # regardless of any blank lines that get skipped.
@@ -50,13 +50,16 @@ def load_smiles_file(filename):
                 )
 
             # Handle duplicate ligands in same list.
-            if name in name_list:
-                # If multiple names...
-                if name in list(duplicate_names.keys()):
-                    duplicate_names[name] = duplicate_names[name] + 1
-                else:
-                    duplicate_names[name] = 2
+            if name in name_set:
+                # Keep incrementing the counter until the generated name is one
+                # nothing else has claimed. An input that already contains,
+                # say, "lig_copy_2" would otherwise collide with the name
+                # generated for a duplicate "lig".
+                duplicate_names[name] = duplicate_names.get(name, 1) + 1
                 new_name = f"{name}_copy_{duplicate_names[name]}"
+                while new_name in name_set:
+                    duplicate_names[name] += 1
+                    new_name = f"{name}_copy_{duplicate_names[name]}"
                 utils.log(f"\nMultiple entries with the ligand name: {name}")
                 utils.log(
                     f"\tThe version of the ligand on line {line_num} will be retitled {new_name}"
@@ -64,7 +67,7 @@ def load_smiles_file(filename):
                 utils.log("\tAll associated files will be referred to with this name")
                 name = new_name
             # Save the data for this line.
-            name_list.append(name)
+            name_set.add(name)
             data.append((smiles, name, {}))
 
     # Return the data.
@@ -85,7 +88,7 @@ def load_sdf_file(filename):
     duplicate_names = {}
     missing_name_counter = 0
     mol_obj_counter = 0
-    name_list = []
+    name_set: set[str] = set()
     for mol in suppl:
         # Convert mols to smiles. That's what the rest of the program is
         # designed to deal with.
@@ -113,22 +116,24 @@ def load_sdf_file(filename):
             missing_name_counter += 1
 
         # Handle duplicate ligands in same list.
-        if name in name_list:
+        if name in name_set:
             utils.log(f"\nMultiple entries with the ligand name: {name}")
-            # If multiple names.
-            if name in list(duplicate_names.keys()):
-                duplicate_names[name] = duplicate_names[name] + 1
-
-            else:
-                duplicate_names[name] = 2
+            # Keep incrementing the counter until the generated name is one
+            # nothing else has claimed. An input that already contains, say,
+            # "lig_copy_2" would otherwise collide with the name generated for
+            # a duplicate "lig".
+            duplicate_names[name] = duplicate_names.get(name, 1) + 1
             new_name = f"{name}_copy_{duplicate_names[name]}"
+            while new_name in name_set:
+                duplicate_names[name] += 1
+                new_name = f"{name}_copy_{duplicate_names[name]}"
             name = new_name
             utils.log(
                 f"\tThe version of the ligand for the {mol_obj_counter} molecule in the SDF file will be retitled {name}"
             )
             utils.log("\tAll associated files will be referred to with this name")
         mol_obj_counter += 1
-        name_list.append(name)
+        name_set.add(name)
 
         # SDF files may also contain properties. Get those as well.
         try:

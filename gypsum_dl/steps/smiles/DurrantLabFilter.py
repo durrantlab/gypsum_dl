@@ -60,6 +60,14 @@ prohibited_smi_substrs_for_substr = [
 ]
 
 
+# This step only rebuilds container membership; it must not drop variants or
+# generate conformers, so the variant cap and thoroughness are set high enough
+# that pick_lowest_enrgy_mols returns its input untouched. A container holding
+# more variants than this would fall back to sampling (and to 3D conformer
+# generation), which is not the intent here.
+NO_VARIANT_CAP = 1000
+
+
 def durrant_lab_contains_bad_substr(smiles):
     """Determines if a smiles string contains a prohibitive substring. Faster
     than substructure matching.
@@ -125,11 +133,16 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # Using this function just to make the changes. Doesn't do energy
     # minimization or anything (as it does later) because max variants
     # and thoroughness maxed out.
+    # Carry-over must be off: contnr.mols was just emptied above, so there are
+    # no originals left to fall back on. Leaving it on makes a fully filtered
+    # container log that its original conformers were kept, contradicting both
+    # the per-variant "discarding it" message and gypsum_dl_failed.smi.
     chem_utils.bst_for_each_contnr_no_opt(
         contnrs,
         mols,
-        1000,
-        1000,  # max_variants_per_compound, thoroughness
+        NO_VARIANT_CAP,
+        NO_VARIANT_CAP,  # max_variants_per_compound, thoroughness
+        crry_ovr_frm_lst_step_if_no_fnd=False,
     )
 
 
@@ -148,6 +161,20 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
 
     # Replace any molecules that have prohibited substructure with None.
     for mi, m in enumerate(contnr.mols):
+        # A variant whose RDKit mol failed to build can't be substructure
+        # matched, and its canonical SMILES can't be generated either, so it
+        # gets its own message rather than the one below.
+        if m.rdkit_mol is None:
+            utils.log(
+                "\tA variant generated from "
+                + contnr.orig_smi
+                + " ("
+                + m.name
+                + ") has no valid RDKit molecule, so I'm discarding it."
+            )
+            contnr.mols[mi] = None
+            continue
+
         for pattrn in prohibited_substructs:
             if durrant_lab_contains_bad_substr(
                 m.orig_smi_deslt

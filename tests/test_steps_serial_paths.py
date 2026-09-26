@@ -234,7 +234,9 @@ def test_enumerate_double_bonds_carries_over_failed_container(monkeypatch) -> No
     # Regression: same carry-over path for double-bond enumeration.
     contnr = _container("CC=CCC", "pentene")
     original_mol = contnr.mols[0]
-    monkeypatch.setattr(EnumerateDoubleBonds, "parallel_get_double_bonded", lambda *a: None)
+    monkeypatch.setattr(
+        EnumerateDoubleBonds, "parallel_get_double_bonded", lambda *a: None
+    )
     captured = _capture_carried_over(monkeypatch, EnumerateDoubleBonds)
 
     enumerate_double_bonds([contnr], 5, 1, 1, "serial", None)
@@ -273,6 +275,38 @@ def test_durrant_lab_filters_keeps_clean_molecule() -> None:
     contnr = _container("CCO", "ethanol")
     durrant_lab_filters([contnr], 1, "serial", None)
     assert len(contnr.mols) == 1
+
+
+def test_durrant_lab_filters_does_not_claim_originals_were_kept(capsys) -> None:
+    # Regression (B14): the step empties every container before calling
+    # bst_for_each_contnr_no_opt, so the carry-over default logged "Keeping
+    # original conformers" for a container it had just emptied, contradicting
+    # the per-variant discard message and gypsum_dl_failed.smi.
+    contnr = _container("B(O)(O)O", "boric_acid")
+    durrant_lab_filters([contnr], 1, "serial", None)
+    log = " ".join(capsys.readouterr().out.split())
+    assert contnr.mols == []
+    assert "discarding it" in log
+    assert "Keeping original" not in log
+
+
+def test_durrant_lab_filters_discards_variant_with_no_rdkit_mol() -> None:
+    # Regression (B14): HasSubstructMatch was called without a None guard, so a
+    # variant whose RDKit mol failed to build raised AttributeError (a silent
+    # drop under multiprocessing).
+    contnr = _container("CCO", "ethanol")
+    contnr.mols[0].rdkit_mol = None
+    durrant_lab_filters([contnr], 1, "serial", None)
+    assert contnr.mols == []
+
+
+def test_durrant_lab_filters_keeps_siblings_of_a_none_rdkit_mol() -> None:
+    contnr = _container("CCO", "ethanol")
+    contnr.add_smiles("CCCO")
+    assert len(contnr.mols) == 2
+    contnr.mols[1].rdkit_mol = None
+    durrant_lab_filters([contnr], 1, "serial", None)
+    assert [m.smiles() for m in contnr.mols] == ["CCO"]
 
 
 def test_convert_2d_to_3d_assigns_a_conformer() -> None:

@@ -72,6 +72,17 @@ def test_load_smiles_file_renames_duplicates(tmp_path) -> None:
     ]
 
 
+def test_load_smiles_file_duplicate_renaming_avoids_existing_names(tmp_path) -> None:
+    # Regression (B13): the generated "_copy_N" name was never checked against
+    # the names already seen, so an input that itself contains "lig_copy_2"
+    # produced two records with that same name.
+    path = tmp_path / "input.smi"
+    path.write_text("CCO lig_copy_2\nCCC lig\nCCCC lig\n")
+    names = [d[1] for d in load_smiles_file(str(path))]
+    assert names == ["lig_copy_2", "lig", "lig_copy_3"]
+    assert len(set(names)) == 3
+
+
 def test_load_sdf_file_reads_names_and_properties(tmp_path) -> None:
     mol = Chem.MolFromSmiles("CCO")
     mol.SetProp("_Name", "ethanol")
@@ -110,6 +121,20 @@ def test_load_sdf_file_renames_named_duplicates(tmp_path) -> None:
         "lig_copy_2",
         "untitled_0_molnum_2",
     ]
+
+
+def test_load_sdf_file_duplicate_renaming_avoids_existing_names(tmp_path) -> None:
+    # Regression (B13): same collision as the SMI case above.
+    mols = []
+    for smiles, name in (("CCO", "lig_copy_2"), ("CCC", "lig"), ("CCCC", "lig")):
+        mol = Chem.MolFromSmiles(smiles)
+        mol.SetProp("_Name", name)
+        mols.append(mol)
+    path = tmp_path / "input.sdf"
+    _write_sdf(str(path), mols)
+    names = [d[1] for d in load_sdf_file(str(path))]
+    assert names == ["lig_copy_2", "lig", "lig_copy_3"]
+    assert len(set(names)) == 3
 
 
 def test_load_sdf_file_skips_unparseable_records(tmp_path) -> None:
