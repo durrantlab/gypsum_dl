@@ -66,6 +66,7 @@ class MyMol:
                 # with this beast, for example:
                 # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
                 self.can_smi = False
+                smiles = ""
                 id_to_print = name if name != "" else str(starter)
                 utils.log(
                     "\tERROR: Could not generate one of the structures "

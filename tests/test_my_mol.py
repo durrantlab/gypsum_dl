@@ -12,6 +12,21 @@ def test_mymol_from_rdkit_mol_sets_canonical_smiles() -> None:
     assert mol.name == "ethanol"
 
 
+def test_mymol_from_rdkit_mol_survives_smiles_conversion_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: when MolToSmiles raises for an RDKit-mol starter, __init__
+    # used to reference the unbound local `smiles` and die with
+    # UnboundLocalError instead of falling back to can_smi=False.
+    def boom(*args, **kwargs):
+        raise ValueError("cannot canonicalize")
+
+    monkeypatch.setattr(MyMol.Chem, "MolToSmiles", boom)
+    mol = MyMol.MyMol(Chem.MolFromSmiles("OCC"), "ethanol")
+    assert mol.can_smi is False
+    assert mol.orig_smi == ""
+
+
 def test_smiles_noh_strips_explicit_hydrogens() -> None:
     assert MyMol.MyMol("CCO").smiles(True) == "CCO"
 

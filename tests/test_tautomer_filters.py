@@ -4,12 +4,16 @@
 `prepare_smiles`, so it and its worker are only reachable from here.
 """
 
+import pytest
+
 from gypsum_dl import MyMol
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.steps.smiles import MakeTautomers
 from gypsum_dl.steps.smiles.MakeTautomers import (
     parallel_check_carbon_hydrogens,
     parallel_check_chiral_centers,
     parallel_check_nonarom_rings,
+    parallel_make_taut,
     tauts_no_break_arom_rngs,
     tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl,
     tauts_no_elim_chiral,
@@ -30,6 +34,22 @@ def _taut(smiles: str, name: str) -> MyMol.MyMol:
     mol.name = name
     mol.contnr_idx = 0
     return mol
+
+
+def test_parallel_make_taut_returns_none_when_rdkit_mol_unsanitizable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: parallel_make_taut called Chem.RemoveHs before its None
+    # check, so an unsanitizable molecule (rdkit_mol is None) raised inside
+    # RemoveHs instead of being dropped gracefully.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.mols.append(_taut("CCO", "ethanol"))
+
+    class _NoneMol:
+        rdkit_mol = None
+
+    monkeypatch.setattr(MakeTautomers.MyMol, "MyMol", lambda *a, **k: _NoneMol())
+    assert parallel_make_taut(contnr, 0, 1) is None
 
 
 def test_parallel_check_nonarom_rings_keeps_matching_tautomer() -> None:

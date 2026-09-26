@@ -131,9 +131,6 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     # TODO: There should be a copy function
     m = MyMol.MyMol(mol.smiles()).rdkit_mol
 
-    # For tautomers to work, you need to not have any explicit hydrogens.
-    m = Chem.RemoveHs(m)
-
     # Make sure it's not None.
     if m is None:
         utils.log(
@@ -143,9 +140,17 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
         )
         return
 
+    # For tautomers to work, you need to not have any explicit hydrogens.
+    m = Chem.RemoveHs(m)
+    if m is None:
+        return None
+
     # Molecules should be kekulized already, but let's double check that.
     # Because MolVS requires kekulized input.
-    Chem.Kekulize(m)
+    try:
+        Chem.Kekulize(m)
+    except Exception:
+        return None
     m = MOH.check_sanitization(m)
     if m is None:
         return None
