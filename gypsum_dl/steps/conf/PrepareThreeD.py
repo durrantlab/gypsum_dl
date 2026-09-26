@@ -42,8 +42,10 @@ def prepare_3d(contnrs, params):
     )
 
     second_embed = params["second_embed"]
+    skip_ring_confs = params["skip_alternate_ring_conformations"]
+
     # Generate alternate non-aromatic ring conformations, if requested.
-    if not params["skip_alternate_ring_conformations"]:
+    if not skip_ring_confs:
         generate_alternate_3d_nonaromatic_ring_confs(
             contnrs,
             max_variants_per_compound,
@@ -64,4 +66,5 @@ def prepare_3d(contnrs, params):
             second_embed,
             job_manager,
             parallelizer_obj,
+            include_nonaro_rings=skip_ring_confs,
         )

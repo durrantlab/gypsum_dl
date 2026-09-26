@@ -230,3 +230,23 @@ def test_minimize_3d_survives_none_worker_result(monkeypatch) -> None:
     # skipped without raising, leaving its container's pre-min mol untouched.
     assert "Energy" in contnrs[0].mols[0].mol_props
     assert len(contnrs[1].mols) == 1
+
+
+def test_minimize_3d_skips_ring_mols_by_default() -> None:
+    # Containers with non-aromatic rings are minimized by the ring-conformer
+    # step, so minimize_3d leaves them alone unless asked.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+    minimize_3d([contnr], 1, 1, 1, False, "serial", None)
+    assert "Energy" not in contnr.mols[0].mol_props
+
+
+def test_minimize_3d_records_energy_for_ring_mols_when_requested() -> None:
+    # Regression: with the ring-conformer step skipped, nothing else minimizes
+    # molecules with non-aromatic rings, so minimize_3d has to.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+    minimize_3d([contnr], 1, 1, 1, False, "serial", None, include_nonaro_rings=True)
+    assert len(contnr.mols) == 1
+    assert "Energy" in contnr.mols[0].mol_props
+    assert len(contnr.mols[0].conformers) == 1

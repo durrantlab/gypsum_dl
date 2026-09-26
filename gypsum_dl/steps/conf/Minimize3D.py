@@ -10,18 +10,20 @@ import operator
 
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
+from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.MyMol import MyConformer
 
 
 def minimize_3d(
-    contnrs,
-    max_variants_per_compound,
-    thoroughness,
-    num_procs,
-    second_embed,
-    job_manager,
-    parallelizer_obj,
-):
+    contnrs: list[MolContainer],
+    max_variants_per_compound: int,
+    thoroughness: int,
+    num_procs: int,
+    second_embed: bool,
+    job_manager: str,
+    parallelizer_obj: "Parallelizer.Parallelizer | None",
+    include_nonaro_rings: bool = False,
+) -> None:
     """This function minimizes a 3D molecular conformation. In an attempt to
        not get trapped in a local minimum, it actually generates a number of
        conformers, minimizes the best ones, and then saves the best of the
@@ -52,6 +54,11 @@ def minimize_3d(
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
+    :param include_nonaro_rings: Whether to also minimize molecules that have
+        non-aromatic rings. Those molecules are minimized as a side effect of
+        generating alternate ring conformations, so they only need to be
+        handled here when that step did not run. Defaults to False.
+    :type include_nonaro_rings: bool
     """
 
     # Let the user know you're on this step.
@@ -61,9 +68,10 @@ def minimize_3d(
     params = []
     ones_without_nonaro_rngs = set([])
     for contnr in contnrs:
-        if contnr.num_nonaro_rngs == 0:
-            # Because ones with nonaromatic rings have already been minimized,
-            # so they can be skipped here.
+        if include_nonaro_rings or contnr.num_nonaro_rngs == 0:
+            # Unless the caller asks for them, ones with nonaromatic rings are
+            # skipped here because generating their alternate ring
+            # conformations already minimized them.
             for mol in contnr.mols:
                 ones_without_nonaro_rngs.add(mol.contnr_idx)
                 params.append(
