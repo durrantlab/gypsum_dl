@@ -34,7 +34,7 @@ def prepare_smiles(contnrs, params):
     let_tautomers_change_chirality = params["let_tautomers_change_chirality"]
     parallelizer_obj = params["Parallelizer"]
 
-    debug = True
+    debug = params.get("debug", False)
 
     # Desalt the molecules. Note that the program always desalts (can't turn it
     # off).

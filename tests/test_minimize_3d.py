@@ -64,3 +64,46 @@ def test_parallel_minit_returns_lowest_energy_minimized_conformer(monkeypatch) -
     assert captured["conf"] is conf_b
     assert result.conformers[0].energy == 1
     assert "1 kcal/mol" in result.genealogy[-1]
+
+
+class _AlertMol:
+    """Minimal MyMol stand-in for the error-alert loop of minimize_3d."""
+
+    def __init__(self, rdkit_mol) -> None:
+        self.rdkit_mol = rdkit_mol
+        self.contnr_idx = 0
+        self.genealogy: list = []
+        self.conformers: list = [object()]
+
+
+class _AlertContnr:
+    def __init__(self, mols) -> None:
+        self.mols = mols
+        # Non-zero so minimize_3d skips these mols (already minimized elsewhere)
+        # and only its final error-alert loop runs — no RDKit work needed.
+        self.num_nonaro_rngs = 1
+
+
+def test_minimize_3d_flags_mols_that_failed_to_embed() -> None:
+    # Regression (M2): a mol that failed 3D optimization has rdkit_mol == None,
+    # never == "". The old `mol.rdkit_mol == ""` check never matched, so the
+    # "Could not optimize 3D geometry" note and conformer clearing were dead
+    # code. A None mol must now be flagged; a real mol must be left alone.
+    failed = _AlertMol(None)
+    ok = _AlertMol(object())
+    contnr = _AlertContnr([failed, ok])
+
+    Minimize3D.minimize_3d(
+        [contnr],
+        max_variants_per_compound=1,
+        thoroughness=1,
+        num_procs=1,
+        second_embed=False,
+        job_manager="serial",
+        parallelizer_obj=None,
+    )
+
+    assert failed.genealogy[-1] == "(WARNING: Could not optimize 3D geometry)"
+    assert failed.conformers == []
+    assert ok.genealogy == []
+    assert ok.conformers != []

@@ -92,6 +92,23 @@ def test_log_wraps_and_appends_trailing_whitespace(
     assert out.endswith("\n\n")
 
 
+def test_log_preserves_embedded_newlines(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: log() used a single textwrap.fill over the whole message,
+    # which collapsed embedded newlines into one reflowed 80-column paragraph.
+    # deal_with_failed_molecules logs "\n".join(failed_ones), so a long SMILES
+    # list was mangled (SMILES broken mid-string, entries merged). Each input
+    # line must survive as its own output line. (textwrap collapses runs of
+    # whitespace, so tabs are not asserted on here.)
+    smi_a = "C" * 50 + "O"
+    smi_b = "C" * 50 + "N"
+    utils.log("\n".join([smi_a, smi_b]))
+    lines = capsys.readouterr().out.splitlines()
+    assert smi_a in lines
+    assert smi_b in lines
+
+
 def test_exception_raises_with_message() -> None:
     with pytest.raises(Exception, match="boom"):
         utils.exception("boom")

@@ -166,3 +166,15 @@ def test_parallelizer_end_rejects_mpi_when_unavailable() -> None:
     par = parallelizer.Parallelizer("serial", 1)
     with pytest.raises(Exception, match="mpi4py"):
         par.end("mpi")
+
+
+def test_parallelizer_pick_mode_method_survives_init() -> None:
+    # Regression: __init__ stored the result of pick_mode() back onto the
+    # attribute `self.pick_mode`, clobbering the bound method with a string.
+    # Any later self.pick_mode() call would then raise TypeError. The picked
+    # mode now lives on `picked_mode`, leaving the method callable.
+    par = parallelizer.Parallelizer(None, 1, True)
+    assert callable(par.pick_mode)
+    assert par.picked_mode == "multiprocessing"
+    assert par.pick_mode() == par.picked_mode
+    par.end()

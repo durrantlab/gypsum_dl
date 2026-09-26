@@ -87,10 +87,10 @@ class Parallelizer(object):
         """
 
         # Pick the mode
-        self.pick_mode = self.pick_mode()
+        self.picked_mode = self.pick_mode()
 
         if mode is None:
-            if self.pick_mode == "mpi" and self.HAS_MPI == True:
+            if self.picked_mode == "mpi" and self.HAS_MPI == True:
                 # THIS IS TO BE RUN IN MPI
                 self.mode = "mpi"
             else:

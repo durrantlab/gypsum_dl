@@ -103,7 +103,7 @@ def minimize_3d(
     # Alert the user to any errors.
     for contnr in contnrs:
         for mol in contnr.mols:
-            if mol.rdkit_mol == "":
+            if mol.rdkit_mol is None:
                 mol.genealogy.append("(WARNING: Could not optimize 3D geometry)")
                 mol.conformers = []
 

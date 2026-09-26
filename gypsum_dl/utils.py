@@ -79,18 +79,23 @@ def log(txt: str, trailing_whitespace: str = "") -> None:
             message, after the trim. "" by default.
     """
 
-    whitespace_before = txt[: len(txt) - len(txt.lstrip())].replace("\t", "    ")
-    print(
-        (
+    # Wrap each line independently so that embedded newlines (e.g. a list of
+    # failed SMILES joined with "\n") are preserved instead of being collapsed
+    # into a single reflowed paragraph.
+    wrapped_lines = []
+    for line in txt.split("\n"):
+        whitespace_before = line[: len(line) - len(line.lstrip())].replace(
+            "\t", "    "
+        )
+        wrapped_lines.append(
             textwrap.fill(
-                txt.strip(),
+                line.strip(),
                 width=80,
                 initial_indent=whitespace_before,
                 subsequent_indent=f"{whitespace_before}    ",
             )
-            + trailing_whitespace
         )
-    )
+    print("\n".join(wrapped_lines) + trailing_whitespace)
 
 
 def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> list:

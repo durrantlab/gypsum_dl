@@ -158,7 +158,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
         params["add_html_output"] = False
 
     # Warn the user if he or she is not using the Durrant lab filters.
-    if params["use_durrant_lab_filters"] == -False:
+    if params["use_durrant_lab_filters"] is False:
         utils.log(
             "WARNING: Running Gypsum-DL without the Durrant-lab filters. In looking over many Gypsum-DL-generated "
             + "variants, we have identified a number of substructures that, though technically possible, strike us "
