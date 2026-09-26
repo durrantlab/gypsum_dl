@@ -8,10 +8,7 @@ import __future__
 from gypsum_dl import utils
 from gypsum_dl.steps.smiles.AddHydrogens import add_hydrogens
 from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
-from gypsum_dl.steps.smiles.DurrantLabFilter import (
-    durrant_lab_contains_bad_substr,
-    durrant_lab_filters,
-)
+from gypsum_dl.steps.smiles.DurrantLabFilter import durrant_lab_filters
 from gypsum_dl.steps.smiles.EnumerateChiralMols import enumerate_chiral_molecules
 from gypsum_dl.steps.smiles.EnumerateDoubleBonds import enumerate_double_bonds
 from gypsum_dl.steps.smiles.MakeTautomers import make_tauts
@@ -45,13 +42,11 @@ def prepare_smiles(contnrs, params):
     desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj)
     # utils.log("Done with Desalting")
 
-    # Filter the containers to remove ones that have bad substrings (metal,
-    # etc.) in the desalted smiles, assuming durrant lab filter turned on. Note
-    # that some compounds aren't filtered until later.
-    if params["use_durrant_lab_filters"] == True:
-        contnrs = [
-            c for c in contnrs if not durrant_lab_contains_bad_substr(c.orig_smi_deslt)
-        ]
+    # Note: Metal-containing and other bad-substring compounds are removed by
+    # the full durrant_lab_filters step (when enabled), which applies
+    # durrant_lab_contains_bad_substr to every molecule. A pre-filter here would
+    # only rebind a local list (execute_gypsum_dl keeps the original) and would
+    # break the position==contnr_idx invariant relied on downstream.
 
     if debug:
         utils.print_current_smiles(contnrs)

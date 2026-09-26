@@ -111,23 +111,13 @@ def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> lis
     # smiles. In this case, just use the original smiles. Couldn't find a good
     # solution to work around.
 
-    # Get a dictionary of all the input smiles. Keys are indexes, values are
-    # smiles.
-    idx_to_smi = {}
-    for idx in range(len(contnrs)):
-        contnr = contnrs[idx]
-        if idx not in idx_to_smi:
-            idx_to_smi[idx] = contnrs[idx].orig_smi_deslt
+    # Collect the contnr_idx of every container that produced a result. Key by
+    # contnr_idx (not list position): if contnrs was ever filtered, position no
+    # longer equals contnr_idx, and results carry contnr_idx.
+    represented = {m.contnr_idx for m in results if m is not None}
 
-    # Now remove from those any that have associated ionized smiles strings.
-    # These are represented, and so you don't want to include them in the
-    # return.
-    for m in results:
-        if m.contnr_idx in idx_to_smi:
-            del idx_to_smi[m.contnr_idx]
-
-    # Return just the container indexes (the keys).
-    return list(idx_to_smi.keys())
+    # Return the contnr_idx of containers with no representative results.
+    return [contnr.contnr_idx for contnr in contnrs if contnr.contnr_idx not in represented]
 
 
 def print_current_smiles(contnrs: list[MolContainer]) -> None:
