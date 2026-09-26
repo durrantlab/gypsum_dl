@@ -12,6 +12,7 @@ import sys
 from collections import OrderedDict
 from datetime import datetime
 
+import numpy
 from rdkit import Chem
 
 from gypsum_dl import utils
@@ -69,12 +70,9 @@ def prepare_molecules(args: dict[str, Any]) -> None:
         # warning necessary.
         params = set_parameters(args)
 
-    # Seed the global RNG once, before any sampling/shuffling, so that variant
-    # selection is reproducible run to run (fully so in serial mode). Record the
-    # effective seed so the run can be reproduced.
-    if params.get("random_seed", -1) >= 0:
-        random.seed(params["random_seed"])
-        utils.log("Using random_seed = " + str(params["random_seed"]) + ".")
+    # Seed the random number generators once, before any sampling or
+    # shuffling.
+    seed_random_number_generators(params)
 
     # If running in serial mode, make sure only one processor is used.
     if params["job_manager"] == "serial":
@@ -280,6 +278,41 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     params["Parallelizer"].end(params["job_manager"])
 
 
+def seed_random_number_generators(params: dict[str, Any]) -> None:
+    """Seed both of the global random number generators Gypsum-DL draws from.
+
+    Variant selection samples with the random module, and the ring-conformation
+    clustering samples with numpy (by way of scipy's kmeans2), so seeding one
+    without the other still leaves a seeded run varying between invocations.
+    Seeding reaches only the calling process, which makes serial runs
+    reproducible; multiprocessing and mpi runs also depend on how tasks land on
+    workers and on each worker's own generator state, so they remain
+    nondeterministic.
+
+    Args:
+        params: The parameters, which may carry a non-negative random_seed. A
+            negative seed (the default) leaves both generators alone.
+    """
+
+    seed = params.get("random_seed", -1)
+    if seed < 0:
+        return
+
+    random.seed(seed)
+
+    # numpy rejects seeds that do not fit in 32 bits, while the random module
+    # accepts an integer of any size. Fold larger values in rather than
+    # failing the run over the choice of seed.
+    numpy.random.seed(seed % 2**32)
+
+    utils.log(
+        "Using random_seed = "
+        + str(seed)
+        + ". Note that this makes serial runs reproducible; multiprocessing "
+        + "and mpi runs remain nondeterministic."
+    )
+
+
 def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> None:
     """A function for doing all of the manipulations to each molecule.
 
@@ -371,9 +404,10 @@ def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
             "job_manager": "multiprocessing",
             "cache_prerun": False,
             "test": False,
-            # Seed for the global random module. A value >= 0 makes variant
-            # selection reproducible (fully so in serial mode). A negative
-            # value leaves the RNG unseeded (previous behavior).
+            # Seed for the global random and numpy generators. A value >= 0
+            # makes serial runs reproducible; multiprocessing and mpi runs
+            # remain nondeterministic. A negative value leaves both
+            # generators unseeded (previous behavior).
             "random_seed": -1,
         }
     )

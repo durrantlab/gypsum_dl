@@ -1,9 +1,13 @@
 """Regression tests for cis/trans double-bond enumeration."""
 
 import random
+import time
 
 from gypsum_dl.MyMol import MyMol
-from gypsum_dl.steps.smiles.EnumerateDoubleBonds import parallel_get_double_bonded
+from gypsum_dl.steps.smiles.EnumerateDoubleBonds import (
+    parallel_get_double_bonded,
+    sample_bond_dir_configs,
+)
 
 
 def test_enumerates_when_thoroughness_times_variants_is_one() -> None:
@@ -46,3 +50,62 @@ def test_reproducible_when_seeded() -> None:
 
     assert res1  # enumeration actually produced something
     assert res1 == res2
+
+
+def test_output_does_not_carry_explicit_hydrogens() -> None:
+    # Regression: enumeration works on Chem.AddHs(mol) and the candidate SMILES
+    # were canonicalized from that molecule, so every variant came back spelled
+    # with [H] atoms. MyMol parses with sanitize=False, which keeps those atoms
+    # in the graph and in can_smi, the key used to tell variants apart, so the
+    # same molecule spelled two ways consumed two max_variants_per_compound
+    # slots. Tetrasubstituted alkene, so no hydrogen is needed to define the
+    # stereochemistry and all of them should be gone.
+    results = parallel_get_double_bonded(MyMol("CC(Cl)=C(Cl)C"), 1, 1)
+
+    assert len(results) == 2
+    for mol in results:
+        assert "[H]" not in mol.smiles()
+        assert all(atom.GetAtomicNum() != 1 for atom in mol.rdkit_mol.GetAtoms())
+
+
+def test_sample_bond_dir_configs_enumerates_small_spaces() -> None:
+    configs = sample_bond_dir_configs(4, 1024)
+
+    assert len(set(configs)) == 16
+    assert all(len(config) == 4 for config in configs)
+
+
+def test_sample_bond_dir_configs_samples_large_spaces() -> None:
+    # Regression: the direction space is 2**num_bonds, and num_bonds runs about
+    # four times the number of double bonds being varied, so full enumeration
+    # was exponential in a bond count that is only logarithmic in the variant
+    # budget. Above the cap the space has to be sampled instead.
+    configs = sample_bond_dir_configs(20, 500)
+
+    assert len(set(configs)) == 500
+    assert all(len(config) == 20 for config in configs)
+
+
+def test_sample_bond_dir_configs_reproducible_when_seeded() -> None:
+    random.seed(4321)
+    first = sample_bond_dir_configs(20, 100)
+
+    random.seed(4321)
+    second = sample_bond_dir_configs(20, 100)
+
+    assert first == second
+
+
+def test_many_unspecified_double_bonds_stays_bounded() -> None:
+    # Regression: at these settings num_bonds_to_keep is 5, each retained double
+    # bond contributes up to four single bonds, and the full product of 2**20
+    # direction assignments was materialized as a list and then stereo-assigned
+    # one at a time. The call took minutes and hundreds of megabytes.
+    smi = "CC=C" * 8 + "C"
+
+    started = time.monotonic()
+    results = parallel_get_double_bonded(MyMol(smi), 16, 2)
+    elapsed = time.monotonic() - started
+
+    assert results
+    assert elapsed < 30

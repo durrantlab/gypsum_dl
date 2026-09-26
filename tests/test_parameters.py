@@ -2,7 +2,9 @@
 
 import json
 import os
+import random
 
+import numpy
 import pytest
 
 from gypsum_dl import start
@@ -62,6 +64,37 @@ def test_set_parameters_accepts_random_seed(tmp_path) -> None:
     src.write_text("CCO\tethanol\n")
     params = start.set_parameters({"source": str(src), "random_seed": 42})
     assert params["random_seed"] == 42
+
+
+def test_seed_random_number_generators_seeds_both_generators() -> None:
+    # Regression: only the random module was seeded, so the numpy stream that
+    # scipy's kmeans2 draws from stayed unseeded and a run given a random_seed
+    # still varied between invocations.
+    start.seed_random_number_generators({"random_seed": 42})
+    first = (random.random(), float(numpy.random.random()))
+
+    start.seed_random_number_generators({"random_seed": 42})
+    second = (random.random(), float(numpy.random.random()))
+
+    assert first == second
+
+
+def test_seed_random_number_generators_leaves_generators_alone_when_negative() -> None:
+    random.seed(7)
+    numpy.random.seed(7)
+    expected = (random.random(), float(numpy.random.random()))
+
+    random.seed(7)
+    numpy.random.seed(7)
+    start.seed_random_number_generators({"random_seed": -1})
+
+    assert (random.random(), float(numpy.random.random())) == expected
+
+
+def test_seed_random_number_generators_accepts_seed_numpy_cannot_take() -> None:
+    # numpy only accepts seeds that fit in 32 bits, so a larger one must not
+    # take down the run.
+    start.seed_random_number_generators({"random_seed": 2**40 + 1})
 
 
 def test_finalize_params_requires_source() -> None:

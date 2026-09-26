@@ -105,6 +105,49 @@ def enumerate_double_bonds(
     )
 
 
+def sample_bond_dir_configs(num_bonds: int, cap: int) -> list[tuple[bool, ...]]:
+    """Choose which up/down direction assignments to try for a set of bonds.
+
+    Enumerating every assignment costs 2**num_bonds, and the number of bonds
+    involved grows about four times faster than the number of double bonds
+    being varied, so the full product can cost far more time and memory than
+    the requested number of variants could ever justify. Sampling bounds that
+    work while still reaching a good spread of the cis/trans forms the bonds
+    can produce.
+
+    Args:
+        num_bonds: How many bonds will have their direction varied.
+        cap: The largest number of assignments to return.
+
+    Returns:
+        A list of tuples of per-bond up (True) or down (False) flags: the full
+            product when it fits within the cap, otherwise that many distinct
+            assignments sampled from it.
+    """
+
+    space_size = 2**num_bonds
+    if space_size <= cap:
+        return list(itertools.product([True, False], repeat=num_bonds))
+
+    if num_bonds < 63:
+        # random.sample indexes into the population, so it needs the
+        # population's length to fit in a C ssize_t.
+        masks = random.sample(range(space_size), cap)
+    else:
+        # The space is so much larger than the cap here that repeated draws
+        # essentially never collide, but track them so the sample stays
+        # distinct regardless.
+        masks = []
+        seen = set()
+        while len(masks) < cap:
+            mask = random.getrandbits(num_bonds)
+            if mask not in seen:
+                seen.add(mask)
+                masks.append(mask)
+
+    return [tuple(bool(mask >> i & 1) for i in range(num_bonds)) for mask in masks]
+
+
 def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating double bonds.
 
@@ -209,10 +252,17 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
         all_sngl_bnd_idxs |= set(idxs_of_other_bnds_frm_atm1)
         all_sngl_bnd_idxs |= set(idxs_of_other_bnds_frm_atm2)
 
-    # Now come up with all possible up/down combinations for those bonds.
+    # Now come up with up/down combinations for those bonds. Each retained
+    # double bond contributes up to four single bonds, so the full product is
+    # up to 2**(4 * dbl_bnd_count) even though num_bonds_to_keep is only
+    # logarithmic in the variant budget. Because only a minority of the
+    # direction assignments leave every double bond fully specified, sample
+    # generously relative to the number of variants requested. The floor keeps
+    # the cheap cases (one or two double bonds) fully enumerated.
     all_sngl_bnd_idxs = list(all_sngl_bnd_idxs)
-    all_atom_config_options = list(
-        itertools.product([True, False], repeat=len(all_sngl_bnd_idxs))
+    all_atom_config_options = sample_bond_dir_configs(
+        len(all_sngl_bnd_idxs),
+        max(1024, 64 * thoroughness * max_variants_per_compound),
     )
 
     # Let the user know.
@@ -247,10 +297,19 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
         a_rd_mol.ClearComputedProps()
         Chem.AssignStereochemistry(a_rd_mol, force=True)
 
-        # Add to list of ones to consider
+        # Add to list of ones to consider. Canonicalize without the hydrogens
+        # added above: MyMol parses with sanitize=False, so any [H] in the
+        # SMILES stays in the graph and in can_smi, the key used to tell
+        # variants apart. That makes a molecule spelled with explicit
+        # hydrogens count as distinct from the same molecule spelled without
+        # them, wasting a max_variants_per_compound slot. RemoveHs keeps the
+        # hydrogens that define a double bond's stereochemistry, so a few
+        # necessarily remain.
         try:
             smiles_to_consider.add(
-                Chem.MolToSmiles(a_rd_mol, isomericSmiles=True, canonical=True)
+                Chem.MolToSmiles(
+                    Chem.RemoveHs(a_rd_mol), isomericSmiles=True, canonical=True
+                )
             )
         except Exception:
             # Some molecules still give troubles. Unfortunate, but these are
