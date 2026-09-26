@@ -85,6 +85,29 @@ def test_finalize_params_defaults_output_folder_next_to_source(tmp_path) -> None
     assert params["job_manager"] == "serial"
 
 
+def test_finalize_params_derives_source_dir_by_dirname(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression (M11): source_dir used str.strip(basename), which strips a
+    # character *set* off both ends rather than removing a suffix. On POSIX
+    # absolute paths the leading "/" and the last "/" hide the bug, but any
+    # path whose leading directory character also appears in the basename gets
+    # mangled (e.g. "smiles_dir/mol.smi" -> "es_dir/", and on Windows the drive
+    # letter is eaten). Pin abspath to identity so a relative path reaches the
+    # source_dir computation intact, then assert it equals os.path.dirname.
+    monkeypatch.setattr(start.os.path, "abspath", lambda p: p)
+    params = start.finalize_params(
+        {
+            "source": "smiles_dir/mol.smi",
+            "output_folder": "",
+            "add_pdb_output": False,
+            "separate_output_files": False,
+            "job_manager": "serial",
+        }
+    )
+    assert params["output_folder"] == "smiles_dir" + os.sep + "output" + os.sep
+
+
 def test_add_mol_id_props_assigns_unique_ids() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     contnr.add_smiles("CCO")

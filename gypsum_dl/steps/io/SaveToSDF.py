@@ -32,7 +32,16 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
     if separate_output_files == False:
         w = Chem.SDWriter(output_folder + os.sep + "gypsum_dl_success.sdf")
     else:
-        w = Chem.SDWriter(output_folder + os.sep + "gypsum_dl_params.sdf")
+        # In separate-file mode (which MPI mode forces), every task would
+        # otherwise open the same "gypsum_dl_params.sdf" for writing. Under MPI
+        # all ranks run this concurrently against one path, interleaving or
+        # truncating the record. One task holds exactly one container, so
+        # qualify the params filename with that container's original index to
+        # give each rank its own file.
+        params_basename = "gypsum_dl_params"
+        if contnrs:
+            params_basename += f"__input{contnrs[0].contnr_idx_orig + 1}"
+        w = Chem.SDWriter(f"{output_folder}{os.sep}{params_basename}.sdf")
 
     m = Chem.Mol()
     m.SetProp("_Name", "EMPTY MOLECULE DESCRIBING GYPSUM-DL PARAMETERS")

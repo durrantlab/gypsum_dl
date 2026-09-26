@@ -9,7 +9,9 @@ import os
 
 from rdkit import Chem
 
+from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.start import prepare_molecules
+from gypsum_dl.steps.io.SaveToSDF import save_to_sdf
 
 
 def test_pdb_and_html_outputs_are_written(tmp_path) -> None:
@@ -102,6 +104,34 @@ def test_nested_output_folder_is_created(tmp_path) -> None:
     )
     assert os.path.isdir(str(output_folder))
     assert os.path.exists(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+
+
+def test_params_sdf_is_qualified_per_container(tmp_path) -> None:
+    # Regression (M12): with separate_output_files=True (which MPI mode forces),
+    # every task opened the same "gypsum_dl_params.sdf" for writing. Under MPI
+    # all ranks run save_to_sdf concurrently against that one path, so the
+    # provenance record interleaves or truncates. Each task holds exactly one
+    # container, so the params file must be qualified by that container's
+    # original index. Simulate two ranks writing into one folder and assert
+    # they land in distinct files with nothing at the bare name.
+    output_folder = tmp_path / "params_out"
+    output_folder.mkdir()
+    for idx in (0, 1):
+        contnr = MolContainer("CCO", "ethanol", idx, {})
+        contnr.add_smiles("CCO")
+        save_to_sdf([contnr], {"thoroughness": 1}, True, str(output_folder))
+
+    param_files = sorted(
+        os.path.basename(p)
+        for p in glob.glob(os.path.join(str(output_folder), "gypsum_dl_params*.sdf"))
+    )
+    assert param_files == [
+        "gypsum_dl_params__input1.sdf",
+        "gypsum_dl_params__input2.sdf",
+    ]
+    assert not os.path.exists(
+        os.path.join(str(output_folder), "gypsum_dl_params.sdf")
+    )
 
 
 def test_2d_output_has_nonzero_depiction_coordinates(tmp_path) -> None:

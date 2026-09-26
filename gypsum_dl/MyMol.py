@@ -242,8 +242,13 @@ class MyMol:
             return
 
         # Add hydrogens. This adds explicit hydrogens, while respecting
-        # Dimorphite-DL protonation states.
-        self.rdkit_mol = MOH.try_reprotanation(self.rdkit_mol)
+        # Dimorphite-DL protonation states. Reprotonation can fail and return
+        # None; assigning that to rdkit_mol would crash MyConformer downstream
+        # (deepcopy(None).RemoveAllConformers()), so bail out quietly instead.
+        reprotanated = MOH.try_reprotanation(self.rdkit_mol)
+        if reprotanated is None:
+            return
+        self.rdkit_mol = reprotanated
 
         # Add a single conformer. RMSD cutoff very small so all conformers
         # will be accepted. And not minimizing (False).
@@ -676,9 +681,19 @@ class MyConformer:
         """
 
         # Save some values to the object.
-        self.mol = copy.deepcopy(mol.rdkit_mol)
         self.smiles = mol.smiles()
         self.orig_smi = mol.orig_smi
+
+        # A caller can hand us a MyMol whose rdkit_mol is None (e.g. failed
+        # reprotonation). deepcopy(None) is None, and the subsequent
+        # RemoveAllConformers() would raise AttributeError. Treat it as a
+        # failed conformer so add_conformers() skips it.
+        if mol.rdkit_mol is None:
+            self.mol = False
+            self.coord_3d_err_warning(None)
+            return
+
+        self.mol = copy.deepcopy(mol.rdkit_mol)
 
         # Remove any previous conformers.
         self.mol.RemoveAllConformers()

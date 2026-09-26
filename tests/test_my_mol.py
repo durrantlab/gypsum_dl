@@ -156,6 +156,29 @@ def test_make_first_3d_conf_no_min_is_idempotent() -> None:
     assert len(mol.conformers) == 1
 
 
+def test_make_first_3d_conf_no_min_survives_failed_reprotanation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression (M13): try_reprotanation can return None. That None was
+    # assigned straight to rdkit_mol, and add_conformers -> MyConformer then did
+    # copy.deepcopy(None).RemoveAllConformers(), raising AttributeError inside
+    # pick_lowest_enrgy_mols. The method must bail out quietly instead.
+    monkeypatch.setattr(MyMol.MOH, "try_reprotanation", lambda mol: None)
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+    assert mol.conformers == []
+
+
+def test_myconformer_with_none_rdkit_mol_is_marked_failed() -> None:
+    # Regression (M13): constructing a MyConformer from a MyMol whose rdkit_mol
+    # is None must not crash (deepcopy(None).RemoveAllConformers()). It should
+    # instead flag itself failed (mol is False) so add_conformers skips it.
+    mol = MyMol.MyMol("CCO")
+    mol.rdkit_mol = None
+    conf = MyMol.MyConformer(mol)
+    assert conf.mol is False
+
+
 def test_add_conformers_sorts_by_energy() -> None:
     mol = MyMol.MyMol("CCCCCC")
     # `MyConformer.rmsd_to_me` rebuilds the molecule from SMILES and

@@ -501,7 +501,7 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
         params["source"] = os.path.abspath(params["source"])
     except Exception:
         utils.exception("Source file doesn't exist.")
-    source_dir = params["source"].strip(os.path.basename(params["source"]))
+    source_dir = os.path.dirname(params["source"]) + os.sep
 
     if params["output_folder"] == "" and params["source"] != "":
         params["output_folder"] = f"{source_dir}output{str(os.sep)}"
