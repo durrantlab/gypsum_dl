@@ -679,7 +679,15 @@ def MultiThreading(inputs, num_procs, task_name):
 def worker(input, output):
     for seq, job in iter(input.get, "STOP"):
         func, args = job
-        result = func(*args)
+        try:
+            result = func(*args)
+        except Exception:
+            import traceback
+
+            # A dead worker would leave the parent blocked on done_queue.get()
+            # forever, so failures must be reported as results.
+            print(traceback.format_exc())
+            result = None
         ret_val = (seq, result)
         output.put(ret_val)
 

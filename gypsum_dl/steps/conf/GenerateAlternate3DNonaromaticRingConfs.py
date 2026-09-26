@@ -106,8 +106,9 @@ def generate_alternate_3d_nonaromatic_ring_confs(
         tmp = parallelizer_obj.run(
             params, parallel_get_ring_confs, num_procs, job_manager
         )
-    # Flatten the results.
-    results = Parallelizer.flatten_list(tmp)
+    # Flatten the results. strip_none guards against tasks that returned None
+    # (failed embedding); the worker also reports raised exceptions as None.
+    results = Parallelizer.flatten_list(Parallelizer.strip_none(tmp))
 
     # Group by mol. You can't use existing functions because they would
     # require you to recalculate already calculated energies.
@@ -127,26 +128,27 @@ def generate_alternate_3d_nonaromatic_ring_confs(
 
     # Now, for each container, keep only the best ones.
     for contnr_idx, lst_enrgy_mol_pairs in grouped.items():
-        if len(lst_enrgy_mol_pairs) != 0:
-            contnrs[contnr_idx].mols = []  # Note that only affects ones that
-            # had non-aromatic rings.
-            lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
-            # pair).
+        contnrs[contnr_idx].mols = []  # Note that only affects ones that
+        # had non-aromatic rings.
+        lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
+        # pair).
 
-            # Keep only the top ones.
-            lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:max_variants_per_compound]
+        # Keep only the top ones.
+        lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:max_variants_per_compound]
 
-            # Add the top ones to the container mol list.
-            for energy, mol in lst_enrgy_mol_pairs:
-                contnrs[contnr_idx].add_mol(mol)
-        else:
-            # There are no entries in the list. It apparently wasn't able to
-            # generate any alternate conformers. Let the user know.
-            for i in range(len(contnrs[contnr_idx].mols)):
-                contnrs[contnr_idx].mols[i].genealogy.append(
-                    "(WARNING: Could not generate alternate conformations "
-                    + "of nonaromatic ring)"
-                )
+        # Add the top ones to the container mol list.
+        for energy, mol in lst_enrgy_mol_pairs:
+            contnrs[contnr_idx].add_mol(mol)
+
+    # Any container that had non-aromatic rings but produced no results (all
+    # ring-conformer generation failed) is absent from grouped. Its original
+    # mols are untouched; flag them so the failure is recorded.
+    for contnr_idx in ones_with_nonaro_rngs - set(grouped.keys()):
+        for i in range(len(contnrs[contnr_idx].mols)):
+            contnrs[contnr_idx].mols[i].genealogy.append(
+                "(WARNING: Could not generate alternate conformations "
+                + "of nonaromatic ring)"
+            )
 
 
 def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second_embed):
