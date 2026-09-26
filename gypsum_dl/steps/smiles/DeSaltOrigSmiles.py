@@ -45,6 +45,13 @@ def desalt_orig_smi(
             desalt_mol.genealogy.append(f"{desalt_mol.orig_smi_deslt} (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)
 
+            # update_orig_smi rebuilds mol_orig_frm_inp_smi from the desalted
+            # SMILES, and the replacement starts with an empty genealogy.
+            # Later steps (ionization above all) seed each variant's record
+            # from that object, so the record has to survive the rebuild or
+            # the provenance of every desalted variant is lost.
+            cont.mol_orig_frm_inp_smi.genealogy = desalt_mol.genealogy[:]
+
         cont.add_mol(desalt_mol)
 
 
@@ -57,13 +64,21 @@ def desalter(contnr):
     :rtype: MyMol.MyMol
     """
 
+    # Desalting is the first step every input passes through, and both
+    # branches below derive their genealogy from the pristine molecule, so
+    # stamp the input SMILES here rather than in each branch. Guarded so that
+    # a second call cannot record the source twice.
+    orig_mol = contnr.mol_orig_frm_inp_smi
+    if not orig_mol.genealogy:
+        orig_mol.genealogy.append(f"{contnr.orig_smi} (source)")
+
     # Split it into fragments
     frags = contnr.get_frags_of_orig_smi()
 
     if len(frags) == 1:
         # It's only got one fragment, so default assumption that
         # orig_smi = orig_smi_deslt is correct.
-        return contnr.mol_orig_frm_inp_smi
+        return orig_mol
     utils.log(
         "\tMultiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
     )
@@ -83,6 +98,6 @@ def desalter(contnr):
     new_mol = MyMol.MyMol(biggest_frag)
     new_mol.contnr_idx = contnr.contnr_idx
     new_mol.name = contnr.name
-    new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy[:]
+    new_mol.genealogy = orig_mol.genealogy[:]
     new_mol.make_mol_frm_smiles_sanitze()  # Need to update the mol.
     return new_mol

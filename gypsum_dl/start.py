@@ -596,11 +596,17 @@ def add_mol_id_props(contnrs: list[MolContainer]) -> None:
         contnrs: A list of containers (MolContainer.MolContainer).
     """
 
-    cont_id = 0
+    # A plain running counter is only unique within one call, and every mpi
+    # rank calls this independently (as does every task in
+    # separate_output_files mode), so concatenating the per-input files gave
+    # many records the same id. Qualifying the per-container variant number
+    # with the container's original input index makes the id unique across the
+    # whole run, and matches how the separate output files are named.
     for contnr in contnrs:
-        for mol in contnr.mols:
-            cont_id = cont_id + 1
-            mol.set_rdkit_mol_prop("UniqueID", str(cont_id))
+        for variant_id, mol in enumerate(contnr.mols, start=1):
+            mol.set_rdkit_mol_prop(
+                "UniqueID", f"{contnr.contnr_idx_orig + 1}_{variant_id}"
+            )
             mol.set_all_rdkit_mol_props()
 
 

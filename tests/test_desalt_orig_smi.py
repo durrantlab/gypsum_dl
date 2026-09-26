@@ -10,12 +10,55 @@ def test_desalter_does_not_alias_original_genealogy() -> None:
     # later append in desalt_orig_smi mutated the container's original molecule.
     contnr = MolContainer("CCCCO.[Na+]", "salt", 0, {})
     orig = contnr.mol_orig_frm_inp_smi.genealogy
-    before = list(orig)
 
     new_mol = desalter(contnr)
+
+    # desalter appends the source entry to this very list, so snapshot it
+    # afterward; what matters here is that the copy handed to the fragment is a
+    # separate object.
+    before = list(orig)
     assert new_mol.genealogy is not orig
     new_mol.genealogy.append("marker")
     assert contnr.mol_orig_frm_inp_smi.genealogy == before
+
+
+def test_desalter_seeds_the_source_smiles_on_the_single_fragment_path() -> None:
+    # Regression (bug 15): only the ionization-failure fallback ever wrote a
+    # "(source)" entry, so a molecule that sailed through every step had a
+    # genealogy starting at "(protonated)" and no record of its input SMILES.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+
+    mol = desalter(contnr)
+
+    assert mol.genealogy[0] == "CCO (source)"
+
+
+def test_desalter_seeds_the_source_smiles_on_the_desalted_path() -> None:
+    # Regression (bug 15): the desalted branch copied the pristine molecule's
+    # genealogy, which was empty, so the salted input SMILES was never
+    # recorded either.
+    contnr = MolContainer("CCCCO.[Na+]", "salt", 0, {})
+
+    mol = desalter(contnr)
+
+    assert mol.genealogy[0] == "CCCCO.[Na+] (source)"
+
+
+def test_desalt_orig_smi_keeps_the_source_record_after_rebuilding_the_container() -> (
+    None
+):
+    # Regression (bug 15): update_orig_smi replaces mol_orig_frm_inp_smi with a
+    # fresh molecule whose genealogy is empty, and the ionization step seeds
+    # every variant from that object. The source and desalt entries have to
+    # survive the rebuild, or desalted molecules lose their provenance
+    # downstream.
+    salted = MolContainer("CCCCO.[Na+]", "salted", 0, {})
+
+    desalt_orig_smi([salted], 1, "serial", None)
+
+    genealogy = salted.mol_orig_frm_inp_smi.genealogy
+    assert genealogy[0] == "CCCCO.[Na+] (source)"
+    assert genealogy[-1].endswith("(desalted)")
 
 
 def test_desalt_orig_smi_pairs_each_container_with_its_own_mol() -> None:

@@ -6,12 +6,17 @@ SDF writers and the `skip_*` branches, not to check chemistry.
 
 import glob
 import os
+import subprocess
+import sys
+import textwrap
 
 from rdkit import Chem
 
+import gypsum_dl
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.start import prepare_molecules
 from gypsum_dl.steps.io.SaveToSDF import save_to_sdf
+from gypsum_dl.steps.io.Web2DOutput import web_2d_output
 
 
 def test_pdb_and_html_outputs_are_written(tmp_path) -> None:
@@ -129,9 +134,7 @@ def test_params_sdf_is_qualified_per_container(tmp_path) -> None:
         "gypsum_dl_params__input1.sdf",
         "gypsum_dl_params__input2.sdf",
     ]
-    assert not os.path.exists(
-        os.path.join(str(output_folder), "gypsum_dl_params.sdf")
-    )
+    assert not os.path.exists(os.path.join(str(output_folder), "gypsum_dl_params.sdf"))
 
 
 def test_2d_output_has_nonzero_depiction_coordinates(tmp_path) -> None:
@@ -162,3 +165,93 @@ def test_2d_output_has_nonzero_depiction_coordinates(tmp_path) -> None:
         abs(conf.GetAtomPosition(i).x) > 1e-6 or abs(conf.GetAtomPosition(i).y) > 1e-6
         for i in range(mols[0].GetNumAtoms())
     )
+
+
+def test_genealogy_records_the_input_smiles(tmp_path) -> None:
+    # Regression (bug 15): only the ionization-failure fallback wrote a
+    # "(source)" entry, so the Genealogy field of a successfully processed
+    # molecule began at "(protonated)" and never named the input SMILES the
+    # variant derives from. The README points users at this field to trace a
+    # problematic form back through the steps, so the source has to be there.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    output_folder = tmp_path / "out_genealogy"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "2d_output_only": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+    sdf_path = os.path.join(str(output_folder), "gypsum_dl_success.sdf")
+    supplier = Chem.SDMolSupplier(sdf_path, removeHs=False)
+    # The first SDF record is an empty placeholder holding the run parameters;
+    # skip it and any other atomless record.
+    mols = [m for m in supplier if m is not None and m.GetNumAtoms() > 0]
+    assert mols
+    for mol in mols:
+        assert mol.GetProp("Genealogy").startswith("CCO (source)")
+
+
+def test_web_2d_output_declares_utf8_and_round_trips(tmp_path) -> None:
+    # Regression (bug 17): the HTML was written with the platform default
+    # encoding and carried no charset declaration, so a non-ASCII ligand name
+    # rendered as mojibake even where the write itself succeeded.
+    contnr = MolContainer("CCO", "caf\u00e9", 0, {})
+    contnr.add_smiles("CCO")
+
+    web_2d_output([contnr], str(tmp_path))
+
+    html = (tmp_path / "gypsum_dl_success.html").read_text(encoding="utf-8")
+    assert html.startswith('<meta charset="utf-8">')
+    assert "caf\u00e9" in html
+
+
+def test_web_2d_output_survives_a_non_utf8_locale(tmp_path) -> None:
+    # Regression (bug 17): without an explicit encoding, writing a ligand named
+    # "cafe\u0301" raised UnicodeEncodeError under a non-UTF-8 locale, at the very
+    # end of a long run. The locale only affects the default encoding of a
+    # freshly started interpreter, so this has to run in a child process.
+    script = textwrap.dedent(
+        """
+        import sys
+
+        from gypsum_dl.MolContainer import MolContainer
+        from gypsum_dl.steps.io.Web2DOutput import web_2d_output
+
+        contnr = MolContainer("CCO", "caf\\u00e9", 0, {})
+        contnr.add_smiles("CCO")
+        web_2d_output([contnr], sys.argv[1])
+        """
+    )
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(gypsum_dl.__file__)))
+    env = dict(os.environ)
+    env["LC_ALL"] = "C"
+    env["LANG"] = "C"
+    # Keep CPython from restoring a UTF-8 default under the C locale (PEP 538
+    # coercion, PEP 540 UTF-8 mode), which would let the child pass regardless.
+    env["PYTHONCOERCECLOCALE"] = "0"
+    env["PYTHONUTF8"] = "0"
+    env.pop("PYTHONIOENCODING", None)
+    existing_path = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        repo_root + os.pathsep + existing_path if existing_path else repo_root
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script, str(tmp_path)],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+    written = (tmp_path / "gypsum_dl_success.html").read_bytes()
+    assert written.startswith(b'<meta charset="utf-8">')
+    # The name has to land as UTF-8 bytes, not as whatever the locale implied.
+    assert "caf\u00e9".encode() in written

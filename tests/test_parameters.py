@@ -195,7 +195,39 @@ def test_add_mol_id_props_assigns_unique_ids() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     contnr.add_smiles("CCO")
     start.add_mol_id_props([contnr])
-    assert contnr.mols[0].rdkit_mol.GetProp("UniqueID") == "1"
+    assert contnr.mols[0].rdkit_mol.GetProp("UniqueID") == "1_1"
+
+
+def test_add_mol_id_props_ids_differ_across_separate_calls() -> None:
+    # Regression (bug 16): the id came from a counter that restarted at 1 in
+    # every call, and execute_gypsum_dl (which calls this) runs once per mpi
+    # rank and once per task in separate_output_files mode. Concatenating the
+    # per-input SDFs therefore produced many records labeled "1". Simulate two
+    # such tasks and assert their ids do not collide.
+    first = MolContainer("CCO", "ethanol", 0, {})
+    first.add_smiles("CCO")
+    second = MolContainer("CCCO", "propanol", 1, {})
+    second.add_smiles("CCCO")
+
+    start.add_mol_id_props([first])
+    start.add_mol_id_props([second])
+
+    first_id = first.mols[0].rdkit_mol.GetProp("UniqueID")
+    second_id = second.mols[0].rdkit_mol.GetProp("UniqueID")
+    assert first_id != second_id
+
+
+def test_add_mol_id_props_ids_survive_mpi_renumbering() -> None:
+    # Regression (bug 16): mpi mode renumbers each container to index zero of
+    # its own job (contnr.update_idx(0)), so the id has to be built from
+    # contnr_idx_orig rather than the working index.
+    contnr = MolContainer("CCO", "ethanol", 3, {})
+    contnr.add_smiles("CCO")
+    contnr.update_idx(0)
+
+    start.add_mol_id_props([contnr])
+
+    assert contnr.mols[0].rdkit_mol.GetProp("UniqueID") == "4_1"
 
 
 def test_deal_with_failed_molecules_writes_failure_file(tmp_path) -> None:

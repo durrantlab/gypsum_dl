@@ -25,7 +25,15 @@ def web_2d_output(contnrs, output_folder):
 
     # Let's not parallelize it for now. This will rarely be used.
     html_file = output_folder + os.sep + "gypsum_dl_success.html"
-    with open(html_file, "w") as f:
+
+    # Ligand names come from the input file, which is read as UTF-8, so the
+    # writer has to use UTF-8 too. Relying on the platform default raises
+    # UnicodeEncodeError on a non-UTF-8 locale, at the very end of a run.
+    with open(html_file, "w", encoding="utf-8") as f:
+        # Without this declaration a browser guesses the encoding, and
+        # non-ASCII ligand names render as mojibake.
+        f.write('<meta charset="utf-8">\n')
+
         for contnr in contnrs:
             utils.log("\t" + contnr.orig_smi)
             for mol in contnr.mols:
