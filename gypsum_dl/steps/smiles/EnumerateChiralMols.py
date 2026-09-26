@@ -131,6 +131,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
     # Get all possible chiral assignments. If the chirality is specified,
     # retain it.
     results = []
+    num_varied_systematically = num
     if num == 0:
         # There are no unspecified chiral centers, so just keep existing.
         results.append(mol)
@@ -153,6 +154,16 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
             options = list(itertools.product(options, starting))
             options = [list(itertools.chain(c[0], c[1])) for c in options]
 
+        # Truncating above covers only the leading chiral centers. The zip()
+        # below would silently discard the remaining ones, leaving them
+        # unspecified for the 3D embedding step to resolve arbitrarily. Assign
+        # them at random so every emitted variant is fully specified.
+        num_varied_systematically = len(options[0])
+        options = [
+            o + [random.choice(["R", "S"]) for _ in range(num - len(o))]
+            for o in options
+        ]
+
     # Let the user know the number of chiral centers.
     utils.log(
         "\t"
@@ -165,6 +176,16 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
         + " enantiomers when chiral centers with "
         + "no specified chirality are systematically varied."
     )
+
+    if num_varied_systematically < num:
+        utils.log(
+            "\t\tTo avoid a combinatorial explosion, only "
+            + str(num_varied_systematically)
+            + " of the "
+            + str(num)
+            + " unspecified chiral centers were varied systematically. The "
+            + "chirality of the others was assigned randomly."
+        )
 
     # Randomly select a few of the chiral combinations to examine. This is to
     # reduce the potential combinatorial explosion.

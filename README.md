@@ -223,7 +223,7 @@ As always, be sure to examine the structures that Gypsum-DL outputs to ensure th
 ### Durrant-Lab Filters
 
 In looking over many Gypsum-DL-generated variants, we have identified a number of substructures that, though technically possible, strike us as improbable or otherwise poorly suited for virtual screening.
-Here are some examples:
+Here is the full list of substructures Gypsum-DL matches, in the order they appear in the code:
 
 - `C=[N-]`
 - `[N-]C=[N+]`
@@ -233,11 +233,15 @@ Here are some examples:
 - `[!#7]~[#7+]~[#7-]~[!#7]`
 - `[#5]` (boron)
 - `O=[PH](=O)([#8])([#8])`
+- `[#7]=C1[#7]=C[#7]C=C1`
 - `N=c1cc[#7]c[#7]1`
-- `[$([NX2H1]),$([NX3H2])]=C[$([OH]),$([O-])]`
+- `[$(N)]=C[$([OH]),$([O-])]`
+- `[$(N)]C(=C)[$([OH]),$([O-])]`
 - Metals
 
-If you'd like to discard molecular variants with substructures such as these, use the `--use_durrant_lab_filters` flag.
+Note that the two iminol patterns match any aliphatic nitrogen, so internal (N-substituted) iminols and the mistaken amide tautomers built on them are discarded along with the terminal forms.
+
+If you'd like to discard molecular variants with these substructures, use the `--use_durrant_lab_filters` flag.
 
 ### Highly Constrained Ring Systems
 

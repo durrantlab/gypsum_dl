@@ -3,8 +3,12 @@
 import pytest
 
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.MyMol import MyMol
 from gypsum_dl.steps.smiles import EnumerateChiralMols
-from gypsum_dl.steps.smiles.EnumerateChiralMols import enumerate_chiral_molecules
+from gypsum_dl.steps.smiles.EnumerateChiralMols import (
+    enumerate_chiral_molecules,
+    parallel_get_chiral,
+)
 
 
 def test_parallel_get_chiral_receives_args_in_declared_order(
@@ -29,3 +33,57 @@ def test_parallel_get_chiral_receives_args_in_declared_order(
     enumerate_chiral_molecules([contnr], 3, 5, 1, "serial", None)
 
     assert captured == [(mol, 3, 5)]
+
+
+MANY_UNSPECIFIED_CENTERS = "CC(N)C(O)C(F)C(Cl)C(Br)C"
+
+
+def _mol_with_many_unspecified_centers() -> tuple[MyMol, int]:
+    """Build a molecule whose unspecified chiral centers exceed any small cap.
+
+    Returns:
+        The molecule and the number of its unspecified chiral centers, so the
+        tests can assert against the count RDKit actually perceives rather than
+        a hard-coded one.
+    """
+    contnr = MolContainer(MANY_UNSPECIFIED_CENTERS, "polychiral", 0, {})
+    contnr.add_smiles(MANY_UNSPECIFIED_CENTERS)
+    mol = contnr.mols[0]
+    num = len([p for p in mol.chiral_cntrs_w_unasignd() if p[1] == "?"])
+    return mol, num
+
+
+def test_parallel_get_chiral_completes_truncated_assignments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: the combinatorial cap broke out of the assignment loop early,
+    # so each option covered only the leading centers. zip() then dropped the
+    # rest, emitting variants with unspecified chirality.
+    mol, num = _mol_with_many_unspecified_centers()
+    assert num > 1
+
+    captured: list[list[list[str]]] = []
+
+    def spy(lst: list[list[str]], keep: int, msg_if_cut: str = "") -> list[list[str]]:
+        captured.append([list(option) for option in lst])
+        return lst[:keep]
+
+    monkeypatch.setattr(EnumerateChiralMols.utils, "random_sample", spy)
+
+    parallel_get_chiral(mol, 1, 1)
+
+    assert len(captured) == 1
+    assert captured[0]
+    assert all(len(option) == num for option in captured[0])
+
+
+def test_parallel_get_chiral_emits_fully_specified_variants() -> None:
+    mol, num = _mol_with_many_unspecified_centers()
+    assert num > 1
+
+    results = parallel_get_chiral(mol, 1, 1)
+
+    assert results
+    for result in results:
+        unassigned = [p for p in result.chiral_cntrs_w_unasignd() if p[1] == "?"]
+        assert unassigned == []
