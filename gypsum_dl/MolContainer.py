@@ -109,7 +109,7 @@ class MolContainer:
                 # Much of the contnr info should be passed to each molecule,
                 # too, for convenience.
                 result.name = self.name
-                result.name = self.orig_smi
+                result.orig_smi = self.orig_smi
                 result.orig_smi_canonical = self.orig_smi_canonical
                 result.orig_smi_deslt = self.orig_smi_deslt
                 result.contnr_idx = self.contnr_idx

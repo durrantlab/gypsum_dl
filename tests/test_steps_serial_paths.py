@@ -5,8 +5,10 @@ mode, so the inline code paths in every pipeline step are otherwise never
 executed.
 """
 
+from gypsum_dl import chem_utils
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.steps.conf import Minimize3D
+from gypsum_dl.steps.smiles import EnumerateChiralMols, EnumerateDoubleBonds
 from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d
 from gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs import (
     generate_alternate_3d_nonaromatic_ring_confs,
@@ -89,6 +91,52 @@ def test_enumerate_chiral_molecules_respects_zero_variants() -> None:
     contnr = _container("CC(N)C(=O)O", "alanine")
     enumerate_chiral_molecules([contnr], 0, 1, 1, "serial", None)
     assert len(contnr.mols) == 1
+
+
+def _capture_carried_over(monkeypatch, module):
+    """Capture the flat list handed to bst_for_each_contnr_no_opt.
+
+    Also stops the step from touching container membership so the assertion
+    isn't masked by the crry_ovr_frm_lst_step_if_no_fnd default, which would
+    otherwise repopulate the container regardless of which list got the mol.
+    """
+    captured = {}
+
+    def fake_bst(contnrs, mol_lst, *args, **kwargs):
+        captured["flat"] = mol_lst
+
+    monkeypatch.setattr(chem_utils, "bst_for_each_contnr_no_opt", fake_bst)
+    return captured
+
+
+def test_enumerate_chiral_carries_over_failed_container(monkeypatch) -> None:
+    # Regression: when a container yields no enantiomers, its existing mol must
+    # be put back into the list passed downstream (flat), not the discarded one.
+    contnr = _container("CC(N)C(=O)O", "alanine")
+    original_mol = contnr.mols[0]
+    monkeypatch.setattr(EnumerateChiralMols, "parallel_get_chiral", lambda *a: None)
+    captured = _capture_carried_over(monkeypatch, EnumerateChiralMols)
+
+    enumerate_chiral_molecules([contnr], 5, 1, 1, "serial", None)
+
+    assert original_mol in captured["flat"]
+    assert original_mol.genealogy[-1] == "(WARNING: Unable to generate enantiomers)"
+
+
+def test_enumerate_double_bonds_carries_over_failed_container(monkeypatch) -> None:
+    # Regression: same carry-over path for double-bond enumeration.
+    contnr = _container("CC=CCC", "pentene")
+    original_mol = contnr.mols[0]
+    monkeypatch.setattr(EnumerateDoubleBonds, "parallel_get_double_bonded", lambda *a: None)
+    captured = _capture_carried_over(monkeypatch, EnumerateDoubleBonds)
+
+    enumerate_double_bonds([contnr], 5, 1, 1, "serial", None)
+
+    assert original_mol in captured["flat"]
+    assert (
+        original_mol.genealogy[-1]
+        == "(WARNING: Unable to generate double-bond variant)"
+    )
 
 
 def test_enumerate_double_bonds_expands_unspecified_bond() -> None:

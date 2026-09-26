@@ -93,7 +93,7 @@ def enumerate_chiral_molecules(
         )
         for mol in contnrs[miss_indx].mols:
             mol.genealogy.append("(WARNING: Unable to generate enantiomers)")
-            clean.append(mol)
+            flat.append(mol)
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.

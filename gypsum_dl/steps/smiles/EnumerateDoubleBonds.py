@@ -94,7 +94,7 @@ def enumerate_double_bonds(
         )
         for mol in contnrs[miss_indx].mols:
             mol.genealogy.append("(WARNING: Unable to generate double-bond variant)")
-            clean.append(mol)
+            flat.append(mol)
 
     flat = chem_utils.uniq_mols_in_list(flat)
 

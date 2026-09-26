@@ -25,6 +25,16 @@ def test_add_smiles_skips_duplicates() -> None:
     assert len(contnr.mols) == 2
 
 
+def test_add_smiles_preserves_name_and_orig_smi() -> None:
+    # Regression: add_smiles must copy the container name and orig_smi onto the
+    # variant, not overwrite the name with orig_smi.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("OCC")
+    mol = contnr.mols[0]
+    assert mol.name == "ethanol"
+    assert mol.orig_smi == "CCO"
+
+
 def test_mol_with_smiles_is_in_contnr_detects_existing() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     contnr.add_smiles("CCO")
