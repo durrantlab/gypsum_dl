@@ -38,6 +38,16 @@ def test_flatten_list_already_flat() -> None:
     assert parallelizer.flatten_list([1, 2]) == [1, 2]
 
 
+def test_flatten_list_drops_none_among_sublists() -> None:
+    # A None worker result mixed with lists must be dropped, not returned
+    # unflattened. Regression for flatten_list becoming a no-op.
+    assert parallelizer.flatten_list([[1, 2], None, [3]]) == [1, 2, 3]
+
+
+def test_flatten_list_drops_none_within_sublist() -> None:
+    assert parallelizer.flatten_list([[1, None, 2], [3]]) == [1, 2, 3]
+
+
 def test_strip_none_removes_nones() -> None:
     assert parallelizer.strip_none([1, None, 2]) == [1, 2]
 

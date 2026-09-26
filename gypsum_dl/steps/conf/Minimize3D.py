@@ -7,6 +7,7 @@ import __future__
 
 import copy
 
+import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
 from gypsum_dl.MyMol import MyConformer
 
@@ -83,7 +84,7 @@ def minimize_3d(
     # optimized structures.
     results = []  # Will contain MyMol.MyMol objects, with the saved energies
     # inside.
-    for mol in tmp:
+    for mol in Parallelizer.strip_none(tmp):
         mol.mol_props["Energy"] = mol.conformers[0].energy
         results.append(mol)
         contnr_list_not_empty.add(mol.contnr_idx)

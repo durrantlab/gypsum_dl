@@ -774,12 +774,15 @@ def flatten_list(tier_list: list) -> list:
 
     if tier_list is None:
         return []
-    already_flattened = any(type(item) != list for item in tier_list)
-    if already_flattened:
-        return tier_list
-
-    # Return flat list
-    return [item for sublist in tier_list for item in sublist]
+    flattened: list = []
+    for item in tier_list:
+        if item is None:
+            continue
+        if isinstance(item, list):
+            flattened.extend(x for x in item if x is not None)
+        else:
+            flattened.append(item)
+    return flattened
 
 
 def strip_none(none_list: list[Any]) -> list[Any]:

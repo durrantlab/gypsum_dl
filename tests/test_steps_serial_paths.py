@@ -6,6 +6,7 @@ executed.
 """
 
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.steps.conf import Minimize3D
 from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d
 from gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs import (
     generate_alternate_3d_nonaromatic_ring_confs,
@@ -156,3 +157,28 @@ def test_minimize_3d_records_energy() -> None:
     convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
     minimize_3d([contnr], 1, 1, 1, False, "serial", None)
     assert "Energy" in contnr.mols[0].mol_props
+
+
+def test_minimize_3d_survives_none_worker_result(monkeypatch) -> None:
+    # A worker returns None for a molecule with no acceptable conformers.
+    # minimize_3d must skip it rather than dereference None, and still place
+    # the surviving molecule in its container.
+    contnrs = [_container("CCO", "ethanol"), _container("CCC", "propane")]
+    for contnr in contnrs:
+        convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+
+    real_parallel_minit = Minimize3D.parallel_minit
+
+    def stub(mol, *args):
+        if mol.contnr_idx == 1:
+            return None
+        return real_parallel_minit(mol, *args)
+
+    monkeypatch.setattr(Minimize3D, "parallel_minit", stub)
+
+    minimize_3d(contnrs, 1, 1, 1, False, "serial", None)
+
+    # The surviving molecule is minimized and recorded; the None result is
+    # skipped without raising, leaving its container's pre-min mol untouched.
+    assert "Energy" in contnrs[0].mols[0].mol_props
+    assert len(contnrs[1].mols) == 1
