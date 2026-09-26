@@ -624,7 +624,15 @@ class MyMol:
         """Load the conformers stored as MyConformers objects (in
         self.conformers) into the rdkit Mol object."""
 
+        if self.rdkit_mol is None:
+            return
         self.rdkit_mol.RemoveAllConformers()
+        if not self.conformers:
+            # Without this, SDWriter emits a coordinate block of zeros, so a
+            # file advertised as 2D output would read as a degenerate 3D
+            # structure with all atoms stacked at the origin.
+            AllChem.Compute2DCoords(self.rdkit_mol)
+            return
         for conformer in self.conformers:
             self.rdkit_mol.AddConformer(conformer.conformer())
 

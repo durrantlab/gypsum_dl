@@ -179,10 +179,10 @@ def prepare_molecules(args: dict[str, Any]) -> None:
         pass  # It's already in the required format.
 
     # Make the output directory if necessary.
-    if os.path.exists(params["output_folder"]) == False:
-        os.mkdir(params["output_folder"])
-        if os.path.exists(params["output_folder"]) == False:
-            utils.exception("Output folder directory couldn't be found or created.")
+    try:
+        os.makedirs(params["output_folder"], exist_ok=True)
+    except OSError:
+        utils.exception("Output folder directory couldn't be found or created.")
 
     # For Debugging
     # print("")

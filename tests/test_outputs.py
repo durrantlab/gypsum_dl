@@ -7,6 +7,8 @@ SDF writers and the `skip_*` branches, not to check chemistry.
 import glob
 import os
 
+from rdkit import Chem
+
 from gypsum_dl.start import prepare_molecules
 
 
@@ -79,3 +81,54 @@ def test_unassigned_bond_and_unparseable_smiles_are_dropped(tmp_path) -> None:
     sdf_path = os.path.join(str(output_folder), "gypsum_dl_success.sdf")
     with open(sdf_path) as f:
         assert "garbage" not in f.read()
+
+
+def test_nested_output_folder_is_created(tmp_path) -> None:
+    # Regression (M5): os.mkdir raised FileNotFoundError when a parent segment
+    # of output_folder was missing, before the "couldn't be created" message
+    # could run. os.makedirs must build the whole tree.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    output_folder = tmp_path / "a" / "b" / "c"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "2d_output_only": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+    assert os.path.isdir(str(output_folder))
+    assert os.path.exists(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+
+
+def test_2d_output_has_nonzero_depiction_coordinates(tmp_path) -> None:
+    # Regression (M6): with 2d_output_only, no conformer was ever loaded, so
+    # SDWriter emitted a coordinate block of zeros. The SDF must carry real 2D
+    # depiction coordinates, not all atoms stacked at the origin.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    output_folder = tmp_path / "out2dcoords"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "2d_output_only": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+    sdf_path = os.path.join(str(output_folder), "gypsum_dl_success.sdf")
+    supplier = Chem.SDMolSupplier(sdf_path, removeHs=False)
+    # The first SDF record is an empty placeholder holding the run parameters;
+    # skip it and any other atomless record.
+    mols = [m for m in supplier if m is not None and m.GetNumAtoms() > 0]
+    assert mols
+    conf = mols[0].GetConformer()
+    assert any(
+        abs(conf.GetAtomPosition(i).x) > 1e-6 or abs(conf.GetAtomPosition(i).y) > 1e-6
+        for i in range(mols[0].GetNumAtoms())
+    )
