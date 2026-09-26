@@ -26,6 +26,41 @@ def add_one(value: int) -> int:
     return value + 1
 
 
+def add_one_unless_two(value: int) -> int:
+    """Increment a value, but blow up on one specific input.
+
+    Stands in for a job that hits an edge case in only one of its inputs.
+    Defined at module scope so worker processes can unpickle it.
+
+    Args:
+        value: Number to increment.
+
+    Returns:
+        The incremented value.
+
+    Raises:
+        ValueError: If `value` is 2.
+    """
+    if value == 2:
+        raise ValueError("simulated job failure")
+    return value + 1
+
+
+def test_run_one_passes_arguments_through() -> None:
+    assert parallelizer.run_one(add_one, (1,)) == 2
+
+
+def test_run_one_returns_none_on_exception() -> None:
+    assert parallelizer.run_one(add_one_unless_two, (2,)) is None
+
+
+def test_run_one_names_the_failed_function(capsys: pytest.CaptureFixture[str]) -> None:
+    parallelizer.run_one(add_one_unless_two, (2,))
+    captured = capsys.readouterr().out
+    assert "add_one_unless_two" in captured
+    assert "simulated job failure" in captured
+
+
 def test_flatten_list_handles_none() -> None:
     assert parallelizer.flatten_list(None) == []
 
@@ -97,6 +132,34 @@ def test_multithreading_serial_path() -> None:
 def test_multithreading_preserves_input_order_across_processes() -> None:
     inputs = [(i,) for i in range(4)]
     assert parallelizer.MultiThreading(inputs, 2, add_one) == [1, 2, 3, 4]
+
+
+def test_multithreading_serial_path_drops_failed_job() -> None:
+    # Regression: the single-processor branch used to call the job bare, so a
+    # raising input aborted the whole run instead of yielding None.
+    inputs = [(1,), (2,), (3,)]
+    assert parallelizer.MultiThreading(inputs, 1, add_one_unless_two) == [2, None, 4]
+
+
+def test_multithreading_failure_handling_matches_across_procs() -> None:
+    inputs = [(1,), (2,), (3,)]
+    serial = parallelizer.MultiThreading(inputs, 1, add_one_unless_two)
+    parallel = parallelizer.MultiThreading(inputs, 2, add_one_unless_two)
+    assert serial == parallel
+
+
+def test_parallelizer_failure_handling_matches_across_modes() -> None:
+    inputs = [(1,), (2,), (3,)]
+
+    serial_par = parallelizer.Parallelizer("serial", 1)
+    serial = serial_par.run(inputs, add_one_unless_two)
+    serial_par.end()
+
+    mp_par = parallelizer.Parallelizer("multiprocessing", 2, True)
+    parallel = mp_par.run(inputs, add_one_unless_two)
+    mp_par.end()
+
+    assert serial == parallel == [2, None, 4]
 
 
 def test_parallelizer_serial_mode_runs_jobs() -> None:

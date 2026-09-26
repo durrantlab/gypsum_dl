@@ -77,7 +77,7 @@ def make_tauts(
     # Run the tautomizer through the parallel object.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_make_taut(i[0], i[1], i[2]) for i in params)
+        tmp.extend(Parallelizer.run_one(parallel_make_taut, i) for i in params)
     else:
         tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, job_manager)
 
@@ -225,7 +225,9 @@ def tauts_no_break_arom_rngs(
 
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_check_nonarom_rings(i[0], i[1]) for i in params)
+        tmp.extend(
+            Parallelizer.run_one(parallel_check_nonarom_rings, i) for i in params
+        )
     else:
         tmp = parallelizer_obj.run(
             params, parallel_check_nonarom_rings, num_procs, job_manager
@@ -271,7 +273,9 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
     # Run it through the parallelizer.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_check_chiral_centers(i[0], i[1]) for i in params)
+        tmp.extend(
+            Parallelizer.run_one(parallel_check_chiral_centers, i) for i in params
+        )
     else:
         tmp = parallelizer_obj.run(
             params, parallel_check_chiral_centers, num_procs, job_manager
@@ -310,7 +314,9 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
     # Run it through the parallelizer.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_check_carbon_hydrogens(i[0], i[1]) for i in params)
+        tmp.extend(
+            Parallelizer.run_one(parallel_check_carbon_hydrogens, i) for i in params
+        )
     else:
         tmp = parallelizer_obj.run(
             params, parallel_check_carbon_hydrogens, num_procs, job_manager

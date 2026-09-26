@@ -82,7 +82,7 @@ def minimize_3d(
     # Run the inputs through the parallelizer.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_minit(i[0], i[1], i[2], i[3]) for i in params)
+        tmp.extend(Parallelizer.run_one(parallel_minit, i) for i in params)
     else:
         tmp = parallelizer_obj.run(params, parallel_minit, num_procs, job_manager)
 

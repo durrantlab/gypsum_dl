@@ -7,8 +7,14 @@ executed.
 
 from gypsum_dl import chem_utils
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.MyMol import MyMol
+from gypsum_dl.parallelizer import Parallelizer
 from gypsum_dl.steps.conf import Minimize3D
-from gypsum_dl.steps.smiles import EnumerateChiralMols, EnumerateDoubleBonds
+from gypsum_dl.steps.smiles import (
+    EnumerateChiralMols,
+    EnumerateDoubleBonds,
+    MakeTautomers,
+)
 from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d
 from gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs import (
     generate_alternate_3d_nonaromatic_ring_confs,
@@ -79,6 +85,107 @@ def test_make_tauts_respects_zero_variants() -> None:
     contnr = _container("CC(=O)CC", "butanone")
     make_tauts([contnr], 0, 1, 1, "serial", False, None)
     assert len(contnr.mols) == 1
+
+
+_REAL_MAKE_TAUT = MakeTautomers.parallel_make_taut
+
+
+def _make_taut_failing_on_ethanol(
+    contnr: MolContainer, mol_index: int, max_variants_per_compound: int
+) -> list[MyMol] | None:
+    """Stand in for parallel_make_taut, raising for one chosen container.
+
+    The failure has to originate inside the worker function itself so that it
+    travels whichever dispatch path job_manager selects. The real function is
+    bound at import time so the monkeypatched name cannot recurse into itself,
+    and this lives at module scope so worker processes can unpickle it.
+
+    Args:
+        contnr: The molecule container being tautomerized.
+        mol_index: Index of the molecule within the container.
+        max_variants_per_compound: Cap on the number of tautomers enumerated.
+
+    Returns:
+        Whatever the real function returns, for every container but ethanol.
+
+    Raises:
+        RuntimeError: For the container named "ethanol".
+    """
+    if contnr.name == "ethanol":
+        raise RuntimeError("simulated tautomerization failure")
+    return _REAL_MAKE_TAUT(contnr, mol_index, max_variants_per_compound)
+
+
+def _taut_test_contnrs() -> list[MolContainer]:
+    """Build two distinctly indexed containers for the taut-failure tests.
+
+    Every step regroups its results by contnr_idx, so a dropped molecule is
+    only attributable to a container when the indices differ.
+
+    Returns:
+        Containers for ethanol (index 0) and butanone (index 1), each holding
+        a single variant.
+    """
+    specs = [("CCO", "ethanol"), ("CC(=O)CC", "butanone")]
+    contnrs = []
+    for idx, (smiles, name) in enumerate(specs):
+        contnr = MolContainer(smiles, name, idx, {})
+        contnr.add_smiles(smiles)
+        contnrs.append(contnr)
+    return contnrs
+
+
+def _contnr_smiles(contnrs: list[MolContainer]) -> list[list[str]]:
+    """Summarize container membership so two runs can be compared directly.
+
+    Args:
+        contnrs: The containers to summarize.
+
+    Returns:
+        One sorted list of canonical SMILES per container.
+    """
+    return [sorted(mol.smiles() for mol in contnr.mols) for contnr in contnrs]
+
+
+def test_make_tauts_drops_raising_molecule_in_process(monkeypatch) -> None:
+    # Regression: the in-process branch called the worker function bare, so a
+    # single molecule that raised aborted the whole run instead of being
+    # dropped and carried over from the previous step.
+    monkeypatch.setattr(
+        MakeTautomers, "parallel_make_taut", _make_taut_failing_on_ethanol
+    )
+    contnrs = _taut_test_contnrs()
+    before = _contnr_smiles(contnrs)
+
+    make_tauts(contnrs, 50, 1, 1, "serial", False, None)
+
+    assert _contnr_smiles(contnrs)[0] == before[0]
+    assert len(contnrs[1].mols) >= 1
+
+
+def test_make_tauts_failure_handling_matches_across_job_managers(monkeypatch) -> None:
+    # Regression: the multiprocessing worker reported a raised exception as a
+    # None result while both serial paths let it propagate, so the output of a
+    # run depended on the job_manager setting.
+    monkeypatch.setattr(
+        MakeTautomers, "parallel_make_taut", _make_taut_failing_on_ethanol
+    )
+
+    in_process = _taut_test_contnrs()
+    make_tauts(in_process, 50, 1, 1, "serial", False, None)
+
+    serial_par = Parallelizer("serial", 1)
+    serial = _taut_test_contnrs()
+    make_tauts(serial, 50, 1, 1, "serial", False, serial_par)
+    serial_par.end()
+
+    mp_par = Parallelizer("multiprocessing", 2, True)
+    multiproc = _taut_test_contnrs()
+    make_tauts(multiproc, 50, 1, 2, "multiprocessing", False, mp_par)
+    mp_par.end()
+
+    assert _contnr_smiles(in_process) == _contnr_smiles(serial)
+    assert _contnr_smiles(serial) == _contnr_smiles(multiproc)
 
 
 def test_enumerate_chiral_molecules_expands_unspecified_center() -> None:

@@ -68,7 +68,7 @@ def enumerate_chiral_molecules(
     # Run it through the parallelizer.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_get_chiral(i[0], i[1], i[2]) for i in params)
+        tmp.extend(Parallelizer.run_one(parallel_get_chiral, i) for i in params)
     else:
         tmp = parallelizer_obj.run(params, parallel_get_chiral, num_procs, job_manager)
 

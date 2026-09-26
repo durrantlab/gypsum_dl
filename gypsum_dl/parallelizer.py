@@ -13,10 +13,14 @@ or a high-performance computer cluster, utilizing the full resources of each
 system. (Description provided by Harrison Green.)
 """
 
-from typing import Any
+from typing import Any, TypeVar
 
 import multiprocessing
 import sys
+import traceback
+from collections.abc import Callable, Sequence
+
+_JobResult = TypeVar("_JobResult")
 
 try:
     import mpi4py
@@ -631,6 +635,32 @@ Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
 """
 
 
+def run_one(
+    func: Callable[..., _JobResult], args: Sequence[object]
+) -> _JobResult | None:
+    """Run a single job, turning a raised exception into a None result.
+
+    Every non-MPI dispatch path routes through here (the multiprocessing
+    worker, the single-processor branch of MultiThreading, and the in-process
+    branch of each pipeline step) so that a molecule that raises is dropped
+    identically no matter which job_manager is in use. Callers already treat
+    None as a failed job and strip it.
+
+    Args:
+        func: The job function to call.
+        args: Positional arguments to unpack into `func`.
+
+    Returns:
+        Whatever `func` returns, or None if `func` raised.
+    """
+    try:
+        return func(*args)
+    except Exception:
+        name = getattr(func, "__name__", repr(func))
+        print(f"ERROR in {name}: {traceback.format_exc()}")
+        return None
+
+
 def MultiThreading(inputs, num_procs, task_name):
     """Initialize this object.
 
@@ -663,8 +693,7 @@ def MultiThreading(inputs, num_procs, task_name):
     if num_procs == 1:
         for item in tasks:
             job, args = item[1]
-            output = job(*args)
-            results.append(output)
+            results.append(run_one(job, args))
     else:
         results = start_processes(tasks, num_procs)
 
@@ -679,17 +708,9 @@ def MultiThreading(inputs, num_procs, task_name):
 def worker(input, output):
     for seq, job in iter(input.get, "STOP"):
         func, args = job
-        try:
-            result = func(*args)
-        except Exception:
-            import traceback
-
-            # A dead worker would leave the parent blocked on done_queue.get()
-            # forever, so failures must be reported as results.
-            print(traceback.format_exc())
-            result = None
-        ret_val = (seq, result)
-        output.put(ret_val)
+        # A dead worker would leave the parent blocked on done_queue.get()
+        # forever, so failures must be reported as results.
+        output.put((seq, run_one(func, args)))
 
 
 def check_and_format_inputs_to_list_of_tuples(args):

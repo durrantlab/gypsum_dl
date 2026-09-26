@@ -101,7 +101,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     # Run it through the parallelizer
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_get_ring_confs(i[0], i[1], i[2], i[3]) for i in params)
+        tmp.extend(Parallelizer.run_one(parallel_get_ring_confs, i) for i in params)
     else:
         tmp = parallelizer_obj.run(
             params, parallel_get_ring_confs, num_procs, job_manager

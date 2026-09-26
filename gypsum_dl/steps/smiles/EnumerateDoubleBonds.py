@@ -67,7 +67,7 @@ def enumerate_double_bonds(
     # Ruin it through the parallelizer.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_get_double_bonded(i[0], i[1], i[2]) for i in params)
+        tmp.extend(Parallelizer.run_one(parallel_get_double_bonded, i) for i in params)
     else:
         tmp = parallelizer_obj.run(
             params, parallel_get_double_bonded, num_procs, job_manager

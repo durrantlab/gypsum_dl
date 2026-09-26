@@ -99,10 +99,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # Run the tautomizer through the parallel object.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(
-            parallel_durrant_lab_filter(c, prohibited_substructs)
-            for c, prohibited_substructs in params
-        )
+        tmp.extend(Parallelizer.run_one(parallel_durrant_lab_filter, i) for i in params)
     else:
         tmp = parallelizer_obj.run(
             params, parallel_durrant_lab_filter, num_procs, job_manager

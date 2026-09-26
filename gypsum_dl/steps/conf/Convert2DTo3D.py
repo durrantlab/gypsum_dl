@@ -57,7 +57,7 @@ def convert_2d_to_3d(
     # Run the parallelizer
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(parallel_make_3d(i[0]) for i in params)
+        tmp.extend(Parallelizer.run_one(parallel_make_3d, i) for i in params)
     else:
         tmp = parallelizer_obj.run(params, parallel_make_3d, num_procs, job_manager)
     # Remove and Nones from the output, which represent failed molecules.
