@@ -109,23 +109,23 @@ def load_sdf_file(filename):
             utils.log("\tAll associated files will be referred to with this name")
             missing_name_counter += 1
 
-            # Handle duplicate ligands in same list.
-            if name in name_list:
-                utils.log(f"\nMultiple entries with the ligand name: {name}")
-                # If multiple names.
-                if name in list(duplicate_names.keys()):
-                    duplicate_names[name] = duplicate_names[name] + 1
+        # Handle duplicate ligands in same list.
+        if name in name_list:
+            utils.log(f"\nMultiple entries with the ligand name: {name}")
+            # If multiple names.
+            if name in list(duplicate_names.keys()):
+                duplicate_names[name] = duplicate_names[name] + 1
 
-                else:
-                    duplicate_names[name] = 2
-                new_name = f"{name}_copy_{duplicate_names[name]}"
-                name = new_name
-                utils.log(
-                    f"\tThe version of the ligand for the {mol_obj_counter} molecule in the SDF file will be retitled {name}"
-                )
-                utils.log("\tAll associated files will be referred to with this name")
-            mol_obj_counter += 1
-            name_list.append(name)
+            else:
+                duplicate_names[name] = 2
+            new_name = f"{name}_copy_{duplicate_names[name]}"
+            name = new_name
+            utils.log(
+                f"\tThe version of the ligand for the {mol_obj_counter} molecule in the SDF file will be retitled {name}"
+            )
+            utils.log("\tAll associated files will be referred to with this name")
+        mol_obj_counter += 1
+        name_list.append(name)
 
         # SDF files may also contain properties. Get those as well.
         try:

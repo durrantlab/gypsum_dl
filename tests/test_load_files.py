@@ -77,6 +77,23 @@ def test_load_sdf_file_names_untitled_molecules(tmp_path) -> None:
     ]
 
 
+def test_load_sdf_file_renames_named_duplicates(tmp_path) -> None:
+    # Regression: named duplicates must be deduplicated and mol_obj_counter must
+    # advance for every record (not just untitled ones).
+    lig1 = Chem.MolFromSmiles("CCO")
+    lig1.SetProp("_Name", "lig")
+    lig2 = Chem.MolFromSmiles("OCC")
+    lig2.SetProp("_Name", "lig")
+    untitled = Chem.MolFromSmiles("CCC")
+    path = tmp_path / "input.sdf"
+    _write_sdf(str(path), [lig1, lig2, untitled])
+    assert [d[1] for d in load_sdf_file(str(path))] == [
+        "lig",
+        "lig_copy_2",
+        "untitled_0_molnum_2",
+    ]
+
+
 def test_load_sdf_file_skips_unparseable_records(tmp_path) -> None:
     mol = Chem.MolFromSmiles("CCO")
     mol.SetProp("_Name", "ethanol")
