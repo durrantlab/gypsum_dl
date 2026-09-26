@@ -7,6 +7,7 @@ from typing import Any
 
 import json
 import os
+import random
 import sys
 from collections import OrderedDict
 from datetime import datetime
@@ -66,6 +67,13 @@ def prepare_molecules(args: dict[str, Any]) -> None:
         # We're actually going to use all the command-line parameters. No
         # warning necessary.
         params = set_parameters(args)
+
+    # Seed the global RNG once, before any sampling/shuffling, so that variant
+    # selection is reproducible run to run (fully so in serial mode). Record the
+    # effective seed so the run can be reproduced.
+    if params.get("random_seed", -1) >= 0:
+        random.seed(params["random_seed"])
+        utils.log("Using random_seed = " + str(params["random_seed"]) + ".")
 
     # If running in serial mode, make sure only one processor is used.
     if params["job_manager"] == "serial":
@@ -362,6 +370,10 @@ def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
             "job_manager": "multiprocessing",
             "cache_prerun": False,
             "test": False,
+            # Seed for the global random module. A value >= 0 makes variant
+            # selection reproducible (fully so in serial mode). A negative
+            # value leaves the RNG unseeded (previous behavior).
+            "random_seed": -1,
         }
     )
 

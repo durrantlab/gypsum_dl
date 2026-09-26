@@ -52,6 +52,16 @@ def test_set_parameters_lowercases_keys_and_fills_defaults(tmp_path) -> None:
     assert params["job_manager"] == "serial"
     assert params["thoroughness"] == 3
     assert params["max_variants_per_compound"] == 5
+    # Regression (M10): a random_seed parameter must exist so runs can be made
+    # reproducible; the default (-1) leaves the RNG unseeded.
+    assert params["random_seed"] == -1
+
+
+def test_set_parameters_accepts_random_seed(tmp_path) -> None:
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params = start.set_parameters({"source": str(src), "random_seed": 42})
+    assert params["random_seed"] == 42
 
 
 def test_finalize_params_requires_source() -> None:

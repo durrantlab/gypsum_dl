@@ -126,11 +126,14 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     :rtype: [type]
     """
 
-    # For this to work, you need to have explicit hydrogens in place.
-    mol.rdkit_mol = Chem.AddHs(mol.rdkit_mol)
+    # For this to work, you need to have explicit hydrogens in place. Use a
+    # local copy so the molecule stored in the container is not mutated (which
+    # would make results depend on the job manager and desync the cached SMILES).
+    rdkit_mol_with_hs = Chem.AddHs(mol.rdkit_mol)
 
     # Get all double bonds that don't have defined stereochemistry. Note that
-    # these are the bond indexes, not the atom indexes.
+    # these are the bond indexes, not the atom indexes. AddHs preserves the
+    # existing bond indexes, so these remain valid on rdkit_mol_with_hs.
     unasignd_dbl_bnd_idxs = mol.get_double_bonds_without_stereochemistry()
 
     if len(unasignd_dbl_bnd_idxs) == 0:
@@ -141,27 +144,27 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     unasignd_dbl_bnd_idxs = [
         i
         for i in unasignd_dbl_bnd_idxs
-        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(3)
+        if not rdkit_mol_with_hs.GetBondWithIdx(i).IsInRingSize(3)
     ]
     unasignd_dbl_bnd_idxs = [
         i
         for i in unasignd_dbl_bnd_idxs
-        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(4)
+        if not rdkit_mol_with_hs.GetBondWithIdx(i).IsInRingSize(4)
     ]
     unasignd_dbl_bnd_idxs = [
         i
         for i in unasignd_dbl_bnd_idxs
-        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(5)
+        if not rdkit_mol_with_hs.GetBondWithIdx(i).IsInRingSize(5)
     ]
     unasignd_dbl_bnd_idxs = [
         i
         for i in unasignd_dbl_bnd_idxs
-        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(6)
+        if not rdkit_mol_with_hs.GetBondWithIdx(i).IsInRingSize(6)
     ]
     unasignd_dbl_bnd_idxs = [
         i
         for i in unasignd_dbl_bnd_idxs
-        if not mol.rdkit_mol.GetBondWithIdx(i).IsInRingSize(7)
+        if not rdkit_mol_with_hs.GetBondWithIdx(i).IsInRingSize(7)
     ]
 
     # Previously, I fully enumerated all double bonds. When there are many
@@ -179,7 +182,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     all_sngl_bnd_idxs = set([])
     dbl_bnd_count = 0
     for dbl_bnd_idx in unasignd_dbl_bnd_idxs:
-        bond = mol.rdkit_mol.GetBondWithIdx(dbl_bnd_idx)
+        bond = rdkit_mol_with_hs.GetBondWithIdx(dbl_bnd_idx)
 
         atom1 = bond.GetBeginAtom()
         atom1_bonds = atom1.GetBonds()
@@ -230,7 +233,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     smiles_to_consider = set([])
     for atom_config_options in all_atom_config_options:
         # Make a copy of the original RDKit molecule.
-        a_rd_mol = copy.copy(mol.rdkit_mol)
+        a_rd_mol = copy.copy(rdkit_mol_with_hs)
         # a_rd_mol = Chem.MolFromSmiles(mol.smiles())
 
         for bond_idx, direc in zip(all_sngl_bnd_idxs, atom_config_options):
@@ -255,8 +258,10 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
             # CN1C2=C(C=CC=C2)C(C)(C)[C]1=[C]=[CH]C3=CC(=C(O)C(=C3)I)I
             continue
 
-    # Remove ones that don't have "/" or "\". These are not real enumerated ones.
-    smiles_to_consider = [s for s in smiles_to_consider if "/" in s or "\\" in s]
+    # Remove ones that don't have "/" or "\". These are not real enumerated
+    # ones. Sort so downstream selection order does not depend on set iteration
+    # order (which varies with PYTHONHASHSEED across processes).
+    smiles_to_consider = sorted(s for s in smiles_to_consider if "/" in s or "\\" in s)
 
     # Get the maximum number of / + \ in any string.
     cnts = [s.count("/") + s.count("\\") for s in smiles_to_consider]
