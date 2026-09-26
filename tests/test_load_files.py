@@ -44,6 +44,24 @@ def test_load_smiles_file_names_untitled_entries(tmp_path) -> None:
     ]
 
 
+def test_load_smiles_file_line_numbers_account_for_blank_lines(tmp_path) -> None:
+    # Regression (B15): the untitled-ligand name (and log line numbers) tracked
+    # a counter that only advanced on non-blank lines, so blank lines threw the
+    # reported line number off. The molecule below sits on file line 3.
+    path = tmp_path / "input.smi"
+    path.write_text("\n\nCCO\n")
+    assert [d[1] for d in load_smiles_file(str(path))] == ["untitled_line_3"]
+
+
+def test_load_smiles_file_reads_utf8_names(tmp_path) -> None:
+    # Regression (B16): the file was opened with the platform default encoding,
+    # which raises UnicodeDecodeError on a UTF-8 ligand name under a non-UTF-8
+    # locale. It must be read as UTF-8.
+    path = tmp_path / "input.smi"
+    path.write_text("CCO café\n", encoding="utf-8")
+    assert [d[1] for d in load_smiles_file(str(path))] == ["café"]
+
+
 def test_load_smiles_file_renames_duplicates(tmp_path) -> None:
     path = tmp_path / "input.smi"
     path.write_text("CCO\tethanol\nOCC\tethanol\nCCCO\tethanol\n")

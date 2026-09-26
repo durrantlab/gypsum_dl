@@ -23,12 +23,16 @@ def load_smiles_file(filename):
     # separated by white space, followed by the molecule name.
     data = []
     duplicate_names = {}
-    line_counter = 0
     name_list = []
-    for line in open(filename):
-        # You've got the line.
-        line = line.strip()
-        if line != "":
+    with open(filename, encoding="utf-8") as f:
+        # enumerate over the raw file so reported line numbers match the file,
+        # regardless of any blank lines that get skipped.
+        for line_num, line in enumerate(f, start=1):
+            # You've got the line.
+            line = line.strip()
+            if line == "":
+                continue
+
             # From that line, get the smiles string and name.
             chunks = line.split()
             smiles = chunks[0]
@@ -36,13 +40,13 @@ def load_smiles_file(filename):
 
             # Handle unnamed ligands.
             if not name:
-                name = f"untitled_line_{line_counter + 1}"
+                name = f"untitled_line_{line_num}"
                 utils.log(
                     (
                         "\tUntitled ligand on line {}. Naming that ligand "
                         + "{}. All associated files will be referred to with "
                         + "this name."
-                    ).format(line_counter + 1, name)
+                    ).format(line_num, name)
                 )
 
             # Handle duplicate ligands in same list.
@@ -55,13 +59,12 @@ def load_smiles_file(filename):
                 new_name = f"{name}_copy_{duplicate_names[name]}"
                 utils.log(f"\nMultiple entries with the ligand name: {name}")
                 utils.log(
-                    f"\tThe version of the ligand on line {line_counter} will be retitled {new_name}"
+                    f"\tThe version of the ligand on line {line_num} will be retitled {new_name}"
                 )
                 utils.log("\tAll associated files will be referred to with this name")
                 name = new_name
-            # Save the data for this line and advance.
+            # Save the data for this line.
             name_list.append(name)
-            line_counter += 1
             data.append((smiles, name, {}))
 
     # Return the data.

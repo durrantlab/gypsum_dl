@@ -5,6 +5,7 @@ that enters the pipeline, so they are tested directly rather than only
 through the end-to-end sample run.
 """
 
+import pytest
 from rdkit import Chem
 
 import gypsum_dl.MolObjectHandling as MOH
@@ -12,6 +13,19 @@ import gypsum_dl.MolObjectHandling as MOH
 
 def test_check_sanitization_none() -> None:
     assert MOH.check_sanitization(None) is None
+
+
+def test_check_sanitization_handles_none_from_nitrogen_adjustment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression (B12): when Nitrogen_charge_adjustment returns None, the
+    # subsequent SanitizeMol calls (outside any try) used to receive None and
+    # raise. check_sanitization must instead return None cleanly. A neutral
+    # quaternary nitrogen fails the first sanitize pass, so execution reaches
+    # the adjustment branch.
+    mol = Chem.MolFromSmiles("C[N](C)(C)C", sanitize=False)
+    monkeypatch.setattr(MOH, "Nitrogen_charge_adjustment", lambda m: None)
+    assert MOH.check_sanitization(mol) is None
 
 
 def test_check_sanitization_accepts_valid_mol() -> None:
@@ -66,6 +80,15 @@ def test_remove_atoms_drops_requested_indices() -> None:
 
 def test_remove_atoms_none_mol() -> None:
     assert MOH.remove_atoms(None, [0]) is None
+
+
+def test_remove_atoms_does_not_mutate_caller_list() -> None:
+    # Regression (B13): remove_atoms aliased the caller's list and sorted it in
+    # place, reordering the caller's data as a side effect. It must leave the
+    # input list untouched.
+    idx = [0, 2]
+    MOH.remove_atoms(Chem.MolFromSmiles("CCO"), idx)
+    assert idx == [0, 2]
 
 
 def test_remove_atoms_unsortable_index_list() -> None:

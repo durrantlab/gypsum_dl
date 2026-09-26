@@ -35,7 +35,7 @@ pip install gypsum-dl
 Or you can install the latest development version from the `main` branch on [GitHub](https://github.com/durrantlab/gypsum_dl) using
 
 ```bash
-pip install https://github.com/durrantlab/gypsum_dl.git
+pip install git+https://github.com/durrantlab/gypsum_dl.git
 ```
 
 ## Usage
@@ -260,9 +260,9 @@ Beyond applying Durrant-Lab filters, several methods allow users to exclude othe
     This fix is easy, but it may unexpectedly impact unrelated compounds.
 2.  Consider adjusting the `--min_ph`, `--max_ph`, or `--pka_precision` parameters if Gypsum-DL is producing compounds with undesired protonation states.
     Alternatively, you can delete specific protonation rules by modifying the
-   `gypsum_dl/Steps/SMILES/dimorphite_dl/site_substructures.smarts` file.
+   `site_substructures.smarts` file of the installed `dimorphite_dl` package.
 3.  Add to the Durrant-Lab filters if there is a specific substructure you would like to avoid (e.g., imidic acid due to amide/imidic-acid tautomerization).
-    Simplify modify the `gypsum_dl/Steps/SMILES/DurrantLabFilter.py` file.
+    Simplify modify the `gypsum_dl/steps/smiles/DurrantLabFilter.py` file.
 
 
 ## Citation

@@ -148,6 +148,30 @@ def test_set_all_rdkit_mol_props_records_genealogy() -> None:
     assert mol.rdkit_mol.GetProp("_Name") == "ethanol"
 
 
+def test_set_rdkit_mol_prop_writes_once_and_tolerates_none() -> None:
+    # Regression (B14): set_rdkit_mol_prop used to SetProp three times, the
+    # first two unguarded against rdkit_mol being None. Collapsed to a single
+    # guarded write: the property is set, and a None rdkit_mol no longer raises.
+    mol = MyMol.MyMol("CCO")
+    mol.set_rdkit_mol_prop("activity", 1.5)
+    assert mol.rdkit_mol.GetProp("activity") == "1.5"
+
+    mol.rdkit_mol = None
+    mol.set_rdkit_mol_prop("activity", 1.5)  # must not raise
+
+
+def test_myconformer_moltomolblock_logs_block(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression (B11): MolToMolBlock referenced self.mol_copy (nonexistent) and
+    # self.conformer (a method, not an attribute), so it raised instead of
+    # logging. It must now emit a molblock.
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+    mol.conformers[0].MolToMolBlock()
+    assert "RDKit" in capsys.readouterr().out
+
+
 def test_make_first_3d_conf_no_min_is_idempotent() -> None:
     mol = MyMol.MyMol("CCO")
     mol.make_first_3d_conf_no_min()

@@ -518,9 +518,6 @@ class MyMol:
         """
 
         val = str(val)
-        self.rdkit_mol.SetProp(key, val)
-        self.rdkit_mol.SetProp(key, val)
-
         with contextlib.suppress(Exception):
             self.rdkit_mol.SetProp(key, val)
 
@@ -865,9 +862,9 @@ class MyConformer:
         """Prints out the first 500 letters of the molblock version of this
         conformer. Good for debugging."""
 
-        mol_copy = copy.deepcopy(self.mol_copy)  # Use it as a template.
+        mol_copy = copy.deepcopy(self.mol)  # Use it as a template.
         mol_copy.RemoveAllConformers()
-        mol_copy.AddConformer(self.conformer)
+        mol_copy.AddConformer(self.conformer())
         utils.log(Chem.MolToMolBlock(mol_copy)[:500])
 
     def rmsd_to_me(self, other_conf):

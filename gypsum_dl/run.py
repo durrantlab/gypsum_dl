@@ -121,9 +121,10 @@ def main():
         "-p",
         type=int,
         metavar="N",
-        default=1,
+        default=None,
         help="Number of processors to use for parallel \
-                        calculations.",
+                        calculations. Defaults to -1 (use all available \
+                        processors).",
     )
     PARSER.add_argument(
         "--max_variants_per_compound",
@@ -160,8 +161,7 @@ def main():
         "--add_html_output",
         action="store_true",
         help="Indicates that the outputs should also be written in \
-                        the .html format, for debugging. Attempts to open a \
-                        browser for viewing.",
+                        the .html format, for debugging.",
     )
     PARSER.add_argument(
         "--min_ph", metavar="MIN", type=float, help="Minimum pH to consider."

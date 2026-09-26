@@ -42,6 +42,8 @@ def check_sanitization(mol):
     # try to fix the nitrogen (common problem that 4 bonded Nitrogens improperly
     # lose their + charges)
     mol = Nitrogen_charge_adjustment(mol)
+    if mol is None:
+        return None
     Chem.SanitizeMol(
         mol,
         sanitizeOps=Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
@@ -171,8 +173,7 @@ def remove_atoms(mol, list_of_idx_to_remove):
         return None
 
     try:
-        atomsToRemove = list_of_idx_to_remove
-        atomsToRemove.sort(reverse=True)
+        atomsToRemove = sorted(list_of_idx_to_remove, reverse=True)
     except Exception:
         return None
 

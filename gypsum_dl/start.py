@@ -56,8 +56,9 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     if "json" in args:
         # "json" is one of the parameters, so we'll be ignoring the rest.
         try:
-            params = json.load(open(args["json"]))
-        except:
+            with open(args["json"], encoding="utf-8") as json_file:
+                params = json.load(json_file)
+        except (OSError, ValueError):
             utils.exception("Is your input json file properly formed?")
 
         params = set_parameters(params)

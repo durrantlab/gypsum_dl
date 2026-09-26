@@ -135,6 +135,24 @@ def test_prepare_molecules_rejects_malformed_json(tmp_path) -> None:
         start.prepare_molecules({"json": str(bad)})
 
 
+def test_prepare_molecules_rejects_missing_json(tmp_path) -> None:
+    # Regression (B17): the JSON was read with json.load(open(...)) inside a
+    # bare `except:`. The bare except is now `except (OSError, ValueError)`, so
+    # a missing file still surfaces the friendly error rather than being caught
+    # by an over-broad handler (and the file handle no longer leaks).
+    with pytest.raises(Exception, match="properly formed"):
+        start.prepare_molecules({"json": str(tmp_path / "does_not_exist.json")})
+
+
+def test_set_parameters_num_processors_defaults_to_all_cores(tmp_path) -> None:
+    # Regression (B18): set_parameters defaults num_processors to -1 (all
+    # cores). The CLI must not override this with a hardcoded 1.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params = start.set_parameters({"source": str(src)})
+    assert params["num_processors"] == -1
+
+
 def test_prepare_molecules_rejects_unknown_json_parameter(tmp_path) -> None:
     src = tmp_path / "input.smi"
     src.write_text("CCO\tethanol\n")

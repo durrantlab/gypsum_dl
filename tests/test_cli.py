@@ -55,11 +55,31 @@ def test_cli_reads_parameters_from_json(
             }
         )
     )
-    monkeypatch.setattr(sys, "argv", ["gypsum-dl", "--json", str(params_path)])
+    # Pass an overridable flag alongside --json so the override warning fires.
+    # (The warning only makes sense when a json_warning_list flag is actually
+    # supplied on the command line; --num_processors no longer leaks in via a
+    # non-None argparse default.)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["gypsum-dl", "--json", str(params_path), "--num_processors", "1"],
+    )
     run.main()
     out = capsys.readouterr().out
     assert "overrides all other flags" in out
     assert os.path.exists(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+
+
+def test_cli_num_processors_defaults_to_all_cores(monkeypatch) -> None:
+    # Regression (B18): the argparse default for --num_processors was 1, which
+    # (unlike the other numeric flags) is never None and so never stripped,
+    # pinning the CLI to a single core regardless of set_parameters' -1 default.
+    # With the default now None, omitting the flag lets set_parameters decide.
+    captured: dict = {}
+    monkeypatch.setattr(run, "prepare_molecules", lambda args: captured.update(args))
+    monkeypatch.setattr(sys, "argv", ["gypsum-dl", "--source", "x.smi"])
+    run.main()
+    assert "num_processors" not in captured
 
 
 def test_cli_requires_a_source(monkeypatch) -> None:
