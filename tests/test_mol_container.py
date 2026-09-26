@@ -80,6 +80,15 @@ def test_update_orig_smi_resets_state() -> None:
     assert len(contnr.get_frags_of_orig_smi()) == 1
 
 
+def test_update_orig_smi_refreshes_carbon_hydrogen_count() -> None:
+    # Regression: update_orig_smi refreshed the ring/chiral counts but left
+    # carbon_hydrogen_count describing the pre-desalt (salted) molecule.
+    contnr = MolContainer("CC(=O)C.CCO", "salt", 0, {})
+    contnr.update_orig_smi("CC(=O)C")
+    expected = contnr.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
+    assert contnr.carbon_hydrogen_count == expected
+
+
 def test_update_idx_propagates_to_original_mol() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     contnr.update_idx(5)

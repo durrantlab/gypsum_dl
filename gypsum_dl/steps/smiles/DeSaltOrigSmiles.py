@@ -37,13 +37,10 @@ def desalt_orig_smi(
     tmp = [desalter(x) for x in contnrs]
 
     # Go through each contnr and update the orig_smi_deslt. If we update it,
-    # also add a note in the genealogy record.
-    tmp = Parallelizer.strip_none(tmp)
-    for idx in range(len(tmp)):
-        desalt_mol = tmp[idx]
-        # idx = desalt_mol.contnr_idx
-        cont = contnrs[idx]
-
+    # also add a note in the genealogy record. Pair each container with its own
+    # desalted molecule by zipping, so a dropped element can never shift the
+    # alignment.
+    for cont, desalt_mol in zip(contnrs, tmp):
         if cont.orig_smi != desalt_mol.orig_smi:
             desalt_mol.genealogy.append(f"{desalt_mol.orig_smi_deslt} (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)
@@ -86,6 +83,6 @@ def desalter(contnr):
     new_mol = MyMol.MyMol(biggest_frag)
     new_mol.contnr_idx = contnr.contnr_idx
     new_mol.name = contnr.name
-    new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy
+    new_mol.genealogy = contnr.mol_orig_frm_inp_smi.genealogy[:]
     new_mol.make_mol_frm_smiles_sanitze()  # Need to update the mol.
     return new_mol

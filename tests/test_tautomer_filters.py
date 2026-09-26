@@ -104,6 +104,26 @@ def test_tauts_no_elim_chiral_filters_in_process() -> None:
     assert result == [keep]
 
 
+def test_tauts_no_break_arom_rngs_drops_orphan_taut() -> None:
+    # Regression (bug 10): a taut matching no container silently reused the last
+    # (stale) `container`, so it could be compared against the wrong molecule
+    # and kept. It must be dropped instead.
+    contnr = MolContainer("c1ccccc1", "benzene", 0, {})
+    orphan = _taut("c1ccccc1", "benzene")
+    orphan.contnr_idx = 99
+    result = tauts_no_break_arom_rngs([contnr], [orphan], 1, "serial", None)
+    assert result == []
+
+
+def test_tauts_no_elim_chiral_drops_orphan_taut() -> None:
+    # Regression (bug 10): same stale-container reuse in the chiral filter.
+    contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
+    orphan = _taut("C[C@H](N)C(=O)O", "alanine")
+    orphan.contnr_idx = 99
+    result = tauts_no_elim_chiral([contnr], [orphan], 1, "serial", None)
+    assert result == []
+
+
 def test_tauts_no_change_hs_to_cs_filters_in_process() -> None:
     contnr = MolContainer("CC(=O)C", "acetone", 0, {})
     keep = _taut("CC(=O)C", "acetone")

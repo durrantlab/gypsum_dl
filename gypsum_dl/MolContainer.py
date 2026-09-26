@@ -174,6 +174,9 @@ class MolContainer:
         self.num_unspecif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_w_unasignd()
         )
+        # Must also refresh the carbon-hydrogen footprint; otherwise it keeps
+        # describing the pre-desalt (salted) molecule.
+        self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
 
         # None of the mols derived to date, if present, are accurate.
         self.mols = []

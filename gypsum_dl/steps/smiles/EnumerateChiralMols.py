@@ -61,7 +61,7 @@ def enumerate_chiral_molecules(
     params = []
     for contnr in contnrs:
         params.extend(
-            (mol, thoroughness, max_variants_per_compound) for mol in contnr.mols
+            (mol, max_variants_per_compound, thoroughness) for mol in contnr.mols
         )
     params = tuple(params)
 
