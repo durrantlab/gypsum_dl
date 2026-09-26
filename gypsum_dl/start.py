@@ -560,6 +560,28 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
     #         "Please provide the path to an existing folder instead."
     #     )
 
+    # Range-check the two parameters that control how many candidates each
+    # step generates. Only their types are checked when they are merged, and
+    # out-of-range values fail far from here: thoroughness reaches
+    # math.log(thoroughness * max_variants_per_compound, 2) inside a worker,
+    # where a zero raises and the failure is swallowed as a dropped molecule,
+    # and a negative value of either reaches list slices that quietly truncate
+    # the candidate pools instead of raising. Guard each check with a
+    # membership test, because finalize_params is also called with partial
+    # parameter dictionaries.
+    if "thoroughness" in params and params["thoroughness"] < 1:
+        utils.exception('The parameter "thoroughness" must be at least 1.')
+
+    # Zero is allowed for max_variants_per_compound: the SMILES enumeration
+    # steps treat it as a sentinel that skips them entirely.
+    if (
+        "max_variants_per_compound" in params
+        and params["max_variants_per_compound"] < 0
+    ):
+        utils.exception(
+            'The parameter "max_variants_per_compound" must be 0 or greater.'
+        )
+
     # Make sure job_manager is always lower case.
     params["job_manager"] = params["job_manager"].lower()
 

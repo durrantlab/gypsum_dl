@@ -100,6 +100,50 @@ def test_seed_random_number_generators_accepts_seed_numpy_cannot_take() -> None:
     start.seed_random_number_generators({"random_seed": 2**40 + 1})
 
 
+def test_set_parameters_rejects_zero_thoroughness(tmp_path) -> None:
+    # Regression: only the type of thoroughness was checked. A zero reached
+    # math.log(thoroughness * max_variants_per_compound, 2) inside a worker,
+    # where the ValueError was swallowed and the molecule silently dropped.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    with pytest.raises(Exception, match="thoroughness"):
+        start.set_parameters({"source": str(src), "thoroughness": 0})
+
+
+def test_set_parameters_rejects_negative_thoroughness(tmp_path) -> None:
+    # Regression: a negative thoroughness ran to completion. random_sample
+    # slices with lst[:num] and pick_lowest_enrgy_mols multiplies by
+    # thoroughness, so the candidate pools were quietly truncated and the run
+    # wrote a full-looking SDF with no warning anywhere.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    with pytest.raises(Exception, match="thoroughness"):
+        start.set_parameters({"source": str(src), "thoroughness": -1})
+
+
+def test_set_parameters_rejects_negative_max_variants(tmp_path) -> None:
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    with pytest.raises(Exception, match="max_variants_per_compound"):
+        start.set_parameters({"source": str(src), "max_variants_per_compound": -1})
+
+
+def test_set_parameters_allows_zero_max_variants(tmp_path) -> None:
+    # Zero is the sentinel the SMILES enumeration steps check to skip
+    # themselves, so validation must not reject it.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params = start.set_parameters({"source": str(src), "max_variants_per_compound": 0})
+    assert params["max_variants_per_compound"] == 0
+
+
+def test_set_parameters_allows_thoroughness_of_one(tmp_path) -> None:
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params = start.set_parameters({"source": str(src), "thoroughness": 1})
+    assert params["thoroughness"] == 1
+
+
 def test_finalize_params_requires_source() -> None:
     with pytest.raises(Exception, match="source"):
         start.finalize_params({"source": "", "output_folder": "./"})

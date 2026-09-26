@@ -16,11 +16,21 @@ system. (Description provided by Harrison Green.)
 from typing import Any, TypeVar
 
 import multiprocessing
+import queue
 import sys
 import traceback
 from collections.abc import Callable, Sequence
 
 _JobResult = TypeVar("_JobResult")
+
+WORKER_POLL_TIMEOUT: float = 60.0
+"""Seconds to wait for a worker result before checking whether any worker is
+still alive. Long jobs are fine: the wait simply repeats while at least one
+worker is running."""
+
+WORKER_EXIT_GRACE: float = 1.0
+"""Seconds to keep draining results after the last worker exits, so a result
+that was in flight when the worker finished is not mistaken for a lost one."""
 
 try:
     import mpi4py
@@ -761,29 +771,90 @@ def count_processors(num_inputs, num_procs):
     return num_procs
 
 
-def start_processes(inputs, num_procs):
-    """
-    Creates a queue of inputs and outputs
+def start_processes(
+    inputs: Sequence[tuple[int, tuple[Callable[..., _JobResult], Sequence[object]]]],
+    num_procs: int,
+) -> list[_JobResult | None]:
+    """Run the given jobs across worker processes and collect their results.
+
+    Results come back in input order. A worker that dies outright (the OOM
+    killer, a native fault in RDKit) never reports the result it was holding,
+    so the collection loop is bounded rather than blocking forever on a result
+    that will never arrive: it waits in intervals and gives up once no worker
+    is left to produce anything. The workers are also joined before returning,
+    which keeps finished runs from leaving non-daemon children behind.
+
+    Args:
+        inputs: Jobs as (index, (function, arguments)) pairs, where the index
+            determines the position of the job's result in the returned list.
+        num_procs: How many worker processes to start.
+
+    Returns:
+        One entry per input, in input order; None where the job raised.
+
+    Raises:
+        Exception: If every worker exited before all results were reported.
     """
 
     # Create queues
-    task_queue = multiprocessing.Queue()
-    done_queue = multiprocessing.Queue()
+    task_queue: multiprocessing.Queue[object] = multiprocessing.Queue()
+    done_queue: multiprocessing.Queue[tuple[int, _JobResult | None]] = (
+        multiprocessing.Queue()
+    )
 
     # Submit tasks
     for item in inputs:
         task_queue.put(item)
 
-    # Start worker processes
-    for _ in range(num_procs):
-        multiprocessing.Process(target=worker, args=(task_queue, done_queue)).start()
-
-    # Get and print results
-    results = [done_queue.get() for _ in range(len(inputs))]
-
-    # Tell child processes to stop
+    # Queue the stop sentinels up front. The queue is FIFO and every real task
+    # is already enqueued, so no worker can see a sentinel early; doing it here
+    # rather than after the collection loop means the workers still shut down
+    # if the loop exits by raising.
     for _ in range(num_procs):
         task_queue.put("STOP")
+
+    # Start worker processes
+    procs = [
+        multiprocessing.Process(target=worker, args=(task_queue, done_queue))
+        for _ in range(num_procs)
+    ]
+    for proc in procs:
+        proc.start()
+
+    results: list[tuple[int, _JobResult | None]] = []
+    while len(results) < len(inputs):
+        try:
+            results.append(done_queue.get(timeout=WORKER_POLL_TIMEOUT))
+            continue
+        except queue.Empty:
+            pass
+
+        if any(proc.is_alive() for proc in procs):
+            continue
+
+        # No worker is running. A result put just before the last worker exited
+        # can still be in transit, so drain once more before concluding that
+        # one was lost.
+        try:
+            results.append(done_queue.get(timeout=WORKER_EXIT_GRACE))
+            continue
+        except queue.Empty:
+            pass
+
+        for proc in procs:
+            proc.join()
+
+        # Unconsumed tasks may still be buffered for the feeder thread, which
+        # would block interpreter exit now that nothing is reading the queue.
+        task_queue.cancel_join_thread()
+
+        raise Exception(
+            f"A worker process died after returning {len(results)} of "
+            f"{len(inputs)} results."
+        )
+
+    for proc in procs:
+        proc.join()
 
     results.sort(key=lambda tup: tup[0])
 

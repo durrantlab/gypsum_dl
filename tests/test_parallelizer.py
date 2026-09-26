@@ -6,6 +6,8 @@ when MPI is requested but unavailable.
 """
 
 import multiprocessing
+import os
+import time
 
 import pytest
 
@@ -43,6 +45,25 @@ def add_one_unless_two(value: int) -> int:
     """
     if value == 2:
         raise ValueError("simulated job failure")
+    return value + 1
+
+
+def kill_worker_on_two(value: int) -> int:
+    """Increment a value, but kill the calling process on one specific input.
+
+    Stands in for a job whose worker dies without reporting a result, the way
+    an OOM kill or a native fault in RDKit does. os._exit is used instead of
+    raising so that no exception handler can turn it back into a None result.
+    Defined at module scope so worker processes can unpickle it.
+
+    Args:
+        value: Number to increment.
+
+    Returns:
+        The incremented value, for every input but 2.
+    """
+    if value == 2:
+        os._exit(1)
     return value + 1
 
 
@@ -139,6 +160,32 @@ def test_multithreading_serial_path_drops_failed_job() -> None:
     # raising input aborted the whole run instead of yielding None.
     inputs = [(1,), (2,), (3,)]
     assert parallelizer.MultiThreading(inputs, 1, add_one_unless_two) == [2, None, 4]
+
+
+def test_multithreading_raises_when_a_worker_dies(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: the collection loop blocked on exactly len(inputs)
+    # done_queue.get() calls with no timeout and no liveness check, so a worker
+    # that died without reporting its result left the parent waiting forever.
+    # Shorten the poll interval so the test does not sit through the
+    # production-sized wait.
+    monkeypatch.setattr(parallelizer, "WORKER_POLL_TIMEOUT", 1.0)
+
+    inputs = [(i,) for i in range(4)]
+    started = time.monotonic()
+    with pytest.raises(Exception, match="died"):
+        parallelizer.MultiThreading(inputs, 3, kill_worker_on_two)
+
+    # The point of the fix is that the failure is bounded rather than a hang.
+    assert time.monotonic() - started < 60.0
+
+
+def test_multithreading_leaves_no_orphan_children() -> None:
+    # Regression: worker processes were started but never joined, so a
+    # completed run left non-daemon children behind.
+    parallelizer.MultiThreading([(i,) for i in range(4)], 2, add_one)
+    assert multiprocessing.active_children() == []
 
 
 def test_multithreading_failure_handling_matches_across_procs() -> None:
