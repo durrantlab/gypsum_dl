@@ -6,6 +6,7 @@ geometry.
 import __future__
 
 import copy
+import operator
 
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
@@ -144,17 +145,20 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
         # O=C([C@@]1([C@@H]2O[C@@H]([C@@]1(C3=O)C)CC2)C)N3c4sccn4
 
         # Further minimize the unoptimized conformers that were among the best
-        # scoring.
-        max_vars_per_cmpd = max_variants_per_compound
-        for i in range(len(mol.conformers[:max_vars_per_cmpd])):
-            mol.conformers[i].minimize()
+        # scoring. The conformers were sorted by their pre-minimization energy,
+        # which is not monotonic with post-minimization energy, so re-sort the
+        # minimized subset before selecting the best one.
+        minimized = mol.conformers[:max_variants_per_compound]
+        for conf in minimized:
+            conf.minimize()
+        minimized.sort(key=operator.attrgetter("energy"))
 
         # Remove similar conformers
         # mol.eliminate_structurally_similar_conformers()
 
         # Get the best scoring (lowest energy) of these minimized conformers
         new_mol = copy.deepcopy(mol)
-        c = MyConformer(new_mol, mol.conformers[0].conformer(), second_embed)
+        c = MyConformer(new_mol, minimized[0].conformer(), second_embed)
         new_mol.conformers = [c]
         best_energy = c.energy
 

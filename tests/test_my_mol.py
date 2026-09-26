@@ -103,6 +103,21 @@ def test_remove_bizarre_substruc_allows_normal_molecule() -> None:
     assert mol.remove_bizarre_substruc() is False
 
 
+def test_remove_bizarre_substruc_survives_non_string_can_smi() -> None:
+    # Regression (M8): can_smi is False after a failed MolToSmiles and None
+    # after a failed smiles(); `s in self.can_smi` then raised TypeError
+    # ("argument of type 'bool'/'NoneType' is not iterable"), which became a
+    # hang under multiprocessing. The method must return a bool instead.
+    mol = MyMol.MyMol("CCO")
+    mol.can_smi = False
+    result = mol.remove_bizarre_substruc()
+    assert isinstance(result, bool)
+
+    mol2 = MyMol.MyMol("CCO")
+    mol2.can_smi = None
+    assert isinstance(mol2.remove_bizarre_substruc(), bool)
+
+
 def test_get_frags_of_orig_smi_single_fragment_returns_self() -> None:
     mol = MyMol.MyMol("CCO")
     assert mol.get_frags_of_orig_smi() == [mol]

@@ -433,10 +433,19 @@ class MyMol:
         prohibited_substructures.append("[C-]")  # No carbanions.
         prohibited_substructures.append("[c-]")  # No carbanions.
 
+        # can_smi is False after a failed MolToSmiles and None after a failed
+        # smiles(), so only match against the smiles strings that are actually
+        # strings.
+        smis_to_check = [
+            s
+            for s in (self.orig_smi, self.orig_smi_deslt, self.can_smi)
+            if isinstance(s, str)
+        ]
+
         for s in prohibited_substructures:
             # First just match strings... could be faster, but not 100%
             # accurate.
-            if s in self.orig_smi or s in self.orig_smi_deslt or s in self.can_smi:
+            if any(s in smi for smi in smis_to_check):
                 utils.log("\tDetected unusual substructure: " + s)
                 self.bizarre_substruct = True
                 return True
