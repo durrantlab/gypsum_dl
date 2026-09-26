@@ -14,15 +14,13 @@ from gypsum_dl.start import prepare_molecules
 def test_samples(test_dir):
     path_smiles = os.path.join(test_dir, "files/sample/sample_molecules.smi")
     output_folder = os.path.join(test_dir, "tmp/sample")
-
-    # Delete test output directory if it exists.
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
-
-    # Make the directory
-    os.mkdir(output_folder)
-
-    # Make the Gypsum-DL parameters.
+    # `os.path.exists` follows symlinks and reports False for a dangling one,
+    # so the previous exists/rmtree/mkdir sequence could still raise
+    # FileExistsError. Tolerating both a missing and a pre-existing path also
+    # removes the dependency on `tests/tmp` having been created by whichever
+    # test happened to run first, which `--failed-first` can reorder.
+    shutil.rmtree(output_folder, ignore_errors=True)
+    os.makedirs(output_folder, exist_ok=True)
     params = {
         "source": path_smiles,
         "separate_output_files": True,
@@ -180,9 +178,7 @@ def test_samples(test_dir):
         )
         for s in all_smiles
     }
-
     assert len(all_smiles) == len(target_smiles)
-
     assert len(all_smiles ^ target_smiles) == 0, (
         f"Differences in smiles: {list(all_smiles ^ target_smiles)}"
     )

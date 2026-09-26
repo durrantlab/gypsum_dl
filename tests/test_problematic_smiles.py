@@ -4,8 +4,9 @@ during 3D coordinate generation, without crashing.
 """
 import os
 import shutil
-from gypsum_dl import utils
+
 from gypsum_dl.start import prepare_molecules
+
 
 def test_problematic_smiles(test_dir):
     """
@@ -26,9 +27,8 @@ def test_problematic_smiles(test_dir):
     }
     
     # Delete test output directory if it exists, then create it.
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
-    os.makedirs(output_folder)
+    shutil.rmtree(output_folder, ignore_errors=True)
+    os.makedirs(output_folder, exist_ok=True)
 
     # Create the input smiles file
     input_smi_path = os.path.join(output_folder, "input.smi")
@@ -48,14 +48,7 @@ def test_problematic_smiles(test_dir):
 
     # 3. Run molecule preparation. This test passes if this call completes
     #    without raising an unhandled exception (i.e., it does not crash).
-    try:
-        prepare_molecules(params)
-        # If the function completes, the test has passed.
-        utils.log("")
-        utils.log("TEST `test_problematic_smiles` PASSED")
-        utils.log("=====================================")
-        utils.log("`prepare_molecules` completed without crashing on problematic inputs.")
-        assert True
-    except Exception as e:
-        # If any unhandled exception occurs, the program has crashed.
-        assert False, f"CRASH DETECTED: `prepare_molecules` raised an unexpected exception: {e}"
+    # No try/except: pytest already fails on an unexpected exception, and
+    # swallowing it discarded the traceback that makes the failure diagnosable.
+    prepare_molecules(params)
+    assert os.path.exists(output_folder)
