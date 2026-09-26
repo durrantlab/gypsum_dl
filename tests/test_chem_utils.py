@@ -55,6 +55,27 @@ def test_pick_lowest_enrgy_mols_returns_lowest_energy_mol() -> None:
         )
 
 
+def test_pick_lowest_enrgy_mols_leaves_candidates_unchanged() -> None:
+    # Ranking used to build the ranking conformer on the candidates
+    # themselves, which reprotonates rdkit_mol and attaches 3D coordinates. A
+    # variant that survived a pruning step then differed from a variant whose
+    # container never needed pruning, which surfaced downstream as real 3D
+    # coordinates in the SDF of a 2d_output_only run.
+    mols = [MyMol.MyMol(s) for s in ["CCO", "CCC", "CCCC"]]
+    atom_counts = [m.rdkit_mol.GetNumAtoms() for m in mols]
+
+    # thoroughness=3 so every candidate gets ranked, not just a sample of one.
+    kept = chem_utils.pick_lowest_enrgy_mols(mols, 1, 3)
+
+    assert len(kept) == 1
+    assert any(kept[0] is m for m in mols)
+
+    for mol, atom_count in zip(mols, atom_counts):
+        assert mol.conformers == []
+        assert mol.rdkit_mol.GetNumAtoms() == atom_count
+        assert mol.rdkit_mol.GetNumConformers() == 0
+
+
 def test_bst_for_each_contnr_no_opt_repopulates_containers() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     mol = MyMol.MyMol("CCO")

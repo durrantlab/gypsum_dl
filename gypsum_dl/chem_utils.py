@@ -1,8 +1,45 @@
 """The module includes definitions to manipulate the molecules."""
 
+import copy
+from typing import TYPE_CHECKING
+
 from rdkit import Chem
 
 from gypsum_dl import utils
+
+if TYPE_CHECKING:
+    # Importing MyMol at run time would close the chem_utils -> utils ->
+    # MolContainer -> chem_utils import cycle.
+    from gypsum_dl.MyMol import MyMol
+
+
+def first_conf_energy(mol: "MyMol") -> float | None:
+    """Report a molecule's first-conformer energy without changing it.
+
+    Ranking a candidate must not alter it. Generating the conformer on the
+    molecule itself reprotonates its rdkit_mol and leaves 3D coordinates
+    attached, so variants that survived a pruning step would end up in a
+    different state than variants from containers that never needed pruning
+    (visible, for instance, as real 3D coordinates in a 2d_output_only run).
+    Measuring on a throwaway copy keeps the decision free of side effects.
+
+    Args:
+        mol: The candidate molecule to measure.
+
+    Returns:
+        The energy of the first conformer, or None if no conformer could be
+            generated.
+    """
+
+    if mol.conformers:
+        # Coordinates already exist (the 3D steps build them before pruning),
+        # so there is nothing to generate and nothing to protect.
+        return mol.conformers[0].energy
+
+    probe = copy.deepcopy(mol)
+    probe.make_first_3d_conf_no_min()
+
+    return probe.conformers[0].energy if probe.conformers else None
 
 
 def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
@@ -40,10 +77,9 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     # Now get the energies
     data = []
     for i, mol in enumerate(mols_3d):
-        mol.make_first_3d_conf_no_min()  # Make sure at least one conformer exists.
+        energy = first_conf_energy(mol)
 
-        if len(mol.conformers) > 0:
-            energy = mol.conformers[0].energy
+        if energy is not None:
             data.append((energy, i))
 
     data.sort()
@@ -140,9 +176,9 @@ def bst_for_each_contnr_no_opt(
             # Remove molecules with unusually high charges.
             mols = remove_highly_charged_molecules(mols)
 
-            # Pick the lowest-energy molecules. Note that this creates a
-            # conformation if necessary, but it is not minimized and so is not
-            # computationally expensive.
+            # Pick the lowest-energy molecules. Note that this ranks candidates
+            # using a throwaway conformer, so the molecules themselves are
+            # returned in the state they arrived in.
             mols = pick_lowest_enrgy_mols(mols, max_variants_per_compound, thoroughness)
 
             if len(mols) > 0:

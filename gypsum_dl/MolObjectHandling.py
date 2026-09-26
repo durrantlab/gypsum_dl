@@ -41,32 +41,26 @@ def check_sanitization(mol):
 
     # try to fix the nitrogen (common problem that 4 bonded Nitrogens improperly
     # lose their + charges)
-    mol = Nitrogen_charge_adjustment(mol)
-    if mol is None:
+
+    # The nitrogen fix guesses at formal charges, and the guess is only
+    # justified if the molecule sanitizes afterwards. Work on a copy so that a
+    # molecule this function ends up rejecting is not left in the caller's
+    # hands carrying charges that were invented here.
+    candidate = Nitrogen_charge_adjustment(Chem.Mol(mol))
+    if candidate is None:
         return None
-    Chem.SanitizeMol(
-        mol,
-        sanitizeOps=Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
-        catchErrors=True,
-    )
-    sanitize_string = Chem.SanitizeMol(
-        mol,
-        sanitizeOps=Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
-        catchErrors=True,
-    )
-    if sanitize_string.name == "SANITIZE_NONE":
-        return mol
 
-    # run a  sanitation Filter 1 more time incase something slipped through ie.
-    # if there are any forms of sanition which fail ie. KEKULIZE then return
-    # None
-    sanitize_string = Chem.SanitizeMol(
-        mol,
-        sanitizeOps=Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
-        catchErrors=True,
-    )
+    try:
+        sanitize_string = Chem.SanitizeMol(
+            candidate,
+            sanitizeOps=Chem.rdmolops.SanitizeFlags.SANITIZE_ALL,
+            catchErrors=True,
+        )
+    except Exception:
+        return None
 
-    return None if sanitize_string.name != "SANITIZE_NONE" else mol
+    # If any form of sanitation still fails (ie. KEKULIZE) then return None.
+    return candidate if sanitize_string.name == "SANITIZE_NONE" else None
 
 
 def handleHs(mol, protanate_step):
@@ -204,6 +198,9 @@ def Nitrogen_charge_adjustment(mol):
 
     RDkit treats aromatic bonds as a bond count of 1.5. But we will not try to correct for
     Nitrogens labeled as Aromatic. As precaution, any N which is aromatic is skipped in this function.
+
+    Note that the adjustment is made in place; pass a copy if the original must
+    be preserved.
 
     Inputs:
     :param Chem.rdchem.Mol mol: any rdkit mol

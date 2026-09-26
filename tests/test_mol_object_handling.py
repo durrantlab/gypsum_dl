@@ -38,6 +38,51 @@ def test_check_sanitization_rejects_impossible_valence() -> None:
     assert MOH.check_sanitization(mol) is None
 
 
+def test_check_sanitization_charges_nitrogen_on_returned_mol() -> None:
+    # A neutral quaternary nitrogen fails the first sanitize pass, so the
+    # nitrogen fix runs. Whatever it corrects has to be present on the
+    # molecule the caller gets back.
+    fixed = MOH.check_sanitization(Chem.MolFromSmiles("C[N](C)(C)C", sanitize=False))
+    assert fixed is not None
+    charges = [a.GetFormalCharge() for a in fixed.GetAtoms() if a.GetAtomicNum() == 7]
+    assert charges == [1]
+
+
+def test_check_sanitization_does_not_charge_a_rejected_mol() -> None:
+    # A neutral quaternary nitrogen alongside a hexavalent carbon: the nitrogen
+    # fix applies but the molecule still fails to sanitize, so it is rejected.
+    # A rejected molecule must not be handed back to the caller carrying the
+    # +1 charge that the fix guessed at.
+    mol = Chem.MolFromSmiles("C[N](C)(C)C.C(C)(C)(C)(C)C", sanitize=False)
+    charges_before = [a.GetFormalCharge() for a in mol.GetAtoms()]
+    assert all(c == 0 for c in charges_before)
+
+    assert MOH.check_sanitization(mol) is None
+    assert [a.GetFormalCharge() for a in mol.GetAtoms()] == charges_before
+
+
+def test_check_sanitization_sanitizes_at_most_twice(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The rejection path used to call SanitizeMol four times: once up front,
+    # twice in a row after the nitrogen fix (the first of the pair discarding
+    # its result), and once more repeating the same call verbatim. Only the
+    # first pass and one pass after the fix can change the outcome, and
+    # sanitization runs on every molecule in the pipeline.
+    calls: list[int] = []
+    real_sanitize = Chem.SanitizeMol
+
+    def counting_sanitize(*args: object, **kwargs: object) -> object:
+        calls.append(1)
+        return real_sanitize(*args, **kwargs)
+
+    monkeypatch.setattr(MOH.Chem, "SanitizeMol", counting_sanitize)
+
+    mol = Chem.MolFromSmiles("C(C)(C)(C)(C)(C)C", sanitize=False)
+    assert MOH.check_sanitization(mol) is None
+    assert len(calls) == 2
+
+
 def test_try_deprotanation_removes_explicit_hydrogens() -> None:
     mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
     deprotonated = MOH.try_deprotanation(mol)
