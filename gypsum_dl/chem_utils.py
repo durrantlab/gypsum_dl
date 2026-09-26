@@ -52,7 +52,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     data = data[:num]
 
     # Keep just the mols there.
-    return [mol_lst[d[1]] for d in data]
+    return [mols_3d[d[1]] for d in data]
 
 
 def remove_highly_charged_molecules(mol_lst):
