@@ -166,24 +166,26 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             trailing_whitespace="\n",
         )
 
-    # Load SMILES data
-    if isinstance(params["source"], str):
-        utils.log(
-            "Loading molecules from " + os.path.basename(params["source"]) + "..."
-        )
+    # Load SMILES data. finalize_params has already established that "source"
+    # is a string naming an existing file, so only the extension is left to
+    # dispatch on.
+    utils.log("Loading molecules from " + os.path.basename(params["source"]) + "...")
 
-        # Smiles must be array of strs.
-        src = params["source"]
-        if src.lower().endswith(".smi") or src.lower().endswith(".can"):
-            # It's an smi file.
-            smiles_data = load_smiles_file(src)
-        elif params["source"].lower().endswith(".sdf"):
-            # It's an sdf file. Convert it to a smiles.
-            smiles_data = load_sdf_file(src)
-        else:
-            smiles_data = [params["source"]]
+    src = params["source"]
+    if src.lower().endswith(".smi") or src.lower().endswith(".can"):
+        # It's an smi file.
+        smiles_data = load_smiles_file(src)
+    elif src.lower().endswith(".sdf"):
+        # It's an sdf file. Convert it to a smiles.
+        smiles_data = load_sdf_file(src)
     else:
-        pass  # It's already in the required format.
+        # Raising here keeps the diagnosis on the actual problem. Falling
+        # through instead left smiles_data holding the filename itself, which
+        # only failed later, while unpacking a (smiles, name, props) tuple.
+        utils.exception(
+            'Your "source" parameter must name a file that ends in a .can, '
+            f".smi, or .sdf extension, but it names {os.path.basename(src)}."
+        )
 
     # Make the output directory if necessary.
     try:
@@ -257,7 +259,13 @@ def prepare_molecules(args: dict[str, Any]) -> None:
                 temp_param[key] = params[key]
 
         for contnr in contnrs:
-            contnr.contnr_idx = 0  # Because each container being run in isolation.
+            # Each container is run in isolation, so it becomes container zero
+            # of its own job. Go through update_idx rather than assigning the
+            # attribute: mol_orig_frm_inp_smi must be restamped too, because
+            # the desalter hands that very object to the container for
+            # single-fragment inputs, and later steps regroup molecules by
+            # mol.contnr_idx.
+            contnr.update_idx(0)
             job_input.append(tuple([[contnr], temp_param]))
         job_input = tuple(job_input)
 
@@ -524,18 +532,16 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
             + "file)."
         )
 
-    # Note on parameter "source", the data source. If it's a string that
-    # ends in ".smi", it's treated as a smiles file. If it's a string that
-    # ends in ".sdf", it's treated as an sdf file. If it's any other
-    # string, it's assumed to be a smiles string itself and is assigned a
-    # name of "". If it's a list, it's assumed to be a list of tuples,
-    # [SMILES, Name].
+    # Note on parameter "source", the data source. It must name a file: one
+    # ending in ".smi" or ".can" is treated as a SMILES file, and one ending in
+    # ".sdf" as an SDF file.
 
-    # Check some required variables.
-    try:
-        params["source"] = os.path.abspath(params["source"])
-    except Exception:
-        utils.exception("Source file doesn't exist.")
+    # Check some required variables. Note that os.path.abspath does not touch
+    # the filesystem and so never reports a missing file; the existence check
+    # has to be made separately.
+    params["source"] = os.path.abspath(params["source"])
+    if not os.path.isfile(params["source"]):
+        utils.exception(f"Source file not found: {params['source']}")
     source_dir = os.path.dirname(params["source"]) + os.sep
 
     if params["output_folder"] == "" and params["source"] != "":
@@ -599,8 +605,19 @@ def deal_with_failed_molecules(
         utils.log("\n".join(failed_ones))
         utils.log("\n")
 
-        # Write the failures to an smi file.
+        # Write the failures to an smi file. In separate-file mode (which mpi
+        # mode forces) every task would otherwise truncate and rewrite one
+        # shared path; under mpi the ranks do so concurrently, leaving only the
+        # last writer's failures behind. A task holds one container, so qualify
+        # the filename with that container's original index, matching the
+        # convention used for the other separate output files.
+        failed_name = "gypsum_dl_failed.smi"
+        if params.get("separate_output_files", False) and contnrs:
+            input_num = contnrs[0].contnr_idx_orig + 1
+            failed_name = f"gypsum_dl_failed__input{input_num}.smi"
         with open(
-            params["output_folder"] + os.sep + "gypsum_dl_failed.smi", "w"
+            os.path.join(params["output_folder"], failed_name),
+            "w",
+            encoding="utf-8",
         ) as outfile:
             outfile.write("\n".join(failed_ones))

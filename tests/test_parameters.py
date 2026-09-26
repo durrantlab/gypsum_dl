@@ -3,12 +3,15 @@
 import json
 import os
 import random
+from collections.abc import Callable
 
 import numpy
 import pytest
 
 from gypsum_dl import start
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
+from gypsum_dl.steps.smiles.DurrantLabFilter import durrant_lab_filters
 
 
 def test_detect_unassigned_bonds_accepts_valid_smiles() -> None:
@@ -128,7 +131,10 @@ def test_finalize_params_derives_source_dir_by_dirname(
     # mangled (e.g. "smiles_dir/mol.smi" -> "es_dir/", and on Windows the drive
     # letter is eaten). Pin abspath to identity so a relative path reaches the
     # source_dir computation intact, then assert it equals os.path.dirname.
+    # isfile is pinned too, because finalize_params now rejects a source that
+    # does not exist and this synthetic path never does.
     monkeypatch.setattr(start.os.path, "abspath", lambda p: p)
+    monkeypatch.setattr(start.os.path, "isfile", lambda p: True)
     params = start.finalize_params(
         {
             "source": "smiles_dir/mol.smi",
@@ -184,6 +190,126 @@ def test_set_parameters_num_processors_defaults_to_all_cores(tmp_path) -> None:
     src.write_text("CCO\tethanol\n")
     params = start.set_parameters({"source": str(src)})
     assert params["num_processors"] == -1
+
+
+def test_deal_with_failed_molecules_separates_files_per_container(tmp_path) -> None:
+    # Regression: the failure list always went to one fixed filename, opened
+    # for writing. In separate-file mode (which mpi mode forces) every task
+    # runs this, so each one truncated the previous task's report and only the
+    # last writer's failures survived.
+    for idx, smiles, name in ((0, "CCO", "ethanol"), (1, "CCCO", "propanol")):
+        contnr = MolContainer(smiles, name, idx, {})
+        start.deal_with_failed_molecules(
+            [contnr],
+            {"output_folder": str(tmp_path), "separate_output_files": True},
+        )
+
+    assert "ethanol" in (tmp_path / "gypsum_dl_failed__input1.smi").read_text()
+    assert "propanol" in (tmp_path / "gypsum_dl_failed__input2.smi").read_text()
+
+
+def test_prepare_molecules_mpi_reindex_restamps_original_mol(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Regression: the mpi branch renumbers every container to zero, because
+    # each one is then run in isolation. It did so by assigning contnr_idx
+    # directly, which left mol_orig_frm_inp_smi.contnr_idx at the pre-mpi
+    # value. The desalter returns that very object for single-fragment inputs,
+    # so the stale index rode into contnr.mols and the Durrant-lab filter, which
+    # regroups molecules by mol.contnr_idx, found nothing under the container's
+    # key and emptied it.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\nCCCO\tpropanol\n")
+
+    captured: list[tuple[list[MolContainer], dict[str, object]]] = []
+
+    class _StubParallelizer:
+        """Stand in for Parallelizer so the mpi grouping branch can be reached.
+
+        Real mpi mode needs mpi4py and an mpi launcher, but the branch that
+        renumbers the containers is selected purely on return_mode(), so a stub
+        that claims mpi and records its jobs exercises it in process.
+        """
+
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def return_mode(self) -> str:
+            """Report mpi so prepare_molecules takes the per-container branch."""
+            return "mpi"
+
+        def run(
+            self,
+            job_input: tuple[tuple[list[MolContainer], dict[str, object]], ...],
+            func: Callable[..., None],
+        ) -> None:
+            """Capture the grouped jobs instead of dispatching them."""
+            captured.extend(job_input)
+
+        def end(self, job_manager: str) -> None:
+            """No mpi universe to tear down."""
+
+    monkeypatch.setattr(start, "Parallelizer", _StubParallelizer)
+
+    start.prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(tmp_path),
+            "job_manager": "serial",
+        }
+    )
+
+    assert len(captured) == 2
+    for job_contnrs, _job_params in captured:
+        contnr = job_contnrs[0]
+        assert contnr.contnr_idx == 0
+        assert contnr.mol_orig_frm_inp_smi.contnr_idx == 0
+
+        # The manifestation: with a stale index on the pristine mol, the
+        # container comes out of the filter empty.
+        desalt_orig_smi([contnr], 1, "serial", None)
+        durrant_lab_filters([contnr], 1, "serial", None)
+        assert len(contnr.mols) == 1
+
+
+def test_finalize_params_rejects_missing_source_file(tmp_path) -> None:
+    # Regression: the existence check sat in an except clause around
+    # os.path.abspath, which does not touch the filesystem and so never
+    # raises. A typo'd filename fell through to load_smiles_file and surfaced
+    # as a bare FileNotFoundError traceback.
+    with pytest.raises(Exception, match="not found"):
+        start.finalize_params(
+            {
+                "source": str(tmp_path / "typo.smi"),
+                "output_folder": str(tmp_path),
+                "add_pdb_output": False,
+                "separate_output_files": False,
+                "job_manager": "serial",
+            }
+        )
+
+
+def test_prepare_molecules_rejects_missing_source_file(tmp_path) -> None:
+    with pytest.raises(Exception, match="not found"):
+        start.prepare_molecules(
+            {"source": str(tmp_path / "nope.smi"), "output_folder": str(tmp_path)}
+        )
+
+
+def test_prepare_molecules_rejects_unsupported_source_extension(tmp_path) -> None:
+    # Regression: an unrecognized extension used to put the source string
+    # itself into smiles_data, which then failed while being unpacked as a
+    # (smiles, name, properties) tuple.
+    src = tmp_path / "molecules.txt"
+    src.write_text("CCO\tethanol\n")
+    with pytest.raises(Exception, match="extension"):
+        start.prepare_molecules(
+            {
+                "source": str(src),
+                "output_folder": str(tmp_path),
+                "job_manager": "serial",
+            }
+        )
 
 
 def test_prepare_molecules_rejects_unknown_json_parameter(tmp_path) -> None:
