@@ -664,30 +664,39 @@ def deal_with_failed_molecules(
     """
 
     # To keep track of failed molecules
-    failed_ones = [
-        contnr.orig_smi + "\t" + contnr.name
-        for contnr in contnrs
-        if len(contnr.mols) == 0
-    ]
-    # Let the user know if there's more than one failed molecule.
-    if failed_ones:
-        utils.log("\n3D models could not be generated for the following entries:")
-        utils.log("\n".join(failed_ones))
-        utils.log("\n")
+    failed = [contnr for contnr in contnrs if len(contnr.mols) == 0]
+    if not failed:
+        return
 
-        # Write the failures to an smi file. In separate-file mode (which mpi
-        # mode forces) every task would otherwise truncate and rewrite one
-        # shared path; under mpi the ranks do so concurrently, leaving only the
-        # last writer's failures behind. A task holds one container, so qualify
-        # the filename with that container's original index, matching the
-        # convention used for the other separate output files.
-        failed_name = "gypsum_dl_failed.smi"
-        if params.get("separate_output_files", False) and contnrs:
-            input_num = contnrs[0].contnr_idx_orig + 1
-            failed_name = f"gypsum_dl_failed__input{input_num}.smi"
+    lines: dict[MolContainer, str] = {
+        contnr: f"{contnr.orig_smi}\t{contnr.name}" for contnr in failed
+    }
+
+    # Let the user know if there's more than one failed molecule.
+    utils.log("\n3D models could not be generated for the following entries:")
+    utils.log("\n".join(lines.values()))
+    utils.log("\n")
+
+    # Write the failures to an smi file. In separate-file mode (which mpi mode
+    # forces) every task would otherwise truncate and rewrite one shared path;
+    # under mpi the ranks do so concurrently, leaving only the last writer's
+    # failures behind. Qualifying the filename with the container's original
+    # index matches the convention used for the other separate output files,
+    # but it has to be done per container: an mpi task holds a single
+    # container, while a non-mpi run passes all of them in one call, so keying
+    # off contnrs[0] alone filed every failure under input 1.
+    groups: dict[str, list[MolContainer]] = {}
+    if params.get("separate_output_files", False):
+        for contnr in failed:
+            failed_name = f"gypsum_dl_failed__input{contnr.contnr_idx_orig + 1}.smi"
+            groups.setdefault(failed_name, []).append(contnr)
+    else:
+        groups["gypsum_dl_failed.smi"] = failed
+
+    for failed_name, group in groups.items():
         with open(
             os.path.join(params["output_folder"], failed_name),
             "w",
             encoding="utf-8",
         ) as outfile:
-            outfile.write("\n".join(failed_ones))
+            outfile.write("\n".join(lines[contnr] for contnr in group))

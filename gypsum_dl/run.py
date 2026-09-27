@@ -143,6 +143,14 @@ def main():
                         results.",
     )
     PARSER.add_argument(
+        "--random_seed",
+        type=int,
+        metavar="S",
+        help="Seed for the random number generators. Makes serial runs \
+                        reproducible; multiprocessing and mpi runs remain \
+                        nondeterministic.",
+    )
+    PARSER.add_argument(
         "--separate_output_files",
         action="store_true",
         help="Indicates that the outputs should be split between \

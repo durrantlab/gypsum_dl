@@ -48,6 +48,32 @@ def test_check_sanitization_charges_nitrogen_on_returned_mol() -> None:
     assert charges == [1]
 
 
+def test_check_sanitization_logs_the_nitrogen_charge_adjustment(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: the nitrogen fix decides a protonation state on the user's
+    # behalf (C=N(C)C becomes C=[N+](C)C) and used to do so silently. It runs
+    # inside MyMol.__init__, before any genealogy entry exists, so the log is
+    # the only place the change can be reported; without it, spotting that
+    # Gypsum-DL built models for a cation meant diffing SMILES strings.
+    mol = Chem.MolFromSmiles("C=N(C)C", sanitize=False)
+    fixed = MOH.check_sanitization(mol)
+
+    assert fixed is not None
+    charges = [a.GetFormalCharge() for a in fixed.GetAtoms() if a.GetAtomicNum() == 7]
+    assert charges == [1]
+    assert "nitrogen formal charge" in capsys.readouterr().out
+
+
+def test_check_sanitization_is_quiet_when_nothing_was_adjusted(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # A molecule that sanitizes on the first pass never reaches the fix, so the
+    # warning must not fire for ordinary input.
+    assert MOH.check_sanitization(Chem.MolFromSmiles("c1ccccc1", sanitize=False))
+    assert "nitrogen formal charge" not in capsys.readouterr().out
+
+
 def test_check_sanitization_does_not_charge_a_rejected_mol() -> None:
     # A neutral quaternary nitrogen alongside a hexavalent carbon: the nitrogen
     # fix applies but the molecule still fails to sanitize, so it is rejected.
@@ -144,14 +170,18 @@ def test_nitrogen_charge_adjustment_charges_quaternary_nitrogen() -> None:
     mol = Chem.MolFromSmiles("C[N](C)(C)C", sanitize=False)
     adjusted = MOH.Nitrogen_charge_adjustment(mol)
     assert adjusted is not None
-    charges = [a.GetFormalCharge() for a in adjusted.GetAtoms() if a.GetAtomicNum() == 7]
+    charges = [
+        a.GetFormalCharge() for a in adjusted.GetAtoms() if a.GetAtomicNum() == 7
+    ]
     assert charges == [1]
 
 
 def test_nitrogen_charge_adjustment_skips_aromatic_nitrogen() -> None:
     adjusted = MOH.Nitrogen_charge_adjustment(Chem.MolFromSmiles("c1ccncc1"))
     assert adjusted is not None
-    charges = [a.GetFormalCharge() for a in adjusted.GetAtoms() if a.GetAtomicNum() == 7]
+    charges = [
+        a.GetFormalCharge() for a in adjusted.GetAtoms() if a.GetAtomicNum() == 7
+    ]
     assert charges == [0]
 
 

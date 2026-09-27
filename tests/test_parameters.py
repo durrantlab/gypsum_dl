@@ -359,6 +359,48 @@ def test_deal_with_failed_molecules_separates_files_per_container(tmp_path) -> N
     assert "propanol" in (tmp_path / "gypsum_dl_failed__input2.smi").read_text()
 
 
+def test_deal_with_failed_molecules_files_each_failure_under_its_own_input(
+    tmp_path,
+) -> None:
+    # Regression: the filename came from contnrs[0] while the contents were
+    # every container's failures. A non-mpi run with --separate_output_files
+    # hands all containers over in one call, so every failure landed in
+    # gypsum_dl_failed__input1.smi, which by the naming convention used
+    # everywhere else means "this belongs to input 1". Anyone scripting a retry
+    # from these files reprocessed the wrong compounds.
+    contnrs = [
+        MolContainer("CCO", "ethanol", 0, {}),
+        MolContainer("CCCO", "propanol", 1, {}),
+    ]
+    start.deal_with_failed_molecules(
+        contnrs,
+        {"output_folder": str(tmp_path), "separate_output_files": True},
+    )
+
+    first = (tmp_path / "gypsum_dl_failed__input1.smi").read_text()
+    second = (tmp_path / "gypsum_dl_failed__input2.smi").read_text()
+    assert "ethanol" in first
+    assert "propanol" not in first
+    assert "propanol" in second
+    assert "ethanol" not in second
+
+
+def test_deal_with_failed_molecules_reports_only_the_containers_that_failed(
+    tmp_path,
+) -> None:
+    # The grouping must not pull in containers that produced variants.
+    succeeded = MolContainer("CCO", "ethanol", 0, {})
+    succeeded.add_smiles("CCO")
+    failed = MolContainer("CCCO", "propanol", 1, {})
+    start.deal_with_failed_molecules(
+        [succeeded, failed],
+        {"output_folder": str(tmp_path), "separate_output_files": True},
+    )
+
+    assert not (tmp_path / "gypsum_dl_failed__input1.smi").exists()
+    assert "propanol" in (tmp_path / "gypsum_dl_failed__input2.smi").read_text()
+
+
 def test_prepare_molecules_mpi_reindex_restamps_original_mol(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

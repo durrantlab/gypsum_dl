@@ -1016,10 +1016,23 @@ class MyConformer:
         :rtype: float
         """
 
-        # Make a new molecule.
-        amol = Chem.MolFromSmiles(self.smiles, sanitize=False)
+        # Make a new molecule. self.smiles can be None (MyMol.smiles() returns
+        # None when canonicalization fails), and either MolObjectHandling
+        # helper can return None on the round trip through the canonical
+        # SMILES. Infinity is the conservative answer for an RMSD that could
+        # not be computed: the caller deduplicates on rmsd <= cutoff, so both
+        # conformers are kept rather than one being silently discarded. Left
+        # unguarded, the AttributeError escaped all the way to
+        # parallelizer.run_one, which dropped the whole molecule.
+        amol = (
+            Chem.MolFromSmiles(self.smiles, sanitize=False)
+            if isinstance(self.smiles, str)
+            else None
+        )
         amol = MOH.check_sanitization(amol)
         amol = MOH.try_reprotanation(amol)
+        if amol is None:
+            return float("inf")
 
         # Add the conformer of the other MyConformer object.
         amol.AddConformer(self.conformer(), assignId=True)
@@ -1031,6 +1044,8 @@ class MyConformer:
 
         # Return the RMSD.
         amol = MOH.try_deprotanation(amol)
+        if amol is None:
+            return float("inf")
         return AllChem.GetConformerRMS(amol, 0, 1, prealigned=True)
 
     def coords(self):

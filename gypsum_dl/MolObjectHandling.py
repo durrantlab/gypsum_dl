@@ -46,6 +46,7 @@ def check_sanitization(mol):
     # justified if the molecule sanitizes afterwards. Work on a copy so that a
     # molecule this function ends up rejecting is not left in the caller's
     # hands carrying charges that were invented here.
+    charges_before = [atom.GetFormalCharge() for atom in mol.GetAtoms()]
     candidate = Nitrogen_charge_adjustment(Chem.Mol(mol))
     if candidate is None:
         return None
@@ -60,7 +61,25 @@ def check_sanitization(mol):
         return None
 
     # If any form of sanitation still fails (ie. KEKULIZE) then return None.
-    return candidate if sanitize_string.name == "SANITIZE_NONE" else None
+    if sanitize_string.name != "SANITIZE_NONE":
+        return None
+
+    # The adjustment decides a protonation state on the user's behalf, so it
+    # has to be visible. This runs inside MyMol.__init__, before any genealogy
+    # entry exists, which leaves the log as the only place to say so. The
+    # comparison keeps the warning honest: the second sanitization pass can
+    # succeed on its own, without any charge having been changed. utils cannot
+    # be imported at module scope here, because that would close the
+    # utils -> MolContainer -> MyMol -> MolObjectHandling cycle.
+    if [atom.GetFormalCharge() for atom in candidate.GetAtoms()] != charges_before:
+        from gypsum_dl import utils
+
+        utils.log(
+            "\tWARNING: Adjusted a nitrogen formal charge to sanitize "
+            + Chem.MolToSmiles(candidate)
+        )
+
+    return candidate
 
 
 def handleHs(mol, protanate_step):

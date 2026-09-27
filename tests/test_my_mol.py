@@ -454,6 +454,51 @@ def test_conformer_rmsd_between_identical_conformers_is_zero() -> None:
     assert conf.rmsd_to_me(duplicate) == pytest.approx(0.0, abs=1e-6)
 
 
+def test_conformer_rmsd_is_infinite_when_the_smiles_is_unavailable() -> None:
+    # Regression: rmsd_to_me handed self.smiles straight to MolFromSmiles, but
+    # MyMol.smiles() reports failure as None, and MolFromSmiles(None) raises.
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+    conf = mol.conformers[0]
+    duplicate = MyMol.MyConformer(mol, conf.conformer())
+    conf.smiles = None
+
+    assert conf.rmsd_to_me(duplicate) == float("inf")
+
+
+def test_eliminate_similar_conformers_keeps_both_when_rmsd_cannot_be_computed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: rmsd_to_me chained check_sanitization and try_reprotanation
+    # and then called AddConformer on the result without a None check, unlike
+    # every other consumer of those helpers. The AttributeError escaped
+    # add_conformers and the ring-conformer and minimization steps, reaching
+    # parallelizer.run_one, which printed the traceback and dropped the whole
+    # molecule. Keeping both conformers is the conservative outcome: nothing is
+    # deduplicated on an RMSD that was never computed.
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+    mol.conformers.append(MyMol.MyConformer(mol, mol.conformers[0].conformer()))
+    monkeypatch.setattr(MyMol.MOH, "try_reprotanation", lambda amol: None)
+
+    mol.eliminate_structurally_similar_conformers(0.1)
+
+    assert len(mol.conformers) == 2
+
+
+def test_eliminate_similar_conformers_still_drops_duplicates() -> None:
+    # Control for the test above: two copies of the same conformer do collapse
+    # when the RMSD is computable, so the infinity fallback is not masking the
+    # deduplication entirely.
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+    mol.conformers.append(MyMol.MyConformer(mol, mol.conformers[0].conformer()))
+
+    mol.eliminate_structurally_similar_conformers(0.1)
+
+    assert len(mol.conformers) == 1
+
+
 def test_coord_3d_err_warning_is_logged(capsys: pytest.CaptureFixture[str]) -> None:
     mol = MyMol.MyMol("CCO")
     mol.make_first_3d_conf_no_min()
