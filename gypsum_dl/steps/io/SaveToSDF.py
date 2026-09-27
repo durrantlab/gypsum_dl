@@ -14,6 +14,11 @@ try:
 except Exception:
     utils.exception("You need to install rdkit and its dependencies.")
 
+# The parameters record is written before the run finishes, so end_time and
+# run_time would always carry their defaults; Parallelizer stringifies to an
+# address that changes every run, which makes byte-identical reruns impossible.
+_PARAMS_NOT_WRITTEN = frozenset({"Parallelizer", "end_time", "run_time"})
+
 
 def save_to_sdf(contnrs, params, separate_output_files, output_folder):
     """Saves the 3D models to the disk as an SDF file.
@@ -55,6 +60,8 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
         m = Chem.Mol()
         m.SetProp("_Name", "EMPTY MOLECULE DESCRIBING GYPSUM-DL PARAMETERS")
         for param in params:
+            if param in _PARAMS_NOT_WRITTEN:
+                continue
             m.SetProp(param, str(params[param]))
         w.write(m)
 

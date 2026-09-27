@@ -64,9 +64,11 @@ def convert_2d_to_3d(
     clear = Parallelizer.strip_none(tmp)
 
     # Keep only the top few compound variants in each container, to prevent a
-    # combinatorial explosion.
+    # combinatorial explosion. A cap of zero means "do not enumerate variants,"
+    # not "emit no models," so every surviving input still needs room for one
+    # conformer here.
     chem_utils.bst_for_each_contnr_no_opt(
-        contnrs, clear, max_variants_per_compound, thoroughness, False
+        contnrs, clear, max(1, max_variants_per_compound), thoroughness, False
     )
 
 

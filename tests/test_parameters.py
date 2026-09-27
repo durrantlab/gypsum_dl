@@ -144,6 +144,46 @@ def test_set_parameters_allows_thoroughness_of_one(tmp_path) -> None:
     assert params["thoroughness"] == 1
 
 
+def test_set_parameters_rejects_unknown_job_manager(tmp_path) -> None:
+    # Regression: only the type of job_manager was checked outside the CLI, and
+    # Parallelizer's bare "else" silently substitutes multiprocessing while
+    # params keeps the bad value. A one-character typo therefore either ran on
+    # all cores after the user asked for serial, or died at the first fan-out
+    # step with a message about development overrides.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    with pytest.raises(Exception, match="multiprocessing"):
+        start.set_parameters({"source": str(src), "job_manager": "multiproccessing"})
+
+
+def test_set_parameters_accepts_every_valid_job_manager(tmp_path) -> None:
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    for job_manager in start.VALID_JOB_MANAGERS:
+        params = start.set_parameters(
+            {"source": str(src), "job_manager": job_manager.upper()}
+        )
+        assert params["job_manager"] == job_manager
+
+
+def test_set_parameters_rejects_inverted_ph_window(tmp_path) -> None:
+    # Regression: an inverted window passed validation and was handed straight
+    # to Dimorphite-DL, which has no reason to expect one.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    with pytest.raises(Exception, match="min_ph"):
+        start.set_parameters({"source": str(src), "min_ph": 9.0, "max_ph": 6.0})
+
+
+def test_set_parameters_accepts_a_single_point_ph_window(tmp_path) -> None:
+    # A window of zero width is a legitimate request for one pH.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params = start.set_parameters({"source": str(src), "min_ph": 7.4, "max_ph": 7.4})
+    assert params["min_ph"] == pytest.approx(7.4)
+    assert params["max_ph"] == pytest.approx(7.4)
+
+
 def test_finalize_params_requires_source() -> None:
     with pytest.raises(Exception, match="source"):
         start.finalize_params({"source": "", "output_folder": "./"})

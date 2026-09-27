@@ -81,6 +81,11 @@ def generate_alternate_3d_nonaromatic_ring_confs(
         + "rings (boat vs. chair, etc.)..."
     )
 
+    # A cap of zero means "do not enumerate variants," not "emit no models,"
+    # so one ring conformer is still needed; a cap of zero would otherwise
+    # reach kmeans2 with zero clusters.
+    variant_cap = max(1, max_variants_per_compound)
+
     # Create parameters (inputs) to feed to the parallelizer.
     params = []
     ones_with_nonaro_rngs = set([])  # This is just to keep track of which
@@ -91,8 +96,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
             # against the keys of grouped, which come from mol.contnr_idx.
             ones_with_nonaro_rngs.add(contnr.contnr_idx)
             params.extend(
-                (mol, max_variants_per_compound, thoroughness, second_embed)
-                for mol in contnr.mols
+                (mol, variant_cap, thoroughness, second_embed) for mol in contnr.mols
             )
     params = tuple(params)
 
@@ -138,7 +142,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
         # pair).
 
         # Keep only the top ones.
-        lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:max_variants_per_compound]
+        lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:variant_cap]
 
         # Add the top ones to the container mol list.
         for energy, mol in lst_enrgy_mol_pairs:

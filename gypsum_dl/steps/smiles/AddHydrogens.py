@@ -52,6 +52,13 @@ def add_hydrogens(
     :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
+    # No point in continuing if none requested. The sibling enumeration steps
+    # (tautomers, chirality, double bonds) treat zero the same way; without
+    # this, the selector below is asked for zero survivors and empties every
+    # container.
+    if max_variants_per_compound == 0:
+        return
+
     utils.log("Ionizing all molecules...")
 
     # Make a simple directory with the ionization parameters.

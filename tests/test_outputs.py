@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from datetime import datetime
 
 import pytest
 from rdkit import Chem
@@ -333,3 +334,82 @@ def test_save_to_sdf_finishes_the_file_when_a_molecule_raises(tmp_path) -> None:
         save_to_sdf([contnr], {"thoroughness": 1}, False, str(tmp_path))
 
     assert len(_molecules_in(str(tmp_path / "gypsum_dl_success.sdf"))) == 1
+
+
+def test_zero_max_variants_still_writes_one_model_per_input(tmp_path) -> None:
+    # Regression: max_variants_per_compound == 0 passes validation, and the
+    # SMILES enumeration steps read it as "do not enumerate variants." The
+    # ionization step had no such guard and the 3D steps read it as a cap of
+    # zero survivors, so every container was emptied: the success SDF held
+    # nothing but the parameters record, every input landed in
+    # gypsum_dl_failed.smi, and the log blamed conformer generation.
+    # Cyclohexane is here to carry the run through the non-aromatic
+    # ring-conformer step as well.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\nC1CCCCC1\tcyclohexane\n")
+    output_folder = tmp_path / "out_zero_variants"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "max_variants_per_compound": 0,
+            "thoroughness": 1,
+        }
+    )
+
+    mols = _molecules_in(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+    assert len(mols) == 2
+    assert all(m.GetNumAtoms() > 0 for m in mols)
+    assert not os.path.exists(os.path.join(str(output_folder), "gypsum_dl_failed.smi"))
+
+
+def _params_record_text(sdf_path: str) -> str:
+    """Return the text of the parameters record an output SDF opens with.
+
+    That record is an atomless placeholder, so reading it back through
+    SDMolSupplier would depend on how RDKit treats a molecule with no atoms.
+    Slicing the file text at the first record terminator avoids the question.
+
+    Args:
+        sdf_path: Path to the SDF file to read.
+
+    Returns:
+        The text of the first record, without its "$$$$" terminator.
+    """
+    with open(sdf_path, encoding="utf-8") as f:
+        return f.read().split("$$$$")[0]
+
+
+def test_params_record_carries_a_real_start_time(tmp_path) -> None:
+    # Regression: the parameters record is written during the run, but
+    # start_time, end_time, and run_time were assigned to params only after the
+    # run returned, so every output SDF reported all three as their default 0.
+    # The two that cannot be known when the record is written are no longer
+    # written at all, and Parallelizer goes with them: it stringifies to an
+    # address that changes every run, which defeats byte-identical reruns.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    output_folder = tmp_path / "out_params_record"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "2d_output_only": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+
+    record = _params_record_text(
+        os.path.join(str(output_folder), "gypsum_dl_success.sdf")
+    )
+    assert "<run_time>" not in record
+    assert "<end_time>" not in record
+    assert "<Parallelizer>" not in record
+
+    lines = record.splitlines()
+    start_time_line = next(i for i, line in enumerate(lines) if "<start_time>" in line)
+    # Raises if the recorded value is the "0" default rather than a timestamp.
+    datetime.fromisoformat(lines[start_time_line + 1].strip())

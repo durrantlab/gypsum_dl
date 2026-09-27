@@ -23,6 +23,12 @@ from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
 from gypsum_dl.steps.io.ProcessOutput import proccess_output
 from gypsum_dl.steps.smiles.PrepareSmiles import prepare_smiles
 
+# The modes Parallelizer recognizes. Anything else falls into its bare "else"
+# branch, which silently substitutes multiprocessing while params keeps the
+# unrecognized value, so the run either ignores the user's choice or dies at
+# the first fan-out step with a message about development overrides.
+VALID_JOB_MANAGERS = ("mpi", "multiprocessing", "serial")
+
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def prepare_molecules(args: dict[str, Any]) -> None:
@@ -141,6 +147,11 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # they have specified a json file.
     if need_to_print_override_warning == True:
         utils.log("WARNING: Using the --json flag overrides all other flags.")
+
+    # The parameters record is written during the run (by way of
+    # execute_gypsum_dl), so the start time has to be in params before that
+    # call rather than after it.
+    params["start_time"] = str(start_time)
 
     # If running in mpi mode, separate_output_files must be set to true.
     if params["job_manager"] == "mpi" and params["separate_output_files"] == False:
@@ -274,9 +285,6 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # Calculate the total run time.
     end_time = datetime.now()
     run_time = end_time - start_time
-    params["start_time"] = str(start_time)
-    params["end_time"] = str(end_time)
-    params["run_time"] = str(run_time)
 
     utils.log("\nStart time at: " + str(start_time))
     utils.log("End time at:   " + str(end_time))
@@ -582,6 +590,33 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
 
     # Make sure job_manager is always lower case.
     params["job_manager"] = params["job_manager"].lower()
+
+    # Only the command-line path restricts this parameter (through argparse
+    # choices); the json and API paths reach here with any string at all.
+    if params["job_manager"] not in VALID_JOB_MANAGERS:
+        utils.exception(
+            'The parameter "job_manager" must be one of '
+            + ", ".join(VALID_JOB_MANAGERS)
+            + ', but it is "'
+            + params["job_manager"]
+            + '".'
+        )
+
+    # An inverted pH window is passed straight to Dimorphite-DL, which has no
+    # reason to expect one. Guard with a membership test, because
+    # finalize_params is also called with partial parameter dictionaries.
+    if (
+        "min_ph" in params
+        and "max_ph" in params
+        and params["min_ph"] > params["max_ph"]
+    ):
+        utils.exception(
+            'The parameter "min_ph" ('
+            + str(params["min_ph"])
+            + ') cannot be greater than "max_ph" ('
+            + str(params["max_ph"])
+            + ")."
+        )
 
     return params
 

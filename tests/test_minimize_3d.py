@@ -68,6 +68,49 @@ def test_parallel_minit_returns_lowest_energy_minimized_conformer(monkeypatch) -
     assert "1 kcal/mol" in result.genealogy[-1]
 
 
+class _RecordingMol(_FakeMol):
+    """A _FakeMol that remembers how many conformers it was asked for.
+
+    The zero-cap regression is about the count that reaches add_conformers (and
+    the slice taken afterwards), so the test needs to see that number rather
+    than only the returned molecule.
+    """
+
+    def __init__(self, confs: list) -> None:
+        super().__init__(confs)
+        self.requested = -1
+
+    def add_conformers(self, num, rmsd_cutoff=0.1, minimize=True) -> None:
+        self.requested = num
+        super().add_conformers(num, rmsd_cutoff, minimize)
+
+
+def test_parallel_minit_keeps_one_conformer_with_a_zero_variant_cap(
+    monkeypatch,
+) -> None:
+    # Regression: max_variants_per_compound is allowed to be 0, which the
+    # SMILES enumeration steps read as "do not enumerate variants." Here it
+    # requested zero conformers and then indexed conformers[:0][0], so the
+    # IndexError was swallowed by the worker wrapper and the molecule was
+    # reported as one that simply produced nothing.
+    conf = _FakeConf(pre=10, post=5)
+    mol = _RecordingMol([conf])
+
+    class _FakeMyConformer:
+        def __init__(self, new_mol, conf, second_embed) -> None:
+            self.energy = conf.energy
+
+    monkeypatch.setattr(Minimize3D, "MyConformer", _FakeMyConformer)
+
+    result = Minimize3D.parallel_minit(
+        mol, max_variants_per_compound=0, thoroughness=1, second_embed=False
+    )
+
+    assert mol.requested >= 1
+    assert result is not None
+    assert len(result.conformers) == 1
+
+
 class _AlertMol:
     """Minimal MyMol stand-in for the error-alert loop of minimize_3d."""
 

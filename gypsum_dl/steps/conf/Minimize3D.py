@@ -153,8 +153,13 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
     :rtype: MyMol.MyMol
     """
 
+    # A cap of zero means "do not enumerate variants," not "emit no models,"
+    # so one conformer is still needed here; a cap of zero would otherwise
+    # request zero conformers and then index an empty slice below.
+    variant_cap = max(1, max_variants_per_compound)
+
     # Not minimizing. Just adding the conformers.
-    mol.add_conformers(thoroughness * max_variants_per_compound, 0.1, False)
+    mol.add_conformers(thoroughness * variant_cap, 0.1, False)
 
     if len(mol.conformers) > 0:
         # Because it is possible to find a molecule that has no
@@ -166,7 +171,7 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
         # scoring. The conformers were sorted by their pre-minimization energy,
         # which is not monotonic with post-minimization energy, so re-sort the
         # minimized subset before selecting the best one.
-        minimized = mol.conformers[:max_variants_per_compound]
+        minimized = mol.conformers[:variant_cap]
         for conf in minimized:
             conf.minimize()
         minimized.sort(key=operator.attrgetter("energy"))
