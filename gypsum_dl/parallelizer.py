@@ -329,7 +329,7 @@ class Parallelizer(object):
 
         if mode != self.mode:
             printout = (
-                f"changing mode from {mode} to {self.mode} for development purpose"
+                f"changing mode from {self.mode} to {mode} for development purpose"
             )
             print(printout)
 

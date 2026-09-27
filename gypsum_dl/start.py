@@ -544,14 +544,12 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
         utils.exception(f"Source file not found: {params['source']}")
     source_dir = os.path.dirname(params["source"]) + os.sep
 
+    # An empty output_folder is always filled in here, either from the source
+    # directory or from the "./" default applied when the parameters are
+    # merged, so the .pdb and separate-file output modes cannot reach this
+    # point without a folder to write to.
     if params["output_folder"] == "" and params["source"] != "":
         params["output_folder"] = f"{source_dir}output{str(os.sep)}"
-
-    if params["add_pdb_output"] == True and params["output_folder"] == "":
-        utils.exception("To output files as .pdbs, specify the output_folder.")
-
-    if params["separate_output_files"] == True and params["output_folder"] == "":
-        utils.exception("For separate_output_files, specify the output_folder.")
 
     # if not os.path.exists(params["output_folder"]) or not os.path.isdir(params["output_folder"]):
     #     utils.exception(

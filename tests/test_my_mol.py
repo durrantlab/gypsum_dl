@@ -267,6 +267,22 @@ def test_load_conformers_into_rdkit_mol() -> None:
     assert mol.rdkit_mol.GetNumConformers() == 1
 
 
+def test_load_conformers_into_rdkit_mol_assigns_distinct_ids() -> None:
+    # Regression: AddConformer was called without assignId, so each conformer
+    # kept its source id. Every freshly embedded MyConformer holds exactly one
+    # conformer with id 0, so a multi-conformer molecule ended up with several
+    # conformers sharing id 0. SDWriter and MolToPDBFile resolve confId=-1 to
+    # the first match, so the same coordinates would be written repeatedly.
+    mol = MyMol.MyMol("CCCCCC")
+    mol.make_first_3d_conf_no_min()
+    mol.conformers.append(MyMol.MyConformer(mol))
+
+    mol.load_conformers_into_rdkit_mol()
+
+    ids = sorted(conf.GetId() for conf in mol.rdkit_mol.GetConformers())
+    assert ids == [0, 1]
+
+
 def test_conformer_coords_and_energy() -> None:
     mol = MyMol.MyMol("CCO")
     mol.make_first_3d_conf_no_min()
@@ -307,6 +323,7 @@ def test_coord_3d_err_warning_is_logged(capsys: pytest.CaptureFixture[str]) -> N
     mol.make_first_3d_conf_no_min()
     mol.conformers[0].coord_3d_err_warning(None)
     assert "WARNING" in capsys.readouterr().out
+
 
 def _first_conformer_positions(smiles: str, seed: int) -> numpy.ndarray:
     """Embed a molecule's first conformer under a fixed Python seed.

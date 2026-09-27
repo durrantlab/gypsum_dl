@@ -165,6 +165,25 @@ def test_finalize_params_defaults_output_folder_next_to_source(tmp_path) -> None
     assert params["job_manager"] == "serial"
 
 
+def test_finalize_params_fills_output_folder_without_output_mode_keys(
+    tmp_path,
+) -> None:
+    # Regression: two checks rejected an empty "output_folder" when
+    # add_pdb_output or separate_output_files was set, but they sat below the
+    # block that fills the folder in (and the merged default is "./"), so
+    # neither could ever fire. They also made both keys mandatory, which
+    # finalize_params does not otherwise require of a partial parameter
+    # dictionary.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+
+    params = start.finalize_params(
+        {"source": str(src), "output_folder": "", "job_manager": "serial"}
+    )
+
+    assert params["output_folder"].endswith(f"output{os.sep}")
+
+
 def test_finalize_params_derives_source_dir_by_dirname(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -279,6 +279,19 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
             + " double bond(s) with unspecified stereochemistry."
         )
 
+        # The bonds dropped above are never assigned a direction, so the 3D
+        # embedder picks their geometry arbitrarily later on. Say so, rather
+        # than letting the count above imply that all of them were enumerated.
+        if unasignd_dbl_bnd_idxs_orig_count > len(unasignd_dbl_bnd_idxs):
+            utils.log(
+                "\t\tTo avoid a combinatorial explosion, only "
+                + str(len(unasignd_dbl_bnd_idxs))
+                + " of the "
+                + str(unasignd_dbl_bnd_idxs_orig_count)
+                + " double bonds with unspecified stereochemistry were varied. "
+                + "The stereochemistry of the others was left unspecified."
+            )
+
     # Go through and consider each of the retained combinations.
     smiles_to_consider = set([])
     for atom_config_options in all_atom_config_options:
@@ -343,9 +356,15 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
 
         # Sometimes you get an error if there's a bad structure otherwise. Add
         # the new molecule to the list of results, if it does not have a bizarre
-        # substructure.
+        # substructure. Ask through the accessor: for a MyMol built from a
+        # SMILES string, can_smi is still "" at this point, so reading the
+        # cached attribute directly can never detect a failed canonicalization.
         if (
-            new_mol.can_smi not in [False, None]
+            new_mol.smiles()
+            not in (
+                False,
+                None,
+            )
             and not new_mol.remove_bizarre_substruc()
         ):
             new_mol.contnr_idx = mol.contnr_idx

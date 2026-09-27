@@ -671,7 +671,11 @@ class MyMol:
             AllChem.Compute2DCoords(self.rdkit_mol)
             return
         for conformer in self.conformers:
-            self.rdkit_mol.AddConformer(conformer.conformer())
+            # Freshly embedded conformers all carry id 0, so without assignId
+            # a multi-conformer molecule ends up with several conformers
+            # sharing an id, and writers that resolve confId=-1 to the first
+            # match would silently write the same coordinates repeatedly.
+            self.rdkit_mol.AddConformer(conformer.conformer(), assignId=True)
 
 
 class MyConformer:
@@ -773,7 +777,11 @@ class MyConformer:
             # On rare occasions, the new conformer generating algorithm fails
             # because params.useRandomCoords = False. So if it fails, try
             # again with True.
-            if self.mol is not False and self.mol.GetNumConformers() == 0 and use_random_coordinates == False:
+            if (
+                self.mol is not False
+                and self.mol.GetNumConformers() == 0
+                and use_random_coordinates == False
+            ):
                 params.useRandomCoords = True
                 try:
                     AllChem.EmbedMolecule(self.mol, params)
@@ -786,7 +794,11 @@ class MyConformer:
             # In this case, the old one still works. So if no coordinates are
             # assigned, try that one. Parameters must have second_embed set to
             # True for this to happen.
-            if self.mol is not False and second_embed == True and self.mol.GetNumConformers() == 0:
+            if (
+                self.mol is not False
+                and second_embed == True
+                and self.mol.GetNumConformers() == 0
+            ):
                 try:
                     # This legacy call takes no EmbedParameters, so it needs
                     # the seed passed separately or it falls back to RDKit's

@@ -3,6 +3,8 @@
 import random
 import time
 
+import pytest
+
 from gypsum_dl.MyMol import MyMol
 from gypsum_dl.steps.smiles.EnumerateDoubleBonds import (
     parallel_get_double_bonded,
@@ -94,6 +96,73 @@ def test_sample_bond_dir_configs_reproducible_when_seeded() -> None:
     second = sample_bond_dir_configs(20, 100)
 
     assert first == second
+
+
+def test_reports_when_only_some_double_bonds_are_varied(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: num_bonds_to_keep truncates the unspecified double bonds to
+    # a logarithmic count, at random, and the rest are never assigned a
+    # direction (the 3D embedder picks their geometry arbitrarily later). The
+    # log reported only the pre-truncation count, so a user reading "has 8
+    # double bond(s) with unspecified stereochemistry" alongside a genealogy
+    # entry of "(cis-trans isomerization)" had no way to learn that half of
+    # them were left unspecified.
+    smi = "CC=C" * 8 + "C"
+
+    parallel_get_double_bonded(MyMol(smi), 5, 3)
+
+    # Collapse whitespace: log() wraps at 80 columns.
+    out = " ".join(capsys.readouterr().out.split())
+    assert "only 4 of the 8 double bonds" in out
+    assert "left unspecified" in out
+
+
+def test_no_truncation_notice_when_all_bonds_are_varied(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parallel_get_double_bonded(MyMol("CC=CC"), 1, 1)
+
+    out = " ".join(capsys.readouterr().out.split())
+    assert "has 1 double bond(s) with unspecified stereochemistry" in out
+    assert "left unspecified" not in out
+
+
+def test_discards_variants_that_cannot_be_canonicalized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: the guard read new_mol.can_smi, which is still "" for a
+    # MyMol built from a SMILES string (only a later smiles() call can set it
+    # to None), so the condition was always true and the guard was dead. A
+    # variant whose canonicalization fails then reached the results carrying
+    # can_smi = None, which leaked into the genealogy strings and into the
+    # set-based deduplication downstream.
+    original_smiles = MyMol.smiles
+
+    def failing_smiles(self: MyMol, noh: bool = False) -> str | None:
+        """Fail canonicalization for the enumerated variants only.
+
+        The variants are the molecules built from stereochemistry-assigned
+        SMILES, so they are the ones whose SMILES carry a slash or backslash.
+        The input molecule has to keep working, because it is canonicalized
+        for the log message before the guard is ever reached.
+
+        Args:
+            self: The molecule being canonicalized.
+            noh: Whether to omit hydrogens, as in `MyMol.smiles`.
+
+        Returns:
+            None for an enumerated variant, otherwise the canonical SMILES.
+        """
+        if not noh and ("/" in self.orig_smi or "\\" in self.orig_smi):
+            return None
+        return original_smiles(self, noh)
+
+    assert parallel_get_double_bonded(MyMol("CC=CC"), 1, 1)
+
+    monkeypatch.setattr(MyMol, "smiles", failing_smiles)
+
+    assert parallel_get_double_bonded(MyMol("CC=CC"), 1, 1) == []
 
 
 def test_many_unspecified_double_bonds_stays_bounded() -> None:

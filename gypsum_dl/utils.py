@@ -86,18 +86,22 @@ def log(txt: str, trailing_whitespace: str = "") -> None:
 
     # Wrap each line independently so that embedded newlines (e.g. a list of
     # failed SMILES joined with "\n") are preserved instead of being collapsed
-    # into a single reflowed paragraph.
+    # into a single reflowed paragraph. Long tokens are never split: most
+    # messages here embed a SMILES string, and a SMILES broken across lines
+    # (or at a hyphen) can no longer be copied back into a tool or grepped
+    # for, which is exactly what a user needs when a compound disappears from
+    # the output.
     wrapped_lines = []
     for line in txt.split("\n"):
-        whitespace_before = line[: len(line) - len(line.lstrip())].replace(
-            "\t", "    "
-        )
+        whitespace_before = line[: len(line) - len(line.lstrip())].replace("\t", "    ")
         wrapped_lines.append(
             textwrap.fill(
                 line.strip(),
                 width=80,
                 initial_indent=whitespace_before,
                 subsequent_indent=f"{whitespace_before}    ",
+                break_long_words=False,
+                break_on_hyphens=False,
             )
         )
     print("\n".join(wrapped_lines) + trailing_whitespace)
@@ -127,7 +131,9 @@ def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> lis
     represented = {m.contnr_idx for m in results if m is not None}
 
     # Return the contnr_idx of containers with no representative results.
-    return [contnr.contnr_idx for contnr in contnrs if contnr.contnr_idx not in represented]
+    return [
+        contnr.contnr_idx for contnr in contnrs if contnr.contnr_idx not in represented
+    ]
 
 
 def print_current_smiles(contnrs: list[MolContainer]) -> None:

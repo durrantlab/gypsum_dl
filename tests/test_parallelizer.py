@@ -251,6 +251,20 @@ def test_parallelizer_run_rejects_unknown_mode() -> None:
         par.run([(1,)], add_one, mode="bogus")
 
 
+def test_parallelizer_run_logs_the_mode_change_in_the_right_direction(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: the message was formatted as "from {mode} to {self.mode}",
+    # naming the destination as the source. run() dispatches on `mode`, so the
+    # override direction is self.mode -> mode.
+    par = parallelizer.Parallelizer("multiprocessing", 1, True)
+
+    par.run([(1,)], add_one, mode="serial")
+    par.end()
+
+    assert "changing mode from multiprocessing to serial" in capsys.readouterr().out
+
+
 def test_parallelizer_run_rejects_num_procs_override_in_serial_mode() -> None:
     par = parallelizer.Parallelizer("serial", 1)
     with pytest.raises(Exception, match="Can't override num_procs"):

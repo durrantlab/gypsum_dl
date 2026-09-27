@@ -113,9 +113,41 @@ def test_log_preserves_embedded_newlines(
     assert smi_b in lines
 
 
+def test_log_does_not_split_long_tokens(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: textwrap.fill defaults to break_long_words=True, so any
+    # token longer than the 80-column width was cut mid-token. Every warning
+    # that embeds a SMILES string goes through log(), and a SMILES broken
+    # across lines cannot be copied back into a tool or grepped for, which is
+    # the diagnostic path a user needs when a compound vanishes from the
+    # output.
+    smi = "C" * 120 + "O"
+
+    utils.log(f"\tThrowing out SMILES {smi} for a reason")
+
+    lines = capsys.readouterr().out.splitlines()
+    assert any(smi in line for line in lines)
+
+
+def test_log_does_not_break_tokens_at_hyphens(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Same failure mode with break_on_hyphens, which fires on much shorter
+    # tokens: SMILES do not contain hyphens, but the InChI-style and
+    # dash-bearing molecule names that share these messages do.
+    name = "some-very-long-compound-name-that-runs-past-the-wrap-column-easily"
+
+    utils.log(f"\tCould not process {name} here")
+
+    lines = capsys.readouterr().out.splitlines()
+    assert any(name in line for line in lines)
+
+
 def test_exception_raises_with_message() -> None:
     with pytest.raises(Exception, match="boom"):
         utils.exception("boom")
+
 
 def test_group_mols_by_container_index_dedups_in_first_seen_order() -> None:
     # Regression: deduplication used list(set(...)), whose order follows
