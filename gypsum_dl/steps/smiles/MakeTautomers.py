@@ -3,10 +3,16 @@
 import __future__
 
 import random
+from typing import TYPE_CHECKING
 
 import gypsum_dl.MolObjectHandling as MOH
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import MyMol, chem_utils, utils
+
+if TYPE_CHECKING:
+    # Importing MolContainer at run time would close the MolContainer ->
+    # chem_utils -> utils -> MolContainer import cycle.
+    from gypsum_dl.MolContainer import MolContainer
 
 try:
     from rdkit import Chem
@@ -65,12 +71,21 @@ def make_tauts(
 
     utils.log("Generating tautomers for all molecules...")
 
+    # MolVS treats max_tautomers as a breadth-first depth limiter rather than a
+    # cap on the set it hands back: it stops expanding once the set has reached
+    # that size, but never truncates. Passing the bare variant cap therefore
+    # denies a second expansion pass to any compound whose first pass already
+    # filled the quota, putting tautomers that need two proton shifts out of
+    # reach. Every other enumeration step budgets generation at thoroughness *
+    # max_variants_per_compound and leaves the narrowing to
+    # bst_for_each_contnr_no_opt below, so do the same here.
+    max_tauts = thoroughness * max_variants_per_compound
+
     # Create the parameters to feed into the parallelizer object.
     params = []
     for contnr in contnrs:
         params.extend(
-            (contnr, mol_index, max_variants_per_compound)
-            for mol_index, mol in enumerate(contnr.mols)
+            (contnr, mol_index, max_tauts) for mol_index, mol in enumerate(contnr.mols)
         )
     params = tuple(params)
 
@@ -106,7 +121,9 @@ def make_tauts(
     )
 
 
-def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
+def parallel_make_taut(
+    contnr: "MolContainer", mol_index: int, max_tauts: int
+) -> list[MyMol.MyMol] | None:
     """Makes alternate tautomers for a given molecule container. This is the
        function that gets fed into the parallelizer.
 
@@ -114,10 +131,11 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     :type contnr: MolContainer.MolContainer
     :param mol_index: The molecule index.
     :type mol_index: int
-    :param max_variants_per_compound: To control the combinatorial explosion,
-       only this number of variants (molecules) will be advanced to the next
-       step.
-    :type max_variants_per_compound: int
+    :param max_tauts: The size at which MolVS stops expanding the tautomer
+       set. It can return more than this many forms, since it does not discard
+       any it has already built, and the caller trims to
+       max_variants_per_compound afterwards regardless.
+    :type max_tauts: int
     :return: A list of MyMol.MyMol objects, containing the alternate
         tautomeric forms.
     :rtype: list
@@ -155,11 +173,11 @@ def parallel_make_taut(contnr, mol_index, max_variants_per_compound):
     if m is None:
         return None
 
-    # Limit to max_variants_per_compound tauts. Note that another batch could
-    # add more, so you'll need to once again trim to this number later. But
-    # this could at least help prevent the combinatorial explosion at this
-    # stage.
-    enum = tautomer.TautomerEnumerator(max_tautomers=max_variants_per_compound)
+    # Stop expanding once the set reaches max_tauts. Note that another batch
+    # could add more, and MolVS itself can overshoot, so you'll need to trim to
+    # max_variants_per_compound later. But this could at least help prevent the
+    # combinatorial explosion at this stage.
+    enum = tautomer.TautomerEnumerator(max_tautomers=max_tauts)
     tauts_rdkit_mols = enum.enumerate(m)
 
     # Make all those tautomers into MyMol objects.

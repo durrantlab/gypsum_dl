@@ -237,11 +237,58 @@ def test_make_tauts_respects_zero_variants() -> None:
     assert len(contnr.mols) == 1
 
 
+def test_make_tauts_scales_enumerator_budget_by_thoroughness(monkeypatch) -> None:
+    # Regression: make_tauts handed MolVS the bare variant cap, so with the
+    # defaults the enumerator stopped expanding at 5 while every other step
+    # generated thoroughness * max_variants_per_compound candidates. MolVS uses
+    # max_tautomers as a stopping size for its breadth-first expansion, so the
+    # bare cap also meant max_variants_per_compound=1 disabled tautomerization
+    # outright (its loop body never runs at 1).
+    budgets: list[int] = []
+
+    class _RecordingEnumerator:
+        """Capture the cap MolVS is constructed with, then stand in for it.
+
+        The real enumerator's output is irrelevant here; what matters is the
+        number make_tauts chose, which is otherwise invisible from outside.
+
+        Args:
+            max_tautomers: The stopping size under test.
+        """
+
+        def __init__(self, max_tautomers: int) -> None:
+            budgets.append(max_tautomers)
+
+        def enumerate(self, mol: object) -> list[object]:
+            """Return the input unchanged, standing in for a real enumeration.
+
+            Args:
+                mol: The kekulized RDKit molecule handed to MolVS.
+
+            Returns:
+                A single-member list holding that same molecule.
+            """
+            return [mol]
+
+    monkeypatch.setattr(
+        MakeTautomers.tautomer, "TautomerEnumerator", _RecordingEnumerator
+    )
+
+    contnr = _container("CC(=O)CC", "butanone")
+    make_tauts([contnr], 5, 3, 1, "serial", False, None)
+    assert budgets == [15]
+
+    budgets.clear()
+    contnr = _container("CC(=O)CC", "butanone")
+    make_tauts([contnr], 1, 3, 1, "serial", False, None)
+    assert budgets == [3]
+
+
 _REAL_MAKE_TAUT = MakeTautomers.parallel_make_taut
 
 
 def _make_taut_failing_on_ethanol(
-    contnr: MolContainer, mol_index: int, max_variants_per_compound: int
+    contnr: MolContainer, mol_index: int, max_tauts: int
 ) -> list[MyMol] | None:
     """Stand in for parallel_make_taut, raising for one chosen container.
 
@@ -253,7 +300,7 @@ def _make_taut_failing_on_ethanol(
     Args:
         contnr: The molecule container being tautomerized.
         mol_index: Index of the molecule within the container.
-        max_variants_per_compound: Cap on the number of tautomers enumerated.
+        max_tauts: Size at which MolVS stops expanding the tautomer set.
 
     Returns:
         Whatever the real function returns, for every container but ethanol.
@@ -263,7 +310,7 @@ def _make_taut_failing_on_ethanol(
     """
     if contnr.name == "ethanol":
         raise RuntimeError("simulated tautomerization failure")
-    return _REAL_MAKE_TAUT(contnr, mol_index, max_variants_per_compound)
+    return _REAL_MAKE_TAUT(contnr, mol_index, max_tauts)
 
 
 def _taut_test_contnrs() -> list[MolContainer]:
