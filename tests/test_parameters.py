@@ -169,6 +169,17 @@ def test_set_parameters_accepts_every_valid_job_manager(tmp_path) -> None:
         assert params["job_manager"] == job_manager
 
 
+def test_json_warning_list_names_only_real_parameters(tmp_path) -> None:
+    # Regression: the list included "delta_ph_increment", which is not among
+    # the set_parameters defaults, so merge_parameters aborts the run for any
+    # user who takes the list at its word and supplies that parameter.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params = start.set_parameters({"source": str(src)})
+    unknown = [name for name in start.JSON_WARNING_LIST if name not in params]
+    assert unknown == []
+
+
 def test_set_parameters_rejects_inverted_ph_window(tmp_path) -> None:
     # Regression: an inverted window passed validation and was handed straight
     # to Dimorphite-DL, which has no reason to expect one.

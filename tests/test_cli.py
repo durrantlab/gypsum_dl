@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -57,7 +58,7 @@ def test_cli_reads_parameters_from_json(
         )
     )
     # Pass an overridable flag alongside --json so the override warning fires.
-    # (The warning only makes sense when a json_warning_list flag is actually
+    # (The warning only makes sense when a JSON_WARNING_LIST flag is actually
     # supplied on the command line; --num_processors no longer leaks in via a
     # non-None argparse default.)
     monkeypatch.setattr(
@@ -163,3 +164,89 @@ def test_cli_random_seed_makes_a_serial_run_reproducible(tmp_path, monkeypatch) 
         records.append(_sdf_molecule_records(output_folder / "gypsum_dl_success.sdf"))
 
     assert records[0] == records[1]
+
+
+README = Path(__file__).resolve().parent.parent / "README.md"
+
+
+def _parse_option_help(block: str) -> dict[str, str]:
+    """Map each option to its help text, as rendered by argparse.
+
+    Both the README block and the real --help output are argparse renderings of
+    the same parser, so parsing them the same way lets them be compared without
+    depending on the terminal width (which only changes where lines wrap) or on
+    the argparse version (which only changes how invocations are joined). The
+    invocation is separated from its help by at least two spaces, and never
+    contains two consecutive spaces itself, so that gap is what splits them.
+
+    Args:
+        block: The body of an argparse options section.
+
+    Returns:
+        Help text, whitespace-collapsed, keyed by the option's first long form.
+    """
+    entries: dict[str, str] = {}
+    key = ""
+    for line in block.split("\n"):
+        if not line.strip():
+            continue
+        if line.startswith("  ") and line[2:3] == "-":
+            parts = re.split(r"\s{2,}", line.strip(), maxsplit=1)
+            invocation = parts[0]
+            long_forms = [
+                token
+                for token in re.split(r"[\s,=]+", invocation)
+                if token.startswith("--")
+            ]
+            key = long_forms[0] if long_forms else invocation
+            entries[key] = parts[1] if len(parts) > 1 else ""
+        elif key:
+            entries[key] += " " + line.strip()
+    return {option: " ".join(text.split()) for option, text in entries.items()}
+
+
+def _readme_option_block() -> str:
+    """Extract the fenced command-line parameter block from the README.
+
+    Returns:
+        The text inside the first ```text fence, which documents the options.
+    """
+    text = README.read_text(encoding="utf-8")
+    blocks = re.findall(r"^```text\n(.*?)^```", text, flags=re.MULTILINE | re.DOTALL)
+    assert blocks, "README.md has no ```text command-line parameter block."
+    return blocks[0]
+
+
+def _cli_option_block(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> str:
+    """Run the CLI with --help and return just its options section.
+
+    Args:
+        monkeypatch: Fixture used to fix the terminal width and argv.
+        capsys: Fixture used to capture the help output.
+
+    Returns:
+        The options section of the help output, up to the epilog.
+    """
+    monkeypatch.setenv("COLUMNS", "80")
+    monkeypatch.setattr(sys, "argv", ["gypsum-dl", "--help"])
+    with pytest.raises(SystemExit):
+        run.main()
+    out = capsys.readouterr().out
+    sections = re.split(
+        r"^(?:options|optional arguments):\n", out, flags=re.MULTILINE, maxsplit=1
+    )
+    assert len(sections) == 2, "argparse help output has no options section."
+    return sections[1].split("\n\n")[0]
+
+
+def test_readme_documents_the_help_text_the_cli_prints(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Regression: the README credited --add_html_output with opening a browser,
+    # which nothing does, and omitted the --num_processors default. The README
+    # block is a copy of --help, so it can only be trusted if it is pinned.
+    assert _parse_option_help(_readme_option_block()) == _parse_option_help(
+        _cli_option_block(monkeypatch, capsys)
+    )

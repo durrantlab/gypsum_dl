@@ -66,6 +66,7 @@ Gypsum-DL accepts the following command-line parameters:
                         run_gypsum_dl.py ...-settings...
   --num_processors N, -p N
                         Number of processors to use for parallel calculations.
+                        Defaults to -1 (use all available processors).
   --max_variants_per_compound V, -m V
                         The maximum number of variants to create per input
                         molecule.
@@ -85,8 +86,7 @@ Gypsum-DL accepts the following command-line parameters:
                         the .pdb format. Creates one PDB file for each
                         molecular variant.
   --add_html_output     Indicates that the outputs should also be written in
-                        the .html format, for debugging. Attempts to open a
-                        browser for viewing.
+                        the .html format, for debugging.
   --min_ph MIN          Minimum pH to consider.
   --max_ph MAX          Maximum pH to consider.
   --pka_precision D     Size of pH substructure ranges. See Dimorphite-DL

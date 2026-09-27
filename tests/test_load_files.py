@@ -1,5 +1,6 @@
 """Unit tests for SMI and SDF input parsing, including the naming fallbacks."""
 
+import pytest
 from rdkit import Chem
 
 from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
@@ -9,6 +10,17 @@ BROKEN_SDF_RECORD = """broken
 
   2  1  0  0  0  0  0  0  0  0999 V2000
     0.0000    0.0000    0.0000 C   0  0
+M  END
+$$$$
+"""
+
+# A record with a blank title line and no atoms. RDKit parses this into a valid
+# (empty) Mol, so it reaches the naming code before anything notices it has no
+# SMILES to contribute.
+EMPTY_SDF_RECORD = """
+     RDKit          2D
+
+  0  0  0  0  0  0  0  0  0  0999 V2000
 M  END
 $$$$
 """
@@ -135,6 +147,41 @@ def test_load_sdf_file_duplicate_renaming_avoids_existing_names(tmp_path) -> Non
     names = [d[1] for d in load_sdf_file(str(path))]
     assert names == ["lig_copy_2", "lig", "lig_copy_3"]
     assert len(set(names)) == 3
+
+
+def test_load_sdf_file_skips_atomless_records_without_shifting_names(
+    tmp_path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Regression: an atomless record was named, counted, and registered in
+    # name_set before being dropped at the very end, so the untitled molecule
+    # that follows it was named untitled_1_molnum_1 even though it is the first
+    # molecule in the output. The record also vanished with no warning.
+    untitled = Chem.MolFromSmiles("CCO")
+    path = tmp_path / "input.sdf"
+    path.write_text(EMPTY_SDF_RECORD + Chem.MolToMolBlock(untitled) + "$$$$\n")
+
+    data = load_sdf_file(str(path))
+
+    assert [d[0] for d in data] == ["CCO"]
+    assert [d[1] for d in data] == ["untitled_0_molnum_0"]
+    assert "Skipping an SDF record" in capsys.readouterr().out
+
+
+def test_load_sdf_file_skips_atomless_records_without_claiming_names(
+    tmp_path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Same defect, seen from the duplicate-renaming side: the dropped record
+    # claimed its title in name_set, so a later molecule with that title was
+    # retitled against a name that appears nowhere in the output.
+    lig = Chem.MolFromSmiles("CCO")
+    lig.SetProp("_Name", "lig")
+    path = tmp_path / "input.sdf"
+    path.write_text(
+        EMPTY_SDF_RECORD.replace("\n", "lig\n", 1) + Chem.MolToMolBlock(lig) + "$$$$\n"
+    )
+
+    assert [d[1] for d in load_sdf_file(str(path))] == ["lig"]
+    assert "Skipping an SDF record" in capsys.readouterr().out
 
 
 def test_load_sdf_file_skips_unparseable_records(tmp_path) -> None:

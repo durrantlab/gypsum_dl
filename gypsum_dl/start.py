@@ -36,6 +36,21 @@ from gypsum_dl.steps.smiles.PrepareSmiles import prepare_smiles
 # the first fan-out step with a message about development overrides.
 VALID_JOB_MANAGERS = ("mpi", "multiprocessing", "serial")
 
+# Command-line parameters that a json file overrides. Every entry has to be a
+# key of the set_parameters defaults: merge_parameters rejects anything else,
+# so a name listed here that is not a real parameter reads as documentation
+# for a flag that actually aborts the run.
+JSON_WARNING_LIST = (
+    "source",
+    "output_folder",
+    "num_processors",
+    "min_ph",
+    "max_ph",
+    "thoroughness",
+    "max_variants_per_compound",
+    "pka_precision",
+)
+
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def prepare_molecules(args: dict[str, Any]) -> None:
@@ -49,22 +64,8 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # Keep track of the tim the program starts.
     start_time = datetime.now()
 
-    # A list of command-line parameters that will be ignored if using a json
-    # file.
-    json_warning_list = [
-        "source",
-        "output_folder",
-        "num_processors",
-        "min_ph",
-        "max_ph",
-        "delta_ph_increment",
-        "thoroughness",
-        "max_variants_per_compound",
-        "pka_precision",
-    ]
-
-    # Whether to warn the user that the above parameters, if specified, will
-    # be ignored.
+    # Whether to warn the user that the parameters in JSON_WARNING_LIST, if
+    # specified, will be ignored.
     need_to_print_override_warning = False
 
     if "json" in args:
@@ -76,7 +77,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             utils.exception("Is your input json file properly formed?")
 
         params = set_parameters(params)
-        if [i for i in json_warning_list if i in list(args.keys())]:
+        if [i for i in JSON_WARNING_LIST if i in list(args.keys())]:
             need_to_print_override_warning = True
     else:
         # We're actually going to use all the command-line parameters. No

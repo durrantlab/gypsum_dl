@@ -100,6 +100,15 @@ def load_sdf_file(filename):
             )
             continue
 
+        # A record with no atoms parses to a valid Mol, so it gets this far and
+        # then has nothing to contribute. Drop it before the naming counters
+        # advance, or it consumes an "untitled_N_molnum_N" slot and a name in
+        # name_set that no output molecule ever uses, which shifts the names of
+        # every record that follows.
+        if smiles == "":
+            utils.log("\tWarning: Skipping an SDF record that produced no atoms.")
+            continue
+
         try:
             name = mol.GetProp("_Name")
         except Exception:
@@ -141,7 +150,6 @@ def load_sdf_file(filename):
         except Exception:
             properties = {}
 
-        if smiles != "":
-            data.append((smiles, name, properties))
+        data.append((smiles, name, properties))
 
     return data
