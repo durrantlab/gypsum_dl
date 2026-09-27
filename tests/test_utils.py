@@ -1,5 +1,9 @@
 """Unit tests for the logging, sampling, and bookkeeping helpers in utils."""
 
+import os
+import subprocess
+import sys
+
 import pytest
 
 from gypsum_dl import MyMol, utils
@@ -112,3 +116,44 @@ def test_log_preserves_embedded_newlines(
 def test_exception_raises_with_message() -> None:
     with pytest.raises(Exception, match="boom"):
         utils.exception("boom")
+
+def test_group_mols_by_container_index_dedups_in_first_seen_order() -> None:
+    # Regression: deduplication used list(set(...)), whose order follows
+    # PYTHONHASHSEED because MyMol hashes its canonical SMILES string. These
+    # lists are the input to the seeded sampling in random_sample, so a seeded
+    # run still selected different variants on every invocation.
+    mols = [_mol(s, 0) for s in ["CCO", "CCC", "CCCC", "CCCCC", "OCC"]]
+
+    grouped = utils.group_mols_by_container_index(mols)
+
+    assert [m.smiles() for m in grouped[0]] == [m.smiles() for m in mols[:4]]
+
+
+_HASH_SEED_SCRIPT = """
+import random
+
+from gypsum_dl import utils
+
+random.seed(20260926)
+print(",".join(utils.random_sample(["mol%d" % i for i in range(20)] * 2, 5)))
+"""
+
+
+def test_random_sample_ignores_the_interpreter_hash_seed() -> None:
+    # Regression: random_sample deduplicated with set(), so the list handed to
+    # random.shuffle was ordered differently in every interpreter invocation.
+    # Which variants survived the max_variants_per_compound trim therefore
+    # changed from run to run even with random_seed fixed. Run the same seeded
+    # sample under several hash seeds; the selection must not move.
+    selections = set()
+    for hash_seed in ("1", "2", "3"):
+        completed = subprocess.run(
+            [sys.executable, "-c", _HASH_SEED_SCRIPT],
+            capture_output=True,
+            check=True,
+            env=dict(os.environ, PYTHONHASHSEED=hash_seed),
+            text=True,
+        )
+        selections.add(completed.stdout.strip().splitlines()[-1])
+
+    assert len(selections) == 1

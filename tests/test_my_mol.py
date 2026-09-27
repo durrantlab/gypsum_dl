@@ -1,5 +1,8 @@
 """Unit tests for MyMol and MyConformer."""
 
+import random
+
+import numpy
 import pytest
 from rdkit import Chem
 
@@ -304,3 +307,68 @@ def test_coord_3d_err_warning_is_logged(capsys: pytest.CaptureFixture[str]) -> N
     mol.make_first_3d_conf_no_min()
     mol.conformers[0].coord_3d_err_warning(None)
     assert "WARNING" in capsys.readouterr().out
+
+def _first_conformer_positions(smiles: str, seed: int) -> numpy.ndarray:
+    """Embed a molecule's first conformer under a fixed Python seed.
+
+    Written as a helper so the two seeded embeddings the test compares are
+    built the same way, each starting from a freshly seeded Python generator.
+
+    Args:
+        smiles: SMILES string of the molecule to embed.
+        seed: Seed handed to the random module before embedding.
+
+    Returns:
+        The coordinates of the resulting first conformer.
+    """
+    random.seed(seed)
+    mol = MyMol.MyMol(smiles)
+    mol.make_first_3d_conf_no_min()
+    return mol.conformers[0].coords()
+
+
+def test_conformer_coordinates_are_reproducible_under_a_fixed_seed() -> None:
+    # Regression: MyConformer never set params.randomSeed, and RDKit's
+    # embedding keeps a generator of its own that random.seed() cannot reach.
+    # Its default (-1) picks a fresh seed per call, so --random_seed left the
+    # output coordinates varying between otherwise identical serial runs. The
+    # chain is long enough to have several accessible geometries.
+    first = _first_conformer_positions("CCCCCCCCO", 202609)
+    second = _first_conformer_positions("CCCCCCCCO", 202609)
+
+    assert numpy.allclose(first, second)
+
+
+def test_second_embed_fallback_passes_a_seed(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Regression: the legacy rescue embedder takes no EmbedParameters, so it
+    # kept RDKit's unseeded default even once the primary call was seeded,
+    # leaving any molecule rescued by --second_embed nonreproducible.
+    calls: list[dict[str, object]] = []
+
+    def recording_embed(mol: Chem.Mol, *args: object, **kwargs: object) -> int:
+        """Record each embedding attempt and report that it produced nothing.
+
+        Returning failure without adding a conformer walks MyConformer through
+        both retries, so the legacy fallback is the last call recorded.
+
+        Args:
+            mol: The molecule handed to RDKit.
+            *args: Positional arguments, which carry the EmbedParameters.
+            **kwargs: Keyword arguments, which carry the legacy call's seed.
+
+        Returns:
+            RDKit's failure code.
+        """
+        calls.append(dict(kwargs))
+        return -1
+
+    monkeypatch.setattr(MyMol.AllChem, "EmbedMolecule", recording_embed)
+
+    mol = MyMol.MyMol("CCO")
+    random.seed(202609)
+    MyMol.MyConformer(mol, second_embed=True)
+
+    assert calls, "EmbedMolecule was never called"
+    seed = calls[-1].get("randomSeed")
+    assert isinstance(seed, int)
+    assert seed > 0

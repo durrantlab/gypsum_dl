@@ -32,15 +32,35 @@ def desalt_orig_smi(
 
     utils.log("Desalting all molecules (i.e., keeping only largest fragment).")
 
-    # Desalt each of the molecule containers. This step is very fast, so let's
-    # just run it on a single processor always.
-    tmp = [desalter(x) for x in contnrs]
+    # Desalting is very fast, so always run it on a single processor. Still
+    # route each container through run_one: fragmenting and sanitizing can
+    # raise (a fragment that will not sanitize apart from its counter-ion, for
+    # instance), and desalting is the first step, so an unguarded exception
+    # here aborts the run before any output exists. Every other step already
+    # drops a single failed molecule this way.
+    for cont in contnrs:
+        desalt_mol = Parallelizer.run_one(desalter, (cont,))
 
-    # Go through each contnr and update the orig_smi_deslt. If we update it,
-    # also add a note in the genealogy record. Pair each container with its own
-    # desalted molecule by zipping, so a dropped element can never shift the
-    # alignment.
-    for cont, desalt_mol in zip(contnrs, tmp):
+        if desalt_mol is None or desalt_mol.rdkit_mol is None:
+            # Either desalter raised, or the largest fragment did not survive
+            # sanitization. Fall back to the molecule as supplied, which did
+            # sanitize, rather than letting a molecule with no rdkit_mol reach
+            # the later steps and the writers.
+            utils.log(
+                "\tWARNING: Could not desalt "
+                + cont.orig_smi
+                + " ("
+                + cont.name
+                + "). Keeping the molecule as given."
+            )
+            orig_mol = cont.mol_orig_frm_inp_smi
+            if not orig_mol.genealogy:
+                orig_mol.genealogy.append(f"{cont.orig_smi} (source)")
+            cont.add_mol(orig_mol)
+            continue
+
+        # Update the orig_smi_deslt. If we update it, also add a note in the
+        # genealogy record.
         if cont.orig_smi != desalt_mol.orig_smi:
             desalt_mol.genealogy.append(f"{desalt_mol.orig_smi_deslt} (desalted)")
             cont.update_orig_smi(desalt_mol.orig_smi_deslt)

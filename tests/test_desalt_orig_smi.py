@@ -1,6 +1,10 @@
 """Regression tests for SMILES desalting."""
 
+import pytest
+
+from gypsum_dl import MyMol
 from gypsum_dl.MolContainer import MolContainer
+from gypsum_dl.steps.smiles import DeSaltOrigSmiles
 from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi, desalter
 
 
@@ -78,3 +82,75 @@ def test_desalt_orig_smi_pairs_each_container_with_its_own_mol() -> None:
     assert salted.orig_smi_deslt == salted.mols[0].orig_smi_deslt
     # The already-clean container is untouched apart from gaining its own mol.
     assert clean.mols[0].smiles() == clean.orig_smi_canonical
+
+def test_desalt_orig_smi_isolates_a_container_whose_desalting_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: desalting ran bare in the main process
+    # (`[desalter(x) for x in contnrs]`), so a single molecule whose largest
+    # fragment will not sanitize on its own aborted the whole run at the first
+    # step, before any output existed.
+    salted = MolContainer("CCCCO.[Na+]", "salted", 0, {})
+    clean = MolContainer("c1ccccc1", "benzene", 1, {})
+
+    real_desalter = DeSaltOrigSmiles.desalter
+
+    def exploding_desalter(contnr: MolContainer) -> MyMol.MyMol:
+        """Stand in for a fragment that cannot be sanitized in isolation.
+
+        Args:
+            contnr: The container being desalted.
+
+        Returns:
+            The desalted molecule, for every container but the salted one.
+        """
+        if contnr.name == "salted":
+            raise ValueError("fragment will not sanitize on its own")
+        return real_desalter(contnr)
+
+    monkeypatch.setattr(DeSaltOrigSmiles, "desalter", exploding_desalter)
+
+    desalt_orig_smi([salted, clean], 1, "serial", None)
+
+    # The healthy container is unaffected.
+    assert len(clean.mols) == 1
+    assert clean.mols[0].smiles() == clean.orig_smi_canonical
+
+    # The failing one falls back to the input molecule instead of propagating.
+    assert len(salted.mols) == 1
+    assert salted.mols[0] is salted.mol_orig_frm_inp_smi
+    assert salted.orig_smi == "CCCCO.[Na+]"
+
+
+def test_desalt_orig_smi_rejects_a_fragment_that_failed_sanitization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: the desalted molecule was added to the container without
+    # checking that it survived sanitization, so a MyMol with rdkit_mol None
+    # could reach the later steps and the writers.
+    salted = MolContainer("CCCCO.[Na+]", "salted", 0, {})
+
+    def unsanitizable_desalter(contnr: MolContainer) -> MyMol.MyMol:
+        """Return a largest fragment that did not survive sanitization.
+
+        Args:
+            contnr: The container being desalted.
+
+        Returns:
+            A molecule whose rdkit_mol is None.
+        """
+        mol = MyMol.MyMol("CCCCO")
+        mol.rdkit_mol = None
+        return mol
+
+    monkeypatch.setattr(DeSaltOrigSmiles, "desalter", unsanitizable_desalter)
+
+    desalt_orig_smi([salted], 1, "serial", None)
+
+    assert len(salted.mols) == 1
+    kept = salted.mols[0]
+    assert kept is salted.mol_orig_frm_inp_smi
+    assert kept.rdkit_mol is not None
+    # The fallback still has to stamp the provenance the skipped desalter would
+    # have recorded.
+    assert kept.genealogy == ["CCCCO.[Na+] (source)"]

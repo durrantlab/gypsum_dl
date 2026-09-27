@@ -11,6 +11,7 @@ MyMol.MyConformer
 import contextlib
 import copy
 import operator
+import random
 import sys
 
 from molvs import standardize_smiles as ssmiles
@@ -753,7 +754,13 @@ class MyConformer:
 
             # Also set whether to start from random coordinates.
             params.useRandomCoords = use_random_coordinates
-            # params.randomSeed = random.randint(0, 1000000000)
+
+            # RDKit's embedding draws from its own generator, which
+            # random.seed() cannot reach; its default (-1) means a fresh,
+            # unrecoverable seed on every call. Derive the seed from the
+            # (optionally seeded) Python generator instead, so --random_seed
+            # also fixes the coordinates.
+            params.randomSeed = random.randint(1, 2**31 - 1)
 
             # AllChem.EmbedMolecule uses geometry to create inital molecule
             # coordinates. This sometimes takes a very long time.
@@ -781,7 +788,16 @@ class MyConformer:
             # True for this to happen.
             if self.mol is not False and second_embed == True and self.mol.GetNumConformers() == 0:
                 try:
-                    AllChem.EmbedMolecule(self.mol, useRandomCoords=use_random_coordinates)
+                    # This legacy call takes no EmbedParameters, so it needs
+                    # the seed passed separately or it falls back to RDKit's
+                    # unseeded default. Reuse the seed drawn above: the older
+                    # algorithm is a different embedder, so it does not
+                    # reproduce the attempt that just failed.
+                    AllChem.EmbedMolecule(
+                        self.mol,
+                        useRandomCoords=use_random_coordinates,
+                        randomSeed=params.randomSeed,
+                    )
                 except RuntimeError as e:
                     self.mol = False
                     self.coord_3d_err_warning(e)

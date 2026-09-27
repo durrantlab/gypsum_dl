@@ -63,8 +63,9 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     :rtype: list
     """
 
-    # Remove identical entries.
-    mol_lst = list(set(mol_lst))
+    # Remove identical entries. First-seen order, because set() order tracks
+    # PYTHONHASHSEED and this list is the input to the seeded sampling below.
+    mol_lst = list(dict.fromkeys(mol_lst))
 
     # If the length of the mol_lst is less than num, just return them all.
     if len(mol_lst) <= num:
@@ -100,11 +101,13 @@ def remove_highly_charged_molecules(mol_lst):
     :rtype: list
     """
 
-    # First, find the molecule that is closest to being neutral.
+    # First, find the molecule that is closest to being neutral. Ties on
+    # |charge| (the common -1/+1 pair) are broken by preferring the more
+    # negative form: a positional tie-break made the signed reference charge,
+    # and so the kept set, depend on the order the variants happened to arrive
+    # in.
     charges = [Chem.GetFormalCharge(mol.rdkit_mol) for mol in mol_lst]
-    abs_charges = [abs(c) for c in charges]
-    idx_of_closest_to_neutral = abs_charges.index(min(abs_charges))
-    charge_closest_to_neutral = charges[idx_of_closest_to_neutral]
+    charge_closest_to_neutral = min(charges, key=lambda c: (abs(c), c))
 
     # Now create a new mol list, where the charges deviation from the most
     # neutral by no more than 4. Note that this used to be 2, but I increased

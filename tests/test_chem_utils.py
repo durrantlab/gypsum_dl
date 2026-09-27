@@ -98,3 +98,39 @@ def test_bst_for_each_contnr_no_opt_can_discard_originals() -> None:
         [contnr], [], 1, 1, crry_ovr_frm_lst_step_if_no_fnd=False
     )
     assert contnr.mols == []
+
+
+def test_pick_lowest_enrgy_mols_dedups_in_first_seen_order() -> None:
+    # Regression: deduplication used list(set(...)), whose order follows
+    # PYTHONHASHSEED because MyMol hashes its canonical SMILES string. The
+    # deduplicated list feeds random_sample, so a fixed random_seed did not
+    # pin down which variants advanced.
+    mols = [MyMol.MyMol(s) for s in ["CCO", "CCC", "CCCC", "CCCCC", "OCC"]]
+
+    # Limit above the number of distinct molecules, so the deduplicated list is
+    # returned as is and its order is what gets asserted.
+    kept = chem_utils.pick_lowest_enrgy_mols(mols, 10, 1)
+
+    assert [m.smiles() for m in kept] == [m.smiles() for m in mols[:4]]
+
+
+def test_remove_highly_charged_molecules_is_order_independent() -> None:
+    # Regression: the reference charge came from abs_charges.index(min(...)),
+    # which breaks ties by list position. With a -1 and a +1 form both one unit
+    # from neutral, the signed reference charge (and so which forms survived)
+    # followed whatever order the variants happened to arrive in.
+    minus_one = MyMol.MyMol("CC(=O)[O-]")
+    plus_one = MyMol.MyMol("CC[NH3+]")
+    plus_five = MyMol.MyMol("[NH4+].[NH4+].[NH4+].[NH4+].[NH4+]")
+
+    forward = chem_utils.remove_highly_charged_molecules(
+        [plus_one, minus_one, plus_five]
+    )
+    reverse = chem_utils.remove_highly_charged_molecules(
+        [minus_one, plus_one, plus_five]
+    )
+
+    assert {m.smiles() for m in forward} == {m.smiles() for m in reverse}
+    # The reference is the -1 form either way, which puts the +5 form six units
+    # away and so outside the window.
+    assert len(forward) == 2

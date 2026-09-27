@@ -35,9 +35,12 @@ def group_mols_by_container_index(mol_lst):
             grouped_results[idx] = []
         grouped_results[idx].append(mol)
 
-    # Remove redundant entries.
+    # Remove redundant entries. dict.fromkeys dedups in first-seen order;
+    # set() order depends on PYTHONHASHSEED (MyMol hashes its canonical SMILES
+    # string, and CPython randomizes str hashing per invocation), and these
+    # lists feed the seeded sampling in random_sample.
     for key in list(grouped_results.keys()):
-        grouped_results[key] = list(set(grouped_results[key]))
+        grouped_results[key] = list(dict.fromkeys(grouped_results[key]))
 
     return grouped_results
 
@@ -55,10 +58,12 @@ def random_sample(lst: list, num: int, msg_if_cut: str = ""):
         A list that contains at most num elements.
     """
 
-    with contextlib.suppress(Exception):
-        # Remove redundancies. Supress because someitems lst element may be
-        # unhashable.
-        lst = list(set(lst))
+    with contextlib.suppress(TypeError):
+        # Remove redundancies. Suppress because sometimes an lst element may
+        # be unhashable. dict.fromkeys dedups in first-seen order, whereas
+        # set() order depends on PYTHONHASHSEED, which would leave the shuffle
+        # below varying between runs that share a random_seed.
+        lst = list(dict.fromkeys(lst))
 
     # Shuffle the list.
     random.shuffle(lst)
