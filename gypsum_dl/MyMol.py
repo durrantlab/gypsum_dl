@@ -550,14 +550,20 @@ class MyMol:
         self.orig_smi_deslt = other.orig_smi_deslt  # initial assumption
         self.name = other.name
 
-    def set_rdkit_mol_prop(self, key, val):
+    def set_rdkit_mol_prop(self, key: str, val: object) -> None:
         """Set a molecular property.
 
         :param key: The name of the molecular property.
         :type key: str
-        :param val: The value of that property.
-        :type val: str
+        :param val: The value of that property. A value of None is skipped
+           rather than written, so a failed calculation (smiles(True) returning
+           None, say) leaves the field absent instead of writing the literal
+           string "None" into the output.
+        :type val: object
         """
+
+        if val is None:
+            return
 
         val = str(val)
         with contextlib.suppress(Exception):

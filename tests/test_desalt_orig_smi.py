@@ -1,6 +1,7 @@
 """Regression tests for SMILES desalting."""
 
 import pytest
+from rdkit import Chem
 
 from gypsum_dl import MyMol
 from gypsum_dl.MolContainer import MolContainer
@@ -35,6 +36,18 @@ def test_desalter_seeds_the_source_smiles_on_the_single_fragment_path() -> None:
     mol = desalter(contnr)
 
     assert mol.genealogy[0] == "CCO (source)"
+
+
+def test_desalter_breaks_a_size_tie_on_input_order() -> None:
+    # Regression (bug 4): fragments were stored in a dict keyed by heavy-atom
+    # count, so equal-sized fragments overwrote each other and the tie went to
+    # whichever fragment came last. Benzene and hexane both have six heavy
+    # atoms, so the kept fragment must now follow the order of the input.
+    first = desalter(MolContainer("c1ccccc1.CCCCCC", "tie", 0, {}))
+    assert Chem.CanonSmiles(first.smiles()) == Chem.CanonSmiles("c1ccccc1")
+
+    reversed_input = desalter(MolContainer("CCCCCC.c1ccccc1", "tie_reversed", 1, {}))
+    assert Chem.CanonSmiles(reversed_input.smiles()) == Chem.CanonSmiles("CCCCCC")
 
 
 def test_desalter_seeds_the_source_smiles_on_the_desalted_path() -> None:
@@ -82,6 +95,7 @@ def test_desalt_orig_smi_pairs_each_container_with_its_own_mol() -> None:
     assert salted.orig_smi_deslt == salted.mols[0].orig_smi_deslt
     # The already-clean container is untouched apart from gaining its own mol.
     assert clean.mols[0].smiles() == clean.orig_smi_canonical
+
 
 def test_desalt_orig_smi_isolates_a_container_whose_desalting_raises(
     monkeypatch: pytest.MonkeyPatch,

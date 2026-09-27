@@ -246,6 +246,22 @@ def test_set_all_rdkit_mol_props_records_genealogy() -> None:
     assert mol.rdkit_mol.GetProp("_Name") == "ethanol"
 
 
+def test_set_all_rdkit_mol_props_omits_an_unknown_smiles() -> None:
+    # Regression (bug 5): when smiles(True) failed it returned None, which
+    # str()'d to the literal "None" and was written to the SDF as the molecule's
+    # SMILES. A failed calculation now leaves the field absent instead.
+    mol = MyMol.MyMol("CCO", "ethanol")
+    mol.can_smi_noh = None
+    mol.genealogy = ["CCO (source)"]
+
+    mol.set_all_rdkit_mol_props()
+
+    assert not mol.rdkit_mol.HasProp("SMILES")
+    # The remaining properties are still written.
+    assert mol.rdkit_mol.GetProp("Genealogy") == "CCO (source)"
+    assert mol.rdkit_mol.GetProp("_Name") == "ethanol"
+
+
 def test_set_rdkit_mol_prop_writes_once_and_tolerates_none() -> None:
     # Regression (B14): set_rdkit_mol_prop used to SetProp three times, the
     # first two unguarded against rdkit_mol being None. Collapsed to a single

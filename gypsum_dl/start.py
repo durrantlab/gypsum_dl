@@ -348,8 +348,12 @@ def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> None:
     # Add in name and unique id to each molecule.
     add_mol_id_props(contnrs)
 
-    # Output the current SMILES.
-    utils.print_current_smiles(contnrs)
+    # Output the current SMILES. This is a diagnostic dump of every variant of
+    # every container, and it forces a hydrogen-stripped canonicalization per
+    # variant purely to print it, so it follows the same debug flag as the
+    # identical calls in prepare_smiles.
+    if params.get("debug", False):
+        utils.print_current_smiles(contnrs)
 
     # Write any mols that fail entirely to a file.
     deal_with_failed_molecules(contnrs, params)  ####
@@ -420,6 +424,10 @@ def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
             "job_manager": "multiprocessing",
             "cache_prerun": False,
             "test": False,
+            # Gates the diagnostic container dumps in prepare_smiles and
+            # execute_gypsum_dl. It has to be listed here, because
+            # merge_parameters rejects any key missing from the defaults.
+            "debug": False,
             # Seed for the global random and numpy generators. A value >= 0
             # makes serial runs reproducible; multiprocessing and mpi runs
             # remain nondeterministic. A negative value leaves both

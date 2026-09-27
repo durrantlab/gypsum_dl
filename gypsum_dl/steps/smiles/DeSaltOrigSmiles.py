@@ -103,16 +103,10 @@ def desalter(contnr):
         "\tMultiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
     )
 
-    # Find the biggest fragment
-    num_heavy_atoms = []
-    num_heavy_atoms_to_frag = {}
-
-    for f in frags:
-        num = f.GetNumHeavyAtoms()
-        num_heavy_atoms.append(num)
-        num_heavy_atoms_to_frag[num] = f
-
-    biggest_frag = num_heavy_atoms_to_frag[max(num_heavy_atoms)]
+    # Find the biggest fragment. max() returns the first maximal element, so a
+    # tie between equal-sized fragments is broken by the order they appear in
+    # the input SMILES, which makes the choice reproducible and inspectable.
+    biggest_frag = max(frags, key=lambda f: f.GetNumHeavyAtoms())
 
     # Return info about that biggest fragment.
     new_mol = MyMol.MyMol(biggest_frag)
