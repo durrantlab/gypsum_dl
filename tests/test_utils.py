@@ -76,6 +76,53 @@ def test_fnd_contnrs_not_represntd_empty_when_all_present() -> None:
     assert utils.fnd_contnrs_not_represntd(contnrs, [_mol("CCO", 0)]) == []
 
 
+def test_contnrs_by_idx_keys_on_contnr_idx_not_position() -> None:
+    contnrs = [MolContainer("CCO", "a", 3, {}), MolContainer("CCC", "b", 7, {})]
+
+    by_idx = utils.contnrs_by_idx(contnrs)
+
+    assert sorted(by_idx.keys()) == [3, 7]
+    assert by_idx[3] is contnrs[0]
+    assert by_idx[7] is contnrs[1]
+
+
+def test_contnrs_by_idx_rejects_duplicate_indices() -> None:
+    # Two containers at one index makes every regrouping step ambiguous, and
+    # both a dict and positional indexing resolve it silently (last wins and
+    # first wins respectively). Say so instead.
+    contnrs = [MolContainer("CCO", "a", 0, {}), MolContainer("CCC", "b", 0, {})]
+
+    with pytest.raises(Exception, match="share contnr_idx"):
+        utils.contnrs_by_idx(contnrs)
+
+
+def test_contnrs_by_idx_agrees_with_fnd_contnrs_not_represntd() -> None:
+    # The failure list reports contnr_idx values, so whatever consumes it has
+    # to look containers up the same way. Indexing the list positionally with
+    # one of those values is what this pairing is meant to prevent.
+    contnrs = [MolContainer("CCO", "a", 4, {}), MolContainer("CCC", "b", 5, {})]
+
+    missing = utils.fnd_contnrs_not_represntd(contnrs, [_mol("CCO", 4)])
+    by_idx = utils.contnrs_by_idx(contnrs)
+
+    assert missing == [5]
+    assert by_idx[missing[0]].name == "b"
+
+
+def test_print_current_smiles_tolerates_unknown_smiles(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # smiles() reports failure as None. This dump runs in the main process
+    # after a step, so concatenating that None ended the run.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+    contnr.mols[0].can_smi_noh = None
+
+    utils.print_current_smiles([contnr])
+
+    assert "Mol #0: None" in capsys.readouterr().out
+
+
 def test_print_current_smiles_lists_container_contents(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

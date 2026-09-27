@@ -46,14 +46,68 @@ def test_mymol_from_rdkit_mol_survives_smiles_conversion_failure(
 ) -> None:
     # Regression: when MolToSmiles raises for an RDKit-mol starter, __init__
     # used to reference the unbound local `smiles` and die with
-    # UnboundLocalError instead of falling back to can_smi=False.
+    # UnboundLocalError instead of recording the failure.
     def boom(*args, **kwargs):
         raise ValueError("cannot canonicalize")
 
     monkeypatch.setattr(MyMol.Chem, "MolToSmiles", boom)
     mol = MyMol.MyMol(Chem.MolFromSmiles("OCC"), "ethanol")
-    assert mol.can_smi is False
+    assert mol.can_smi is None
     assert mol.orig_smi == ""
+
+
+def test_smiles_reports_failure_as_none_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: __init__ marked a failed canonicalization with False while
+    # smiles() marked it with None, so the accessor had three possible return
+    # types (str, None, False) and every consumer had to know which failure it
+    # was looking at. There is now one non-string case.
+    def boom(*args, **kwargs):
+        raise ValueError("cannot canonicalize")
+
+    monkeypatch.setattr(MyMol.Chem, "MolToSmiles", boom)
+
+    from_rdkit_mol = MyMol.MyMol(Chem.MolFromSmiles("OCC"), "ethanol")
+    assert from_rdkit_mol.smiles() is None
+
+    from_smiles = MyMol.MyMol("CCO")
+    assert from_smiles.smiles() is None
+
+
+def test_molecules_with_unknown_smiles_are_not_interchangeable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: __hash__ hashed whatever smiles() handed back, so every
+    # molecule whose canonical SMILES could not be computed shared one hash
+    # and compared equal. The hash-based deduplication passes then kept one
+    # such molecule and discarded the rest as copies of it.
+    def boom(*args, **kwargs):
+        raise ValueError("cannot canonicalize")
+
+    monkeypatch.setattr(MyMol.Chem, "MolToSmiles", boom)
+    first = MyMol.MyMol("CCO")
+    second = MyMol.MyMol("CCCCCC")
+
+    assert first.smiles() is None
+    assert second.smiles() is None
+    assert first != second
+    assert hash(first) != hash(second)
+    assert first == first
+    assert len(dict.fromkeys([first, second])) == 2
+
+
+def test_equality_against_a_non_molecule_is_false() -> None:
+    # Regression: __eq__ asked the other operand for its hash, so comparing a
+    # molecule against a bool sentinel compared hashes with hash(True) == 1.
+    # A molecule whose canonical SMILES happened to hash to 1 would have
+    # compared equal to True.
+    mol = MyMol.MyMol("CCO")
+
+    assert (mol == True) is False  # noqa: E712
+    assert (mol != True) is True  # noqa: E712
+    assert (mol == "CCO") is False
+    assert (mol == None) is False  # noqa: E711
 
 
 def test_smiles_noh_strips_explicit_hydrogens() -> None:
@@ -147,10 +201,11 @@ def test_remove_bizarre_substruc_allows_normal_molecule() -> None:
 
 
 def test_remove_bizarre_substruc_survives_non_string_can_smi() -> None:
-    # Regression (M8): can_smi is False after a failed MolToSmiles and None
-    # after a failed smiles(); `s in self.can_smi` then raised TypeError
-    # ("argument of type 'bool'/'NoneType' is not iterable"), which became a
-    # hang under multiprocessing. The method must return a bool instead.
+    # Regression (M8): can_smi is not a string once canonicalization has
+    # failed (None now, False in older versions); `s in self.can_smi` then
+    # raised TypeError ("argument of type 'bool'/'NoneType' is not iterable"),
+    # which became a hang under multiprocessing. The method must return a bool
+    # instead, whichever non-string marker it finds.
     mol = MyMol.MyMol("CCO")
     mol.can_smi = False
     result = mol.remove_bizarre_substruc()

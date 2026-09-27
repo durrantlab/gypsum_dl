@@ -81,18 +81,20 @@ def enumerate_double_bonds(
 
     # Get the indexes of the ones that failed to generate.
     contnr_idxs_of_failed = utils.fnd_contnrs_not_represntd(contnrs, flat)
+    contnr_by_idx = utils.contnrs_by_idx(contnrs)
 
     # Go through the missing ones and throw a message.
     for miss_indx in contnr_idxs_of_failed:
+        failed_contnr = contnr_by_idx[miss_indx]
         utils.log(
             "\tCould not generate valid double-bond variant for "
-            + contnrs[miss_indx].orig_smi
+            + failed_contnr.orig_smi
             + " ("
-            + contnrs[miss_indx].name
+            + failed_contnr.name
             + "), so using existing "
             + "(unprocessed) structures."
         )
-        for mol in contnrs[miss_indx].mols:
+        for mol in failed_contnr.mols:
             mol.genealogy.append("(WARNING: Unable to generate double-bond variant)")
             flat.append(mol)
 

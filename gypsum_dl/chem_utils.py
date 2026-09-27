@@ -117,9 +117,11 @@ def remove_highly_charged_molecules(mol_lst):
         if abs(charge - charge_closest_to_neutral) <= 4:
             new_mol_lst.append(mol_lst[i])
         else:
+            # str() because smiles() reports failure as None, and this runs in
+            # the main process, where a TypeError would end the run.
             utils.log(
                 "\tWARNING: Discarding highly charged form: "
-                + mol_lst[i].smiles()
+                + str(mol_lst[i].smiles())
                 + "."
             )
 
@@ -231,6 +233,13 @@ def uniq_mols_in_list(mol_lst):
     uniq_mols = []
     for m in mol_lst:
         smi = m.smiles()
+        if not isinstance(smi, str):
+            # smiles() reports failure as None. Two molecules that both failed
+            # to canonicalize have not been shown to be the same molecule, so
+            # keeping only the first would discard distinct structures; let the
+            # steps that check for a usable molecule decide their fate.
+            uniq_mols.append(m)
+            continue
         if smi not in can_smiles_already_set:
             uniq_mols.append(m)
         can_smiles_already_set.add(smi)

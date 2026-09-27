@@ -80,20 +80,22 @@ def add_hydrogens(
     # Dimorphite-DL might not have generated ionization states for some
     # molecules. Identify those that are missing.
     contnr_idxs_of_failed = utils.fnd_contnrs_not_represntd(contnrs, results)
+    contnr_by_idx = utils.contnrs_by_idx(contnrs)
 
     # For those molecules, just use the original SMILES string, with hydrogen
     # atoms added using RDKit.
     for miss_indx in contnr_idxs_of_failed:
+        failed_contnr = contnr_by_idx[miss_indx]
         utils.log(
             "\tWARNING: Gypsum-DL produced no valid ionization states for "
-            + contnrs[miss_indx].orig_smi
+            + failed_contnr.orig_smi
             + " ("
-            + contnrs[miss_indx].name
+            + failed_contnr.name
             + "), so using the original "
             + "smiles."
         )
 
-        amol = contnrs[miss_indx].mol_orig_frm_inp_smi
+        amol = failed_contnr.mol_orig_frm_inp_smi
         amol.contnr_idx = miss_indx
 
         # Save this failure to the genealogy record.
@@ -134,11 +136,14 @@ def parallel_add_H(contnr, protonation_settings):
         )
         utils.exception(f"container.orig_smi_canonical: {contnr.orig_smi_canonical}")
 
-    # Add the SMILES string to the protonation parameters.
-    protonation_settings["smiles_input"] = contnr.orig_smi_canonical
+    # Add the SMILES string to the protonation parameters. One dict is built
+    # for the whole step and aliased into every task tuple, so writing the
+    # per-molecule SMILES into it would mutate state the caller (and, in the
+    # in-process path, every other task) shares.
+    settings = dict(protonation_settings, smiles_input=contnr.orig_smi_canonical)
 
     # Protonate the SMILESstring. This is Dimorphite-DL.
-    smis = protonate_smiles(**protonation_settings)
+    smis = protonate_smiles(**settings)
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
     # objects.

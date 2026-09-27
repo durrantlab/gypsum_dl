@@ -85,9 +85,11 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     params = []
     ones_with_nonaro_rngs = set([])  # This is just to keep track of which
     # ones have non-aromatic rings.
-    for contnr_idx, contnr in enumerate(contnrs):
+    for contnr in contnrs:
         if contnr.num_nonaro_rngs > 0:
-            ones_with_nonaro_rngs.add(contnr_idx)
+            # contnr_idx, not the list position: this set is later compared
+            # against the keys of grouped, which come from mol.contnr_idx.
+            ones_with_nonaro_rngs.add(contnr.contnr_idx)
             params.extend(
                 (mol, max_variants_per_compound, thoroughness, second_embed)
                 for mol in contnr.mols
@@ -127,8 +129,10 @@ def generate_alternate_3d_nonaromatic_ring_confs(
         grouped[contnr_idx].append((energy, mol))
 
     # Now, for each container, keep only the best ones.
+    contnr_by_idx = utils.contnrs_by_idx(contnrs)
     for contnr_idx, lst_enrgy_mol_pairs in grouped.items():
-        contnrs[contnr_idx].mols = []  # Note that only affects ones that
+        contnr = contnr_by_idx[contnr_idx]
+        contnr.mols = []  # Note that only affects ones that
         # had non-aromatic rings.
         lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
         # pair).
@@ -138,14 +142,14 @@ def generate_alternate_3d_nonaromatic_ring_confs(
 
         # Add the top ones to the container mol list.
         for energy, mol in lst_enrgy_mol_pairs:
-            contnrs[contnr_idx].add_mol(mol)
+            contnr.add_mol(mol)
 
     # Any container that had non-aromatic rings but produced no results (all
     # ring-conformer generation failed) is absent from grouped. Its original
     # mols are untouched; flag them so the failure is recorded.
     for contnr_idx in ones_with_nonaro_rngs - set(grouped.keys()):
-        for i in range(len(contnrs[contnr_idx].mols)):
-            contnrs[contnr_idx].mols[i].genealogy.append(
+        for mol in contnr_by_idx[contnr_idx].mols:
+            mol.genealogy.append(
                 "(WARNING: Could not generate alternate conformations "
                 + "of nonaromatic ring)"
             )

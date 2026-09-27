@@ -41,6 +41,30 @@ def test_mol_with_smiles_is_in_contnr_detects_existing() -> None:
     assert contnr.mol_with_smiles_is_in_contnr("OCC") is True
 
 
+def test_mol_with_smiles_is_in_contnr_is_a_predicate() -> None:
+    # Regression: the method returned either True or a freshly built MyMol, so
+    # add_smiles decided membership with `result != True`, which ran
+    # MyMol.__eq__ against a bool and compared canonical-SMILES hashes with
+    # hash(True) == 1. Both answers must now be plain booleans.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+
+    assert contnr.mol_with_smiles_is_in_contnr("CCC") is False
+    assert contnr.mol_with_smiles_is_in_contnr("OCC") is True
+
+
+def test_contains_canonical_smiles_treats_unknown_as_absent() -> None:
+    # Two molecules that both failed to canonicalize have not been shown to be
+    # the same molecule, so a non-string canonical SMILES must never match an
+    # existing entry (which would silently drop the new variant).
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+    contnr.mols[0].can_smi = None
+
+    assert contnr.contains_canonical_smiles(None) is False
+    assert contnr.contains_canonical_smiles("CCO") is False
+
+
 def test_add_container_properties_copies_properties() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {"activity": "1.0"})
     contnr.add_smiles("CCO")

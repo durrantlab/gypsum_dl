@@ -9,6 +9,33 @@ def test_uniq_mols_in_list_removes_duplicates() -> None:
     assert len(chem_utils.uniq_mols_in_list(mols)) == 2
 
 
+def test_uniq_mols_in_list_keeps_molecules_with_unknown_smiles() -> None:
+    # Regression: the seen-set was keyed on smiles() directly, and smiles()
+    # reports failure as None. Two distinct molecules that both failed to
+    # canonicalize therefore shared the key None, so the second was discarded
+    # as a duplicate of the first.
+    first = MyMol.MyMol("CCO")
+    second = MyMol.MyMol("CCCCCC")
+    first.can_smi = None
+    second.can_smi = None
+
+    kept = chem_utils.uniq_mols_in_list([first, second])
+
+    assert len(kept) == 2
+
+
+def test_remove_highly_charged_molecules_tolerates_unknown_smiles() -> None:
+    # The discard warning concatenated smiles() into a string, which is a
+    # TypeError in the main process once canonicalization has failed.
+    neutral = MyMol.MyMol("CCO")
+    charged = MyMol.MyMol("[NH4+].[NH4+].[NH4+].[NH4+].[NH4+]")
+    charged.can_smi = None
+
+    kept = chem_utils.remove_highly_charged_molecules([neutral, charged])
+
+    assert len(kept) == 1
+
+
 def test_remove_highly_charged_molecules_discards_outliers() -> None:
     neutral = MyMol.MyMol("CCO")
     charged = MyMol.MyMol("[NH4+].[NH4+].[NH4+].[NH4+].[NH4+]")

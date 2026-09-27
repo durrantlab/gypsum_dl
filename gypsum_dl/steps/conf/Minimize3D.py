@@ -100,13 +100,14 @@ def minimize_3d(
 
     # Go through each of the containers that are not empty and remove current
     # ones. Because you'll be replacing them with optimized versions.
+    contnr_by_idx = utils.contnrs_by_idx(contnrs)
     for i in contnr_list_not_empty:
-        contnrs[i].mols = []
+        contnr_by_idx[i].mols = []
 
     # Go through each of the minimized mols, and populate containers they
     # belong to.
     for mol in results:
-        contnrs[mol.contnr_idx].add_mol(mol)
+        contnr_by_idx[mol.contnr_idx].add_mol(mol)
 
     # Alert the user to any errors, and drop the molecules behind them. Such a
     # molecule has nothing writable in it (load_conformers_into_rdkit_mol
@@ -181,11 +182,11 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
 
         # Save to the genealogy record.
         new_mol.genealogy = mol.genealogy[:]
+        # Formatted rather than concatenated: smiles() reports failure as
+        # None, and a TypeError here would be caught by the worker wrapper and
+        # reported as a molecule that simply produced nothing.
         new_mol.genealogy.append(
-            new_mol.smiles(True)
-            + " (optimized conformer: "
-            + str(best_energy)
-            + " kcal/mol)"
+            f"{new_mol.smiles(True)} (optimized conformer: {best_energy} kcal/mol)"
         )
 
         # Save best conformation. For some reason molecular properties

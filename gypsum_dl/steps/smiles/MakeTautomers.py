@@ -212,7 +212,7 @@ def tauts_no_break_arom_rngs(
     # You need to group the taut_data by container to pass it to the
     # paralleizer. Build an index map so a taut that matches no container is
     # skipped rather than paired with a stale (or unbound) container.
-    by_idx = {c.contnr_idx: c for c in contnrs}
+    by_idx = utils.contnrs_by_idx(contnrs)
     params = []
     for taut_mol in taut_data:
         container = by_idx.get(taut_mol.contnr_idx)
@@ -261,7 +261,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
     # You need to group the taut_data by contnr to pass to paralleizer. Build
     # an index map so a taut that matches no container is skipped rather than
     # paired with a stale (or unbound) container.
-    by_idx = {c.contnr_idx: c for c in contnrs}
+    by_idx = utils.contnrs_by_idx(contnrs)
     params = []
     for taut_mol in taut_data:
         container = by_idx.get(taut_mol.contnr_idx)
@@ -308,7 +308,15 @@ def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
     """
 
     # Group the taut_data by container to run it through the parallelizer.
-    params = [(taut_mol, contnrs[taut_mol.contnr_idx]) for taut_mol in taut_data]
+    # Build an index map so a taut that matches no container is skipped rather
+    # than paired with a stale (or unbound) container.
+    by_idx = utils.contnrs_by_idx(contnrs)
+    params = []
+    for taut_mol in taut_data:
+        container = by_idx.get(taut_mol.contnr_idx)
+        if container is None:
+            continue
+        params.append((taut_mol, container))
     params = tuple(params)
 
     # Run it through the parallelizer.

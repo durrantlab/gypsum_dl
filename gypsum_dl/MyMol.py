@@ -66,7 +66,9 @@ class MyMol:
                 # Sometimes this conversion just can't happen. Happened once
                 # with this beast, for example:
                 # CC(=O)NC1=CC(=C=[N+]([O-])O)C=C1O
-                self.can_smi = False
+                # None is the same failure marker smiles() uses, so callers
+                # have one non-string case to reason about rather than two.
+                self.can_smi = None
                 smiles = ""
                 id_to_print = name if name != "" else str(starter)
                 utils.log(
@@ -136,6 +138,15 @@ class MyMol:
 
         can_smi = self.smiles()
 
+        if not isinstance(can_smi, str):
+            # smiles() reports failure as None. Hashing that would give every
+            # molecule whose canonical SMILES could not be computed the same
+            # hash, so the deduplication passes (dict.fromkeys here,
+            # uniq_mols_in_list elsewhere) would treat unrelated molecules as
+            # copies of each other and keep only one. Fall back to identity so
+            # such a molecule is equal only to itself.
+            return object.__hash__(self)
+
         # So it hashes based on the cannonical smiles.
         return hash(can_smi)
 
@@ -148,7 +159,13 @@ class MyMol:
         :rtype: bool
         """
 
-        return False if other is None else self.__hash__() == other.__hash__()
+        if not isinstance(other, MyMol):
+            # Anything that is not a molecule is not this molecule, and asking
+            # it for a hash is misleading besides: hash(True) is 1, so a
+            # molecule could otherwise compare equal to a bool sentinel.
+            return False
+
+        return self.__hash__() == other.__hash__()
 
     def __ne__(self, other):
         """Allows you to compare MyMol.MyMol objects.
@@ -464,9 +481,8 @@ class MyMol:
         prohibited_substructures.append("[C-]")  # No carbanions.
         prohibited_substructures.append("[c-]")  # No carbanions.
 
-        # can_smi is False after a failed MolToSmiles and None after a failed
-        # smiles(), so only match against the smiles strings that are actually
-        # strings.
+        # can_smi is None after a failed canonicalization, so only match
+        # against the smiles strings that are actually strings.
         smis_to_check = [
             s
             for s in (self.orig_smi, self.orig_smi_deslt, self.can_smi)

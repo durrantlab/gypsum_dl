@@ -81,8 +81,11 @@ class _AlertMol:
 class _AlertContnr:
     def __init__(self, mols) -> None:
         self.mols = mols
+        # Every real container carries an index, and minimize_3d now maps the
+        # containers by it rather than trusting list position.
+        self.contnr_idx = 0
         # Non-zero so minimize_3d skips these mols (already minimized elsewhere)
-        # and only its final error-alert loop runs — no RDKit work needed.
+        # and only its final error-alert loop runs: no RDKit work needed.
         self.num_nonaro_rngs = 1
 
 

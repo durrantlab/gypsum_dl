@@ -11,6 +11,7 @@ from gypsum_dl.MyMol import MyMol
 from gypsum_dl.parallelizer import Parallelizer
 from gypsum_dl.steps.conf import Minimize3D
 from gypsum_dl.steps.smiles import (
+    AddHydrogens,
     EnumerateChiralMols,
     EnumerateDoubleBonds,
     MakeTautomers,
@@ -47,6 +48,155 @@ def _container(smiles: str, name: str) -> MolContainer:
     contnr = MolContainer(smiles, name, 0, {})
     contnr.add_smiles(smiles)
     return contnr
+
+
+def _container_at_idx(smiles: str, name: str, idx: int) -> MolContainer:
+    """Build a populated container whose contnr_idx is not its list position.
+
+    Every step regroups its work by contnr_idx, and several of them used that
+    value to index the container list directly. Handing a step a single
+    container that sits at position zero but carries a higher contnr_idx is
+    what separates the two conventions.
+
+    Args:
+        smiles: SMILES string for the input molecule.
+        name: Ligand name.
+        idx: Container index to assign.
+
+    Returns:
+        A MolContainer holding a single variant.
+    """
+    contnr = MolContainer(smiles, name, idx, {})
+    contnr.add_smiles(smiles)
+    return contnr
+
+
+def test_add_hydrogens_finds_failed_container_by_index(monkeypatch) -> None:
+    # Regression: fnd_contnrs_not_represntd reports contnr_idx values, but the
+    # carry-over loop used them to index the container list. A container whose
+    # index is not its position was then read from the wrong slot, or raised
+    # IndexError.
+    contnr = _container_at_idx("CC(=O)O", "acetic_acid", 3)
+    monkeypatch.setattr(AddHydrogens, "parallel_add_H", lambda *a: [])
+
+    add_hydrogens([contnr], 6.4, 8.4, 1.0, 5, 1, 1, "serial", None)
+
+    assert len(contnr.mols) == 1
+    assert contnr.mols[0].genealogy[-1] == (
+        "(WARNING: Gypsum-DL could not assign ionization states)"
+    )
+
+
+def test_parallel_add_h_does_not_mutate_shared_settings() -> None:
+    # Regression: one protonation-settings dict is built per step and aliased
+    # into every task tuple, and the worker wrote the current molecule's
+    # SMILES into it. Correct only because the in-process path happens to be
+    # sequential and the parallel paths pickle a copy per task.
+    contnr = _container("CC(=O)O", "acetic_acid")
+    settings = {
+        "ph_min": 6.4,
+        "ph_max": 8.4,
+        "precision": 1.0,
+        "max_variants": 5,
+    }
+    before = dict(settings)
+
+    AddHydrogens.parallel_add_H(contnr, settings)
+
+    assert settings == before
+
+
+def test_enumerate_chiral_finds_failed_container_by_index(monkeypatch) -> None:
+    # Same index-versus-position confusion in the enantiomer carry-over.
+    contnr = _container_at_idx("CC(N)C(=O)O", "alanine", 3)
+    original_mol = contnr.mols[0]
+    monkeypatch.setattr(EnumerateChiralMols, "parallel_get_chiral", lambda *a: None)
+
+    enumerate_chiral_molecules([contnr], 5, 1, 1, "serial", None)
+
+    assert original_mol.genealogy[-1] == "(WARNING: Unable to generate enantiomers)"
+    assert contnr.mols == [original_mol]
+
+
+def test_enumerate_double_bonds_finds_failed_container_by_index(monkeypatch) -> None:
+    # Same index-versus-position confusion in the double-bond carry-over.
+    contnr = _container_at_idx("CC=CCC", "pentene", 3)
+    original_mol = contnr.mols[0]
+    monkeypatch.setattr(
+        EnumerateDoubleBonds, "parallel_get_double_bonded", lambda *a: None
+    )
+
+    enumerate_double_bonds([contnr], 5, 1, 1, "serial", None)
+
+    assert (
+        original_mol.genealogy[-1]
+        == "(WARNING: Unable to generate double-bond variant)"
+    )
+    assert contnr.mols == [original_mol]
+
+
+def test_tauts_no_change_hs_to_cs_finds_container_by_index() -> None:
+    # This filter paired each tautomer with contnrs[taut.contnr_idx]. Its call
+    # site in make_tauts is currently commented out, so it is exercised
+    # directly here.
+    contnr = _container_at_idx("CC(=O)CC", "butanone", 3)
+    taut = contnr.mols[0]
+
+    kept = MakeTautomers.tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
+        [contnr], [taut], 1, "serial", None
+    )
+
+    assert kept == [taut]
+
+
+def test_minimize_3d_populates_container_by_index() -> None:
+    # Regression: minimize_3d emptied and repopulated containers with
+    # contnrs[mol.contnr_idx], which is only the right container while every
+    # index matches its list position.
+    contnr = _container_at_idx("CCO", "ethanol", 3)
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+
+    minimize_3d([contnr], 1, 1, 1, False, "serial", None)
+
+    assert len(contnr.mols) == 1
+    assert "Energy" in contnr.mols[0].mol_props
+
+
+def test_generate_alternate_ring_confs_by_index() -> None:
+    # Regression: this step tracked ring-bearing containers by list position
+    # but grouped its results by contnr_idx, then indexed the container list
+    # with the grouped keys. All three had to agree.
+    contnr = _container_at_idx("C1CCCCC1", "cyclohexane", 3)
+    convert_2d_to_3d([contnr], 3, 2, 1, "serial", None)
+
+    generate_alternate_3d_nonaromatic_ring_confs(
+        [contnr], 3, 2, 1, False, "serial", None
+    )
+
+    assert len(contnr.mols) >= 1
+    assert len(contnr.mols[0].conformers) == 1
+
+
+def test_generate_alternate_ring_confs_flags_failure_by_index(monkeypatch) -> None:
+    # The no-results branch subtracted the grouped keys (contnr_idx values)
+    # from a set of list positions, so with the two conventions disagreeing it
+    # flagged the wrong container or raised IndexError.
+    contnr = _container_at_idx("C1CCCCC1", "cyclohexane", 3)
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+    original_mol = contnr.mols[0]
+    monkeypatch.setattr(
+        "gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs."
+        "parallel_get_ring_confs",
+        lambda *a: None,
+    )
+
+    generate_alternate_3d_nonaromatic_ring_confs(
+        [contnr], 1, 1, 1, False, "serial", None
+    )
+
+    assert original_mol.genealogy[-1] == (
+        "(WARNING: Could not generate alternate conformations of nonaromatic ring)"
+    )
 
 
 def test_desalt_orig_smi_keeps_largest_fragment() -> None:
@@ -351,8 +501,14 @@ def test_minimize_3d_records_energy() -> None:
 def test_minimize_3d_survives_none_worker_result(monkeypatch) -> None:
     # A worker returns None for a molecule with no acceptable conformers.
     # minimize_3d must skip it rather than dereference None, and still place
-    # the surviving molecule in its container.
-    contnrs = [_container("CCO", "ethanol"), _container("CCC", "propane")]
+    # the surviving molecule in its container. Distinct indices because the
+    # stub below keys on contnr_idx: built with two containers at index zero,
+    # nothing was ever skipped and both minimized mols landed in the first
+    # container.
+    contnrs = [
+        _container("CCO", "ethanol"),
+        _container_at_idx("CCC", "propane", 1),
+    ]
     for contnr in contnrs:
         convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
 

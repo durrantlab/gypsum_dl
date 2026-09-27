@@ -64,30 +64,40 @@ class MolContainer:
         # Get the non-acidic carbon-hydrogen footprint.
         self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
 
-    def mol_with_smiles_is_in_contnr(self, smiles):
+    def contains_canonical_smiles(self, can_smi: str | None) -> bool:
+        """Report whether an already-canonicalized smiles is in this container.
+
+        Split out from mol_with_smiles_is_in_contnr so add_smiles can ask the
+        question about a molecule it has already built, instead of building a
+        second one to ask with. Non-string arguments (smiles() reports failure
+        as None) are never considered present: two molecules that both failed
+        to canonicalize have not been shown to be the same molecule.
+
+        Args:
+            can_smi: The canonical smiles string to look for.
+
+        Returns:
+            True if a molecule with that canonical smiles is already here.
+        """
+
+        if not isinstance(can_smi, str):
+            return False
+
+        # TODO: Probably shouldn't be generating this on the fly every time
+        # you use it!
+        return can_smi in {m.smiles() for m in self.mols}
+
+    def mol_with_smiles_is_in_contnr(self, smiles: str) -> bool:
         """Checks whether or not a given smiles string is already in this
            container.
 
         :param smiles: The smiles string to check.
         :type smiles: str
-        :return: True if it is present, otherwise a new MyMol.MyMol object
-           corresponding to that smiles.
-        :rtype: bool or MyMol.MyMol
+        :return: True if it is present, otherwise False.
+        :rtype: bool
         """
 
-        # Checks all the mols in this container to see if a given smiles is
-        # already present. Returns a new MyMol object if it isn't, True
-        # otherwise.
-
-        # First, get the set of all cannonical smiles.
-        # TODO: Probably shouldn't be generating this on the fly every time
-        # you use it!
-        can_smi_in_this_container = {m.smiles() for m in self.mols}
-
-        # Determine whether it is already in the container, and act
-        # accordingly.
-        amol = MyMol.MyMol(smiles)
-        return True if amol.smiles() in can_smi_in_this_container else amol
+        return self.contains_canonical_smiles(MyMol.MyMol(smiles).smiles())
 
     def add_smiles(self, smiles):
         """Adds smiles strings to this container. SMILES are always isomeric
@@ -104,17 +114,19 @@ class MolContainer:
 
         # Keep only the mols with smiles that are not already present.
         for s in smiles:
-            result = self.mol_with_smiles_is_in_contnr(s)
-            if result != True:
-                # Much of the contnr info should be passed to each molecule,
-                # too, for convenience.
-                result.name = self.name
-                result.orig_smi = self.orig_smi
-                result.orig_smi_canonical = self.orig_smi_canonical
-                result.orig_smi_deslt = self.orig_smi_deslt
-                result.contnr_idx = self.contnr_idx
+            amol = MyMol.MyMol(s)
+            if self.contains_canonical_smiles(amol.smiles()):
+                continue
 
-                self.mols.append(result)
+            # Much of the contnr info should be passed to each molecule,
+            # too, for convenience.
+            amol.name = self.name
+            amol.orig_smi = self.orig_smi
+            amol.orig_smi_canonical = self.orig_smi_canonical
+            amol.orig_smi_deslt = self.orig_smi_deslt
+            amol.contnr_idx = self.contnr_idx
+
+            self.mols.append(amol)
 
     def add_mol(self, mol):
         """Adds a molecule to this container. Does NOT check for uniqueness.

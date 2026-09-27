@@ -136,6 +136,49 @@ def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> lis
     ]
 
 
+def contnrs_by_idx(
+    # Quoted: utils is imported while gypsum_dl.MolContainer is still
+    # initializing, so evaluating the attribute here closes that cycle.
+    contnrs: list["MolContainer.MolContainer"],
+) -> dict[int, "MolContainer.MolContainer"]:
+    """Index a container list by contnr_idx instead of by list position.
+
+    Molecules carry contnr_idx, and so do the failure lists built from them
+    (fnd_contnrs_not_represntd). That value equals a container's position in
+    contnrs only as long as nothing filters, reorders, or renumbers the list,
+    which is not something the steps can see: mpi mode already renumbers every
+    container to zero, and it is only safe there because each job holds a
+    single container. Looking containers up through this map keeps a step
+    correct either way, and turns a mismatch into a KeyError at the lookup
+    rather than a wrong container (or an IndexError) much later.
+
+    Args:
+        contnrs: A list of containers (MolContainer.MolContainer).
+
+    Returns:
+        A dictionary mapping each container's contnr_idx to that container.
+
+    Raises:
+        Exception: If two containers share a contnr_idx.
+    """
+
+    by_idx: dict[int, "MolContainer.MolContainer"] = {}
+    for contnr in contnrs:
+        if contnr.contnr_idx in by_idx:
+            # Two containers sharing an index makes every regrouping step
+            # ambiguous, and a dict would quietly keep whichever came last.
+            # Positional indexing hid the same problem by quietly keeping
+            # whichever came first.
+            exception(
+                "Two molecule containers share contnr_idx "
+                f"{contnr.contnr_idx} ({by_idx[contnr.contnr_idx].name} and "
+                f"{contnr.name}). Container indices must be unique."
+            )
+        by_idx[contnr.contnr_idx] = contnr
+
+    return by_idx
+
+
 def print_current_smiles(contnrs: list[MolContainer]) -> None:
     """Prints the smiles of the current containers. Helpful for debugging.
 
@@ -148,7 +191,9 @@ def print_current_smiles(contnrs: list[MolContainer]) -> None:
     for i, mol_cont in enumerate(contnrs):
         log("\t\tMolContainer #" + str(i) + " (" + mol_cont.name + ")")
         for i, s in enumerate(mol_cont.all_can_noh_smiles()):
-            log("\t\t\tMol #" + str(i) + ": " + s)
+            # smiles() reports failure as None, which would otherwise make this
+            # debug dump the thing that ends the run.
+            log("\t\t\tMol #" + str(i) + ": " + str(s))
 
 
 def exception(msg: str) -> None:
