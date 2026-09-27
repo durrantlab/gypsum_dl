@@ -5,6 +5,7 @@ import random
 import numpy
 import pytest
 from rdkit import Chem
+from rdkit.Chem import AllChem
 
 from gypsum_dl import MyMol
 
@@ -66,6 +67,41 @@ def test_mymol_reports_no_smiles_when_sanitization_fails(
 
     assert from_smiles.rdkit_mol is None
     assert from_smiles.smiles() is None
+
+
+def test_mymol_does_not_alias_the_callers_rdkit_mol() -> None:
+    # Regression: __init__ stored the starter itself, and check_sanitization
+    # hands the same object back whenever the molecule sanitizes on the first
+    # pass, so a MyMol and the code that built it shared one mutable molecule.
+    # load_conformers_into_rdkit_mol clears the conformer set and, with no
+    # conformers to load, computes 2D coordinates, which would appear on the
+    # caller's molecule underneath it.
+    starter = Chem.MolFromSmiles("CCO")
+    assert starter.GetNumConformers() == 0
+
+    mol = MyMol.MyMol(starter)
+    assert mol.rdkit_mol is not starter
+
+    mol.load_conformers_into_rdkit_mol()
+
+    assert mol.rdkit_mol.GetNumConformers() == 1
+    assert starter.GetNumConformers() == 0
+
+
+def test_mymol_conformers_do_not_overwrite_the_callers_coordinates() -> None:
+    # The same aliasing seen from the other direction: a caller that keeps its
+    # own molecule, coordinates and all, must not have them replaced by the 3D
+    # conformer this object generates.
+    starter = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.Compute2DCoords(starter)
+    coords_before = starter.GetConformer().GetPositions().tolist()
+
+    mol = MyMol.MyMol(starter)
+    mol.add_conformers(1, 1e60, False)
+    mol.load_conformers_into_rdkit_mol()
+
+    assert starter.GetNumConformers() == 1
+    assert starter.GetConformer().GetPositions().tolist() == coords_before
 
 
 def test_mymol_from_rdkit_mol_survives_smiles_conversion_failure(
@@ -306,6 +342,41 @@ def test_remove_bizarre_substruc_survives_non_string_can_smi() -> None:
     mol2 = MyMol.MyMol("CCO")
     mol2.can_smi = None
     assert isinstance(mol2.remove_bizarre_substruc(), bool)
+
+
+def test_remove_bizarre_substruc_consults_the_structure_not_the_smiles() -> None:
+    # Regression: a substring pass over orig_smi, orig_smi_deslt, and can_smi
+    # ran ahead of the substructure matching, so a prohibited pattern that
+    # merely appeared in one of those strings rejected the molecule even
+    # though the molecule itself did not contain it. Only the structure should
+    # decide.
+    mol = MyMol.MyMol("CCO")
+    assert mol.rdkit_mol is not None
+    mol.orig_smi = "[C-]#[O+].CCO"
+    mol.orig_smi_deslt = "[C-]#[O+].CCO"
+
+    assert mol.remove_bizarre_substruc() is False
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "CC(=C)O",  # C(=[CH2])[OH], a terminal enol.
+        "C=C(O)O",  # C=C([OH])[OH], a geminal vinyl diol.
+        "[C-]#[O+]",  # [C-], a carbanion.
+    ],
+)
+def test_remove_bizarre_substruc_matches_patterns_the_substring_pass_missed(
+    smiles: str,
+) -> None:
+    # These patterns are SMARTS and cannot appear verbatim in the SMILES
+    # strings the removed substring pass compared against, so the substructure
+    # matching is the only thing enforcing them. Assert the molecules sanitize
+    # first, since an unbuildable molecule is reported as bizarre for an
+    # unrelated reason.
+    mol = MyMol.MyMol(smiles)
+    assert mol.rdkit_mol is not None
+    assert mol.remove_bizarre_substruc() is True
 
 
 def test_get_frags_of_orig_smi_single_fragment_returns_self() -> None:

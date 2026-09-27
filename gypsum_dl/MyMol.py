@@ -49,9 +49,17 @@ class MyMol:
             self.can_smi = ""
             smiles = starter
         else:
-            # So it's an rdkit mol object.
+            # So it's an rdkit mol object. No need to regenerate it, but do
+            # take a copy: this object mutates its molecule in place
+            # (sanitization, reprotonation, and above all
+            # load_conformers_into_rdkit_mol, which clears and rewrites the
+            # conformer set), so holding the caller's object would let those
+            # edits appear underneath whoever passed it in. The isinstance
+            # guard keeps the graceful path for a starter that is neither a
+            # string nor a molecule: MakeTautomers builds a MyMol from
+            # smiles(), which is None once canonicalization has failed.
             self.rdkit_mol = (
-                starter  # No need to regenerate this, since already provided.
+                Chem.Mol(starter) if isinstance(starter, Chem.Mol) else starter
             )
 
             # Get the smiles too from the rdkit mol object.
@@ -542,23 +550,14 @@ class MyMol:
         prohibited_substructures.append("[C-]")  # No carbanions.
         prohibited_substructures.append("[c-]")  # No carbanions.
 
-        # can_smi is None after a failed canonicalization, so only match
-        # against the smiles strings that are actually strings.
-        smis_to_check = [
-            s
-            for s in (self.orig_smi, self.orig_smi_deslt, self.can_smi)
-            if isinstance(s, str)
-        ]
-
-        for s in prohibited_substructures:
-            # First just match strings... could be faster, but not 100%
-            # accurate.
-            if any(s in smi for smi in smis_to_check):
-                utils.log("\tDetected unusual substructure: " + s)
-                self.bizarre_substruct = True
-                return True
-
-        # Now do actual substructure matching
+        # The patterns above are SMARTS, so they are matched against the
+        # molecule and not against its SMILES strings. A substring pass used
+        # to run first, on the theory that it was a cheap approximation, but
+        # most of these patterns cannot appear verbatim in SMILES output
+        # (RDKit writes [OH] as O, and [C-] is not a substring of [CH2-]), and
+        # the two that can are matched here anyway. Leaving it in place
+        # suggested that a pattern added to the list would be enforced by
+        # string comparison, which it would not be.
         for s in prohibited_substructures:
             pattrn = Chem.MolFromSmarts(s)
             if self.rdkit_mol.HasSubstructMatch(pattrn):

@@ -1,4 +1,4 @@
-"""Unit tests for the RDKit sanitization and fragment helpers.
+"""Unit tests for the RDKit sanitization and protonation helpers.
 
 These helpers are the failure-handling layer for every malformed molecule
 that enters the pipeline, so they are tested directly rather than only
@@ -126,46 +126,6 @@ def test_try_reprotanation_none() -> None:
     assert MOH.try_reprotanation(None) is None
 
 
-def test_handle_hs_without_protonation_step() -> None:
-    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
-    result = MOH.handleHs(mol, False)
-    assert result is not None
-    assert result.GetNumAtoms() == 3
-
-
-def test_handle_hs_with_protonation_step() -> None:
-    result = MOH.handleHs(Chem.MolFromSmiles("CCO"), True)
-    assert result is not None
-    assert result.GetNumAtoms() == 9
-
-
-def test_handle_hs_none() -> None:
-    assert MOH.handleHs(None, True) is None
-
-
-def test_remove_atoms_drops_requested_indices() -> None:
-    trimmed = MOH.remove_atoms(Chem.MolFromSmiles("CCO"), [2])
-    assert trimmed is not None
-    assert trimmed.GetNumAtoms() == 2
-
-
-def test_remove_atoms_none_mol() -> None:
-    assert MOH.remove_atoms(None, [0]) is None
-
-
-def test_remove_atoms_does_not_mutate_caller_list() -> None:
-    # Regression (B13): remove_atoms aliased the caller's list and sorted it in
-    # place, reordering the caller's data as a side effect. It must leave the
-    # input list untouched.
-    idx = [0, 2]
-    MOH.remove_atoms(Chem.MolFromSmiles("CCO"), idx)
-    assert idx == [0, 2]
-
-
-def test_remove_atoms_unsortable_index_list() -> None:
-    assert MOH.remove_atoms(Chem.MolFromSmiles("CCO"), 0) is None
-
-
 def test_nitrogen_charge_adjustment_charges_quaternary_nitrogen() -> None:
     mol = Chem.MolFromSmiles("C[N](C)(C)C", sanitize=False)
     adjusted = MOH.Nitrogen_charge_adjustment(mol)
@@ -189,39 +149,19 @@ def test_nitrogen_charge_adjustment_none() -> None:
     assert MOH.Nitrogen_charge_adjustment(None) is None
 
 
-def test_check_for_unassigned_atom_rejects_dummy() -> None:
-    assert MOH.check_for_unassigned_atom(Chem.MolFromSmiles("*CC")) is None
-
-
-def test_check_for_unassigned_atom_accepts_real_atoms() -> None:
-    mol = Chem.MolFromSmiles("CCO")
-    assert MOH.check_for_unassigned_atom(mol) is mol
-
-
-def test_check_for_unassigned_atom_none() -> None:
-    assert MOH.check_for_unassigned_atom(None) is None
-
-
-def test_handle_frag_check_single_fragment() -> None:
-    mol = Chem.MolFromSmiles("CCO")
-    assert MOH.handle_frag_check(mol) is mol
-
-
-def test_handle_frag_check_keeps_largest_fragment() -> None:
-    largest = MOH.handle_frag_check(Chem.MolFromSmiles("CCCCCCO.C"))
-    assert largest is not None
-    assert largest.GetNumAtoms() == 7
-
-
-def test_handle_frag_check_skips_dummy_fragments() -> None:
-    largest = MOH.handle_frag_check(Chem.MolFromSmiles("*.CCO"))
-    assert largest is not None
-    assert largest.GetNumAtoms() == 3
-
-
-def test_handle_frag_check_all_fragments_unassigned() -> None:
-    assert MOH.handle_frag_check(Chem.MolFromSmiles("*.*")) is None
-
-
-def test_handle_frag_check_none() -> None:
-    assert MOH.handle_frag_check(None) is None
+def test_module_exposes_no_uncalled_fragment_or_hydrogen_helpers() -> None:
+    # Regression: handleHs, remove_atoms, check_for_unassigned_atom, and
+    # handle_frag_check had no callers outside this file, and
+    # handle_frag_check was a second implementation of the largest-fragment
+    # selection that DeSaltOrigSmiles.desalter performs, ranking by total atom
+    # count where desalter ranks by heavy atom count. Two copies of that
+    # choice, only one of them reachable, means a correction to the live one
+    # silently leaves the other behind. desalter is now the only
+    # implementation, so these names must stay gone.
+    for name in (
+        "handleHs",
+        "remove_atoms",
+        "check_for_unassigned_atom",
+        "handle_frag_check",
+    ):
+        assert not hasattr(MOH, name)

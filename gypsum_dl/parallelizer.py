@@ -39,9 +39,12 @@ try:
 except Exception:
     MPI_installed = False
 
-MIN_MPI4PY_VERSION: tuple[int, int] = (2, 1)
-"""Oldest mpi4py gypsum-dl runs against. 2.1.0 is where the "-m mpi4py" launch
-flag appeared, and the mpi job manager depends on it."""
+MIN_MPI4PY_VERSION: tuple[int, int] = (4, 0)
+"""Oldest mpi4py gypsum-dl runs against. The "-m mpi4py" launch flag the mpi
+job manager depends on arrived in 2.1.0, but the declared dependency in
+pyproject.toml and pixi.toml is mpi4py>=4.0.1, so a gate set at the old
+feature floor could never fire and advertised support for releases nobody
+tests against. Keep this in step with those pins."""
 
 MPI_LAUNCH_FLAG_MSG: str = (
     "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
@@ -52,7 +55,9 @@ MPI4PY_MISSING_MSG: str = (
 )
 
 MPI4PY_VERSION_MSG: str = (
-    "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
+    "\nmpi4py version "
+    + ".".join(str(part) for part in MIN_MPI4PY_VERSION)
+    + " or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
 )
 
 

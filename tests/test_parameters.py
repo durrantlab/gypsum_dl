@@ -526,7 +526,7 @@ def _prepare_molecules_in_stubbed_mpi_mode(
     )
 
 
-@pytest.mark.parametrize("mpi4py_version", ["4.1.0rc1", "2", "3.1"])
+@pytest.mark.parametrize("mpi4py_version", ["4.1.0rc1", "2", "4.1"])
 def test_prepare_molecules_accepts_unusual_mpi4py_version_strings(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mpi4py_version: str
 ) -> None:
@@ -539,11 +539,11 @@ def test_prepare_molecules_accepts_unusual_mpi4py_version_strings(
     _prepare_molecules_in_stubbed_mpi_mode(tmp_path, monkeypatch, mpi4py_version)
 
 
-@pytest.mark.parametrize("mpi4py_version", ["2.0.1", "1.3.1"])
+@pytest.mark.parametrize("mpi4py_version", ["3.1.4", "2.0.1", "1.3.1"])
 def test_prepare_molecules_still_rejects_old_mpi4py(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mpi4py_version: str
 ) -> None:
-    with pytest.raises(Exception, match="2.1.0 or higher"):
+    with pytest.raises(Exception, match="4.0 or higher"):
         _prepare_molecules_in_stubbed_mpi_mode(tmp_path, monkeypatch, mpi4py_version)
 
 

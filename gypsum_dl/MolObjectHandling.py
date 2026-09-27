@@ -82,45 +82,6 @@ def check_sanitization(mol):
     return candidate
 
 
-def handleHs(mol, protanate_step):
-    """
-    Given a Chem.rdchem.Mol this script will sanitize the molecule, remove all non-explicit H's
-    and add back on all implicit H's. This is to control for any discrepencies in the smiles strings or presence and
-    absense of H's.
-    If it fails it will return a None rather than causing the outer script to fail. Handled here so there are no problems later.
-
-    Inputs:
-    :param Chem.rdchem.Mol sanitized_deprotanated_mol: an rdkit molecule already sanitized and deprotanated.
-    :param bol protanate_step: True if mol needs to be protanated; False if deprotanated
-                                -Note if Protanated, SmilesMerge takes up to 10times longer
-
-    Returns:
-    :returns: Chem.rdchem.Mol mol: an rdkit molecule with H's handled (either added or removed) and sanitized.
-                                            it returns None if H's can't be added or if sanitation fails
-    """
-    mol = check_sanitization(mol)
-    if mol is None:
-        # mol failed Sanitation
-        return None
-
-    mol = try_deprotanation(mol)
-    if mol is None:
-        # mol failed deprotanation
-        return None
-
-    if protanate_step is True:
-        # PROTANTION IS ON
-        mol = try_reprotanation(mol)
-        if mol is None:
-            # mol failed reprotanation
-            return None
-
-    return mol
-
-
-#
-
-
 def try_deprotanation(sanitized_mol):
     """
     Given an already sanitize Chem.rdchem.Mol object, we will try to deprotanate the mol of all non-explicit
@@ -161,43 +122,6 @@ def try_reprotanation(sanitized_deprotanated_mol):
         mol = None
 
     return check_sanitization(mol)
-
-
-#
-
-
-def remove_atoms(mol, list_of_idx_to_remove):
-    """
-    This function removes atoms from an rdkit mol based on
-    a provided list. The RemoveAtom function in Rdkit requires
-    converting the mol to an more editable version of the rdkit mol
-    object (Chem.EditableMol).
-
-    Inputs:
-    :param Chem.rdchem.Mol mol: any rdkit mol
-    :param list list_of_idx_to_remove: a list of idx values to remove
-                                        from mol
-    Returns:
-    :returns: Chem.rdchem.Mol new_mol: the rdkit mol as input but with
-                                            the atoms from the list removed
-    """
-
-    if mol is None:
-        return None
-
-    try:
-        atomsToRemove = sorted(list_of_idx_to_remove, reverse=True)
-    except Exception:
-        return None
-
-    try:
-        em1 = Chem.EditableMol(mol)
-        for atom in atomsToRemove:
-            em1.RemoveAtom(atom)
-
-        return em1.GetMol()
-    except Exception:
-        return None
 
 
 #
@@ -248,70 +172,3 @@ def Nitrogen_charge_adjustment(mol):
             if num_bond_sums == 4.0:
                 atom.SetFormalCharge(+1)
     return mol
-
-
-#
-
-
-def check_for_unassigned_atom(mol):
-    """
-    Check there isn't a missing atom group ie. '*'
-    A '*' in a SMILES string is an atom with an atomic num of 0
-    """
-    if mol is None:
-        return None
-
-    try:
-        atoms = mol.GetAtoms()
-    except Exception:
-        return None
-
-    for atom in atoms:
-        if atom.GetAtomicNum() == 0:
-            return None
-    return mol
-
-
-#
-
-
-def handle_frag_check(mol):
-    """
-    This will take a RDKit Mol object. It will check if it is fragmented.
-    If it has fragments it will return the largest of the two fragments.
-    If it has no fragments it will return the molecule on harmed.
-    """
-    if mol is None:
-        return None
-
-    try:
-        frags = Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
-    except Exception:
-        return None
-
-    if len(frags) == 1:
-        return mol
-    else:
-        frag_info_list = []
-        frag_index = 0
-        for frag in frags:
-            # Check for unassigned breaks ie. a '*'
-            frag = check_for_unassigned_atom(frag)
-            if frag is None:
-                frag_index = frag_index + 1
-                continue
-            else:
-                num_atoms = frag.GetNumAtoms()
-                frag_info = [frag_index, num_atoms]
-                frag_info_list.append(frag_info)
-                frag_index = frag_index + 1
-        if len(frag_info_list) == 0:
-            return None
-        # Get the largest Fragment
-        frag_info_list.sort(key=lambda x: float(x[-1]), reverse=True)
-        largest_frag_idx = frag_info_list[0][0]
-        largest_frag = frags[largest_frag_idx]
-        return largest_frag
-
-
-#

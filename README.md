@@ -61,7 +61,7 @@ Gypsum-DL accepts the following command-line parameters:
                         Determine what style of multiprocessing to use: mpi,
                         multiprocessing, or serial. Serial will override the
                         num_processors flag, forcing it to be one. MPI mode
-                        requires mpi4py 2.1.0 or higher and should be executed
+                        requires mpi4py 4.0 or higher and should be executed
                         as: mpirun -n $NTASKS python -m mpi4py
                         run_gypsum_dl.py ...-settings...
   --num_processors N, -p N

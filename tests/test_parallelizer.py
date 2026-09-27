@@ -325,7 +325,7 @@ def test_parallelizer_pick_mode_method_survives_init() -> None:
     par.end()
 
 
-@pytest.mark.parametrize("version", ["2.1.0", "2.1", "3.1.4", "4.1.0rc1", "2", "10.0"])
+@pytest.mark.parametrize("version", ["4.0.1", "4.0", "4.1.0rc1", "2", "10.0"])
 def test_mpi4py_version_supported_accepts_usable_releases(version: str) -> None:
     # Regression: the version was parsed by running int() over every
     # dot-separated component and indexing the minor unconditionally, so a
@@ -335,14 +335,25 @@ def test_mpi4py_version_supported_accepts_usable_releases(version: str) -> None:
     assert parallelizer.mpi4py_version_supported(version) is True
 
 
-@pytest.mark.parametrize("version", ["2.0.1", "1.3.1"])
+@pytest.mark.parametrize("version", ["3.1.4", "2.1.0", "2.1", "2.0.1", "1.3.1"])
 def test_mpi4py_version_supported_rejects_old_releases(version: str) -> None:
+    # Regression: the gate was set at (2, 1), the mpi4py release that added
+    # the "-m mpi4py" launch flag, while pyproject.toml and pixi.toml both
+    # require mpi4py>=4.0.1. It could therefore never fire, and its message
+    # advertised support for releases nothing tests against.
     assert parallelizer.mpi4py_version_supported(version) is False
+
+
+def test_mpi4py_version_gate_matches_the_declared_dependency() -> None:
+    # The gate and the packaging pins have to move together, and the message
+    # has to quote the gate rather than a version of its own.
+    assert parallelizer.MIN_MPI4PY_VERSION == (4, 0)
+    assert "4.0 or higher" in parallelizer.MPI4PY_VERSION_MSG
 
 
 @pytest.mark.parametrize(
     ("version", "expected"),
-    [("4.1.0rc1", True), ("2", True), ("3.1.4", True), ("2.0.1", False)],
+    [("4.1.0rc1", True), ("2", True), ("4.0.1", True), ("3.1.4", False)],
 )
 def test_check_mpi_available_follows_the_shared_version_gate(
     monkeypatch: pytest.MonkeyPatch, version: str, expected: bool
