@@ -124,7 +124,13 @@ class MyMol:
         try:
             self.stdrd_smiles = ssmiles(self.smiles())
         except Exception:
-            utils.log("\tCould not standardize " + self.smiles(True) + ". Skipping.")
+            # orig_smi is always a string, whereas smiles(True) reports a
+            # failed deprotonation as None, so building the message from it
+            # replaced the original failure with a TypeError raised inside
+            # this handler.
+            utils.log(
+                f"\tCould not standardize {self.orig_smi} ({self.name}). Skipping."
+            )
             self.stdrd_smiles = self.smiles()
 
         return self.stdrd_smiles
@@ -912,7 +918,11 @@ class MyConformer:
                 )
                 # Example of smiles that cause problem here without try...catch:
                 # NC1=NC2=C(N[C@@H]3[C@H](N2)O[C@@H](COP(O)(O)=O)C2=C3S[Mo](S)(=O)(=O)S2)C(=O)N1
-                self.energy = 9999
+                # Every consumer of this attribute sorts on it, and a strained
+                # or large ligand can exceed any finite placeholder, so a
+                # conformer with no energy at all would then outrank a real
+                # one. Infinity sorts last unconditionally.
+                self.energy = float("inf")
             self.minimized = False
             self.ids_hvy_atms = [
                 a.GetIdx() for a in self.mol.GetAtoms() if a.GetAtomicNum() != 1
@@ -958,7 +968,9 @@ class MyConformer:
                 "Warning: Could not calculate energy for molecule "
                 + Chem.MolToSmiles(self.mol)
             )
-            self.energy = 9999
+            # Same reasoning as in the constructor: an unknown energy has to
+            # lose every comparison, which no finite value can guarantee.
+            self.energy = float("inf")
         self.minimized = True
 
     def align_to_me(self, other_conf):

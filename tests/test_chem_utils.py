@@ -70,16 +70,18 @@ def test_pick_lowest_enrgy_mols_returns_lowest_energy_mol() -> None:
     for mol in mols:
         e = energies[mol.smiles()]
         mol.conformers = [_FakeConf(e)]
-        mol.make_first_3d_conf_no_min = lambda m=mol: None  # no-op; conformers already set
+        mol.make_first_3d_conf_no_min = (
+            lambda m=mol: None
+        )  # no-op; conformers already set
 
     # thoroughness=3 so random_sample draws all 3 candidates; run 20 times to
     # defeat the internal shuffle.
     for _ in range(20):
         kept = chem_utils.pick_lowest_enrgy_mols(mols, 1, 3)
         assert len(kept) == 1
-        assert kept[0].smiles() == "CCC", (
-            f"Expected lowest-energy mol 'CCC' but got '{kept[0].smiles()}'"
-        )
+        assert (
+            kept[0].smiles() == "CCC"
+        ), f"Expected lowest-energy mol 'CCC' but got '{kept[0].smiles()}'"
 
 
 def test_pick_lowest_enrgy_mols_leaves_candidates_unchanged() -> None:
@@ -161,3 +163,26 @@ def test_remove_highly_charged_molecules_is_order_independent() -> None:
     # The reference is the -1 form either way, which puts the +5 form six units
     # away and so outside the window.
     assert len(forward) == 2
+
+
+def test_pick_lowest_enrgy_mols_ranks_a_failed_energy_last() -> None:
+    # Regression: a conformer whose force field failed carried the sentinel
+    # 9999, which is not an upper bound on UFF energy. A strained or large
+    # ligand above that value lost to a variant that was never scored at all,
+    # and the SDF then reported 9999 as if it were a measurement.
+    class _FakeConf:
+        def __init__(self, energy: float) -> None:
+            self.energy = energy
+
+    strained = MyMol.MyMol("CCO")
+    strained.conformers = [_FakeConf(12000.0)]
+
+    unscored = MyMol.MyMol("CCC")
+    unscored.conformers = [_FakeConf(float("inf"))]
+
+    # thoroughness=2 so both candidates are ranked; repeat to defeat the
+    # shuffle inside random_sample.
+    for _ in range(20):
+        kept = chem_utils.pick_lowest_enrgy_mols([strained, unscored], 1, 2)
+        assert len(kept) == 1
+        assert kept[0].smiles() == strained.smiles()

@@ -525,3 +525,45 @@ def test_second_embed_fallback_passes_a_seed(monkeypatch: pytest.MonkeyPatch) ->
     seed = calls[-1].get("randomSeed")
     assert isinstance(seed, int)
     assert seed > 0
+
+
+def test_standardize_smiles_survives_an_unknown_noh_smiles(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: the error handler built its message from smiles(True), which
+    # is None once deprotonation has failed, so a molvs failure was replaced by
+    # a TypeError raised inside the handler itself. That aborted the run after
+    # the SDF had already been written, during PDB output.
+    mol = MyMol.MyMol("CCO")
+    mol.can_smi_noh = None
+
+    def boom(smiles: str) -> str:
+        raise ValueError("cannot standardize")
+
+    monkeypatch.setattr(MyMol, "ssmiles", boom)
+
+    assert mol.standardize_smiles() == mol.smiles()
+    assert "Could not standardize" in capsys.readouterr().out
+
+
+def test_conformer_energy_is_infinite_when_the_force_field_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: a failed force field recorded the magic number 9999, which a
+    # strained or large ligand can legitimately exceed, so an unscored
+    # conformer could outrank a real one everywhere energies are sorted.
+    mol = MyMol.MyMol("CCO")
+
+    def boom(mol_to_score: object) -> object:
+        raise ValueError("no UFF parameters")
+
+    monkeypatch.setattr(MyMol.AllChem, "UFFGetMoleculeForceField", boom)
+
+    mol.make_first_3d_conf_no_min()
+    conf = mol.conformers[0]
+    assert conf.energy == float("inf")
+
+    conf.minimized = False
+    conf.minimize()
+    assert conf.energy == float("inf")

@@ -413,3 +413,23 @@ def test_params_record_carries_a_real_start_time(tmp_path) -> None:
     start_time_line = next(i for i, line in enumerate(lines) if "<start_time>" in line)
     # Raises if the recorded value is the "0" default rather than a timestamp.
     datetime.fromisoformat(lines[start_time_line + 1].strip())
+
+
+def test_web_2d_output_skips_variants_the_other_writers_skip(tmp_path) -> None:
+    # Regression: the HTML writer had none of the guards the SDF and PDB
+    # writers have, so a variant with no rdkit_mol, or one whose no-hydrogen
+    # SMILES could not be determined, raised part way through. The file is
+    # opened with "w" and the caller swallows the exception, so the result was
+    # a truncated HTML file that opens in a browser and looks complete.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+    contnr.add_smiles("CCCO")
+    contnr.add_smiles("CCCCO")
+    contnr.mols[1].rdkit_mol = None
+    contnr.mols[2].can_smi_noh = None
+
+    web_2d_output([contnr], str(tmp_path))
+
+    html = (tmp_path / "gypsum_dl_success.html").read_text(encoding="utf-8")
+    assert html.count('<div style="float: left') == 1
+    assert "CCO" in html

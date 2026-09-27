@@ -37,6 +37,16 @@ def web_2d_output(contnrs, output_folder):
         for contnr in contnrs:
             utils.log("\t" + contnr.orig_smi)
             for mol in contnr.mols:
+                # The SDF and PDB writers both skip these variants; doing so
+                # here too keeps one bad variant from truncating an HTML file
+                # that has already been created on disk, and that the caller's
+                # blanket except cannot distinguish from a complete one.
+                if mol.rdkit_mol is None:
+                    continue
+                noh_smiles = mol.smiles(True)
+                if not isinstance(noh_smiles, str):
+                    continue
+
                 # See
                 # http://rdkit.org/docs/source/rdkit.Chem.rdmolops.html#rdkit.Chem.rdmolops.RemoveHs
                 # I think in older versions of rdkit (e.g., 2016.09.2), RemoveHs
@@ -63,7 +73,7 @@ def web_2d_output(contnrs, output_folder):
                     + "</div>"
                     + '<div style="width: 200px; height: 20px;">'
                     + "<small><center>"
-                    + mol.smiles(True)
+                    + noh_smiles
                     + "</center></small>"
                     + "</div>"
                     + "</div>"
