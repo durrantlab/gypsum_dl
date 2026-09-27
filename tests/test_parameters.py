@@ -3,12 +3,15 @@
 import json
 import os
 import random
+import sys
+import types
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy
 import pytest
 
-from gypsum_dl import start
+from gypsum_dl import parallelizer, start
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum_dl.steps.smiles.DurrantLabFilter import durrant_lab_filters
@@ -362,10 +365,10 @@ def test_prepare_molecules_mpi_reindex_restamps_original_mol(
     # Regression: the mpi branch renumbers every container to zero, because
     # each one is then run in isolation. It did so by assigning contnr_idx
     # directly, which left mol_orig_frm_inp_smi.contnr_idx at the pre-mpi
-    # value. The desalter returns that very object for single-fragment inputs,
-    # so the stale index rode into contnr.mols and the Durrant-lab filter, which
-    # regroups molecules by mol.contnr_idx, found nothing under the container's
-    # key and emptied it.
+    # value. The desalter derives its single-fragment result from that very
+    # object, so the stale index rode into contnr.mols and the Durrant-lab
+    # filter, which regroups molecules by mol.contnr_idx, found nothing under
+    # the container's key and emptied it.
     src = tmp_path / "input.smi"
     src.write_text("CCO\tethanol\nCCCO\tpropanol\n")
 
@@ -418,6 +421,91 @@ def test_prepare_molecules_mpi_reindex_restamps_original_mol(
         desalt_orig_smi([contnr], 1, "serial", None)
         durrant_lab_filters([contnr], 1, "serial", None)
         assert len(contnr.mols) == 1
+
+
+def _prepare_molecules_in_stubbed_mpi_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mpi4py_version: str
+) -> None:
+    """Reach the mpi4py version check in prepare_molecules without mpi.
+
+    That check sits behind two gates (the "python -m mpi4py" launch, detected
+    by looking for runpy in sys.modules, and a real mpi4py import) and is
+    followed immediately by the construction of a real Parallelizer. Standing
+    in for all three is what lets an arbitrary version string be exercised in
+    process.
+
+    Args:
+        tmp_path: Directory used for the input file and the output folder.
+        monkeypatch: Fixture used to install the stand-ins.
+        mpi4py_version: The version string the check should parse.
+    """
+    stub_mpi4py = types.ModuleType("mpi4py")
+    stub_mpi4py.__version__ = mpi4py_version
+    monkeypatch.setitem(sys.modules, "mpi4py", stub_mpi4py)
+    monkeypatch.setitem(sys.modules, "runpy", types.ModuleType("runpy"))
+
+    class _StubParallelizer:
+        """Stand in for Parallelizer, which would otherwise start real mpi."""
+
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def return_mode(self) -> str:
+            """Report mpi so the per-container branch runs nothing in here."""
+            return "mpi"
+
+        def run(self, job_input: tuple[object, ...], func: Callable[..., None]) -> None:
+            """Discard the jobs instead of dispatching them."""
+
+        def end(self, job_manager: str) -> None:
+            """No mpi universe to tear down."""
+
+    monkeypatch.setattr(start, "Parallelizer", _StubParallelizer)
+
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    start.prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(tmp_path),
+            "job_manager": "mpi",
+        }
+    )
+
+
+@pytest.mark.parametrize("mpi4py_version", ["4.1.0rc1", "2", "3.1"])
+def test_prepare_molecules_accepts_unusual_mpi4py_version_strings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mpi4py_version: str
+) -> None:
+    # Regression: the version was parsed by running int() over every
+    # dot-separated component and then indexing the minor unconditionally. A
+    # suffixed release ("4.1.0rc1") raised ValueError and a single-component
+    # version ("2") raised IndexError, so a check meant to produce a friendly
+    # message instead ended the run with a traceback out of parameter setup,
+    # before any molecule was read.
+    _prepare_molecules_in_stubbed_mpi_mode(tmp_path, monkeypatch, mpi4py_version)
+
+
+@pytest.mark.parametrize("mpi4py_version", ["2.0.1", "1.3.1"])
+def test_prepare_molecules_still_rejects_old_mpi4py(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mpi4py_version: str
+) -> None:
+    with pytest.raises(Exception, match="2.1.0 or higher"):
+        _prepare_molecules_in_stubbed_mpi_mode(tmp_path, monkeypatch, mpi4py_version)
+
+
+def test_prepare_molecules_shares_the_mpi4py_gate_with_the_parallelizer() -> None:
+    # Regression: the launch-flag check and the version check were implemented
+    # once here and again in the parallelizer, with different parsing, three
+    # copies of the messages, and different error behaviors, so the two could
+    # disagree about whether an installed mpi4py was usable. Only the reaction
+    # to a failed check should differ (abort here, demote to multiprocessing
+    # there).
+    assert start.mpi4py_version_supported is parallelizer.mpi4py_version_supported
+    assert start.mpi4py_launch_flag_present is parallelizer.mpi4py_launch_flag_present
+    assert start.MPI4PY_VERSION_MSG is parallelizer.MPI4PY_VERSION_MSG
+    assert start.MPI_LAUNCH_FLAG_MSG is parallelizer.MPI_LAUNCH_FLAG_MSG
+    assert start.MPI4PY_MISSING_MSG is parallelizer.MPI4PY_MISSING_MSG
 
 
 def test_finalize_params_rejects_missing_source_file(tmp_path) -> None:

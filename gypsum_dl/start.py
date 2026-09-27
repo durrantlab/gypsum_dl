@@ -17,7 +17,14 @@ from rdkit import Chem
 
 from gypsum_dl import utils
 from gypsum_dl.MolContainer import MolContainer
-from gypsum_dl.parallelizer import Parallelizer
+from gypsum_dl.parallelizer import (
+    MPI4PY_MISSING_MSG,
+    MPI4PY_VERSION_MSG,
+    MPI_LAUNCH_FLAG_MSG,
+    Parallelizer,
+    mpi4py_launch_flag_present,
+    mpi4py_version_supported,
+)
 from gypsum_dl.steps.conf.PrepareThreeD import prepare_3d
 from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
 from gypsum_dl.steps.io.ProcessOutput import proccess_output
@@ -90,35 +97,28 @@ def prepare_molecules(args: dict[str, Any]) -> None:
 
     # Handle mpi errors if mpi4py isn't installed
     if params["job_manager"] == "mpi":
-        # Before executing Parallelizer with mpi4py (which override python raise Exceptions)
-        # We must check that it is being run with the "-m mpi4py" runpy flag
-        sys_modules = sys.modules
-        if "runpy" not in sys_modules.keys():
-            printout = "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
-            print(printout)
-            utils.exception(printout)
+        # The gate itself (how the launch flag is detected, which mpi4py
+        # versions are acceptable, and the wording of each message) lives in
+        # parallelizer, which asks the same questions when it decides whether
+        # to demote mpi to multiprocessing. Only the reaction differs here:
+        # the user asked for mpi explicitly, so a failed check ends the run
+        # rather than quietly picking another job manager. The launch flag is
+        # checked first, before mpi4py is imported, because mpi4py overrides
+        # the way exceptions propagate.
+        if not mpi4py_launch_flag_present():
+            print(MPI_LAUNCH_FLAG_MSG)
+            utils.exception(MPI_LAUNCH_FLAG_MSG)
 
         # Check mpi4py import
         try:
             import mpi4py
         except Exception:
-            printout = "\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
-            print(printout)
-            utils.exception(printout)
+            print(MPI4PY_MISSING_MSG)
+            utils.exception(MPI4PY_MISSING_MSG)
 
-        # Check mpi4py import version. This must be at version 2.1.0 and higher
-        mpi4py_version = mpi4py.__version__
-        mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
-
-        if mpi4py_version[0] == 2:
-            if mpi4py_version[1] < 1:
-                printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
-                print(printout)
-                utils.exception(printout)
-        elif mpi4py_version[0] < 2:
-            printout = "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
-            print(printout)
-            utils.exception(printout)
+        if not mpi4py_version_supported(mpi4py.__version__):
+            print(MPI4PY_VERSION_MSG)
+            utils.exception(MPI4PY_VERSION_MSG)
 
     # Throw a message if running on windows. Windows doesn't deal with with
     # multiple processors, so use only 1.

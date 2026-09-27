@@ -56,7 +56,7 @@ def desalt_orig_smi(
             orig_mol = cont.mol_orig_frm_inp_smi
             if not orig_mol.genealogy:
                 orig_mol.genealogy.append(f"{cont.orig_smi} (source)")
-            cont.add_mol(orig_mol)
+            cont.add_mol(cont.copy_of_orig_mol())
             continue
 
         # Update the orig_smi_deslt. If we update it, also add a note in the
@@ -97,8 +97,10 @@ def desalter(contnr):
 
     if len(frags) == 1:
         # It's only got one fragment, so default assumption that
-        # orig_smi = orig_smi_deslt is correct.
-        return orig_mol
+        # orig_smi = orig_smi_deslt is correct. Hand back a copy: the returned
+        # molecule joins contnr.mols, where the later steps rewrite it in
+        # place, and the container has to keep a record of the input.
+        return contnr.copy_of_orig_mol()
     utils.log(
         "\tMultiple fragments found in " + contnr.orig_smi + " (" + contnr.name + ")"
     )

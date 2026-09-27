@@ -60,14 +60,6 @@ prohibited_smi_substrs_for_substr = [
 ]
 
 
-# This step only rebuilds container membership; it must not drop variants or
-# generate conformers, so the variant cap and thoroughness are set high enough
-# that pick_lowest_enrgy_mols returns its input untouched. A container holding
-# more variants than this would fall back to sampling (and to 3D conformer
-# generation), which is not the intent here.
-NO_VARIANT_CAP = 1000
-
-
 def durrant_lab_contains_bad_substr(smiles):
     """Determines if a smiles string contains a prohibitive substring. Faster
     than substructure matching.
@@ -130,9 +122,16 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
 
     # contnrs = results
 
-    # Using this function just to make the changes. Doesn't do energy
-    # minimization or anything (as it does later) because max variants
-    # and thoroughness maxed out.
+    # Using this function just to make the changes. It must not drop variants
+    # or generate conformers here, which means the cap has to be at least as
+    # large as any one container's share of the candidates; no container can
+    # hold more than the whole list, so the list length is a cap that keeps
+    # pick_lowest_enrgy_mols on its return-everything path whatever
+    # max_variants_per_compound the user asked for. A fixed cap silently
+    # pruned (and embedded throwaway conformers for) any container that had
+    # been allowed to grow past it.
+    variant_cap = max(1, len(mols))
+
     # Carry-over must be off: contnr.mols was just emptied above, so there are
     # no originals left to fall back on. Leaving it on makes a fully filtered
     # container log that its original conformers were kept, contradicting both
@@ -140,8 +139,8 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     chem_utils.bst_for_each_contnr_no_opt(
         contnrs,
         mols,
-        NO_VARIANT_CAP,
-        NO_VARIANT_CAP,  # max_variants_per_compound, thoroughness
+        variant_cap,
+        variant_cap,  # max_variants_per_compound, thoroughness
         crry_ovr_frm_lst_step_if_no_fnd=False,
     )
 

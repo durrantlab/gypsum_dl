@@ -58,6 +58,11 @@ def random_sample(lst: list, num: int, msg_if_cut: str = ""):
         A list that contains at most num elements.
     """
 
+    # Copy before shuffling. The dedup below rebinds lst to a new list, but
+    # only when the elements are hashable; when it raises, lst is still the
+    # caller's list and random.shuffle would reorder it in place.
+    lst = list(lst)
+
     with contextlib.suppress(TypeError):
         # Remove redundancies. Suppress because sometimes an lst element may
         # be unhashable. dict.fromkeys dedups in first-seen order, whereas

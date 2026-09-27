@@ -102,7 +102,10 @@ def add_hydrogens(
             + "smiles."
         )
 
-        amol = failed_contnr.mol_orig_frm_inp_smi
+        # A copy, because this molecule joins the working set: the steps that
+        # follow rewrite it in place, and the container's record of the input
+        # (including the genealogy the desalter stamped on it) has to survive.
+        amol = failed_contnr.copy_of_orig_mol()
         amol.contnr_idx = miss_indx
 
         # Save this failure to the genealogy record.

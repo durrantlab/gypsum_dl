@@ -132,7 +132,8 @@ def test_desalt_orig_smi_isolates_a_container_whose_desalting_raises(
 
     # The failing one falls back to the input molecule instead of propagating.
     assert len(salted.mols) == 1
-    assert salted.mols[0] is salted.mol_orig_frm_inp_smi
+    assert salted.mols[0] is not salted.mol_orig_frm_inp_smi
+    assert salted.mols[0].smiles() == salted.mol_orig_frm_inp_smi.smiles()
     assert salted.orig_smi == "CCCCO.[Na+]"
 
 
@@ -163,8 +164,35 @@ def test_desalt_orig_smi_rejects_a_fragment_that_failed_sanitization(
 
     assert len(salted.mols) == 1
     kept = salted.mols[0]
-    assert kept is salted.mol_orig_frm_inp_smi
+    assert kept is not salted.mol_orig_frm_inp_smi
+    assert kept.smiles() == salted.mol_orig_frm_inp_smi.smiles()
     assert kept.rdkit_mol is not None
     # The fallback still has to stamp the provenance the skipped desalter would
     # have recorded.
     assert kept.genealogy == ["CCCCO.[Na+] (source)"]
+
+
+def test_desalt_orig_smi_does_not_alias_the_containers_reference_mol() -> None:
+    # Regression: desalter returned contnr.mol_orig_frm_inp_smi itself on the
+    # single-fragment path, so the container's record of the input sat in
+    # contnr.mols, where the later steps rewrite it in place
+    # (make_first_3d_conf_no_min replaces rdkit_mol with a reprotonated, 3D
+    # one). Only the in-process job managers were affected, since the
+    # multiprocessing and mpi paths hand each step a pickled copy, so the two
+    # disagreed about what the reference molecule described.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+
+    desalt_orig_smi([contnr], 1, "serial", None)
+
+    variant = contnr.mols[0]
+    reference = contnr.mol_orig_frm_inp_smi
+    assert variant is not reference
+    assert variant.rdkit_mol is not reference.rdkit_mol
+    assert variant.smiles() == reference.smiles()
+    assert variant.contnr_idx == 0
+
+    variant.make_first_3d_conf_no_min()
+
+    assert variant.conformers
+    assert reference.conformers == []
+    assert reference.rdkit_mol.GetNumConformers() == 0

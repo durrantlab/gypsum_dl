@@ -7,6 +7,8 @@ MyMol.MyMol. So, just to clarify:
 MolContainer.MolContainer > MyMol.MyMol > MyMol.MyConformers
 """
 
+import copy
+
 from gypsum_dl import MyMol, chem_utils, utils
 
 
@@ -39,7 +41,26 @@ class MolContainer:
         self.mols = []
         self.name = name
         self.properties = properties
-        self.mol_orig_frm_inp_smi = MyMol.MyMol(smiles, name)
+
+        # Everything derived from orig_smi (the reference molecule, its
+        # canonical smiles, the ring/chiral counts, the carbon-hydrogen
+        # footprint, and the fragment cache) is built in one place.
+        self.derive_from_orig_smi()
+
+    def derive_from_orig_smi(self) -> None:
+        """Rebuild every field that is a function of self.orig_smi.
+
+        The constructor and update_orig_smi both need this derivation, and
+        keeping two copies of it let them drift: update_orig_smi once refreshed
+        the ring and chiral counts but left the carbon-hydrogen footprint
+        describing the pre-desalt molecule. One copy means a derived field
+        cannot be added to one path and forgotten on the other.
+
+        Returns:
+            None. Sets the derived attributes on this container.
+        """
+
+        self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx
         self.frgs = ""  # For caching.
 
@@ -63,6 +84,29 @@ class MolContainer:
 
         # Get the non-acidic carbon-hydrogen footprint.
         self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
+
+    def copy_of_orig_mol(self) -> "MyMol.MyMol":
+        """Hand back an independent copy of this container's reference molecule.
+
+        mol_orig_frm_inp_smi is the container's record of the input structure,
+        and several steps fall back to "just use the molecule as given" (the
+        single-fragment desalting path, the desalting and ionization failure
+        paths). Adding that object itself to self.mols aliases the record into
+        the working set, where later steps mutate it in place:
+        make_first_3d_conf_no_min replaces its rdkit_mol with a reprotonated,
+        3D one. Whether that happens depends on the job manager, since the
+        multiprocessing and mpi paths hand the steps pickled copies. A copy
+        makes every path behave like the pickling ones and keeps the record
+        describing the input.
+
+        Returns:
+            A deep copy of the reference molecule, carrying this container's
+                index.
+        """
+
+        mol_copy = copy.deepcopy(self.mol_orig_frm_inp_smi)
+        mol_copy.contnr_idx = self.contnr_idx
+        return mol_copy
 
     def contains_canonical_smiles(self, can_smi: str | None) -> bool:
         """Report whether an already-canonicalized smiles is in this container.
@@ -174,21 +218,11 @@ class MolContainer:
         # Update the MolContainer object
         self.orig_smi = orig_smi
         self.orig_smi_deslt = orig_smi
-        self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
-        self.frgs = ""
-        self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
-        self.num_nonaro_rngs = len(
-            self.mol_orig_frm_inp_smi.get_idxs_of_nonaro_rng_atms()
-        )
-        self.num_specif_chiral_cntrs = len(
-            self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
-        )
-        self.num_unspecif_chiral_cntrs = len(
-            self.mol_orig_frm_inp_smi.chiral_cntrs_w_unasignd()
-        )
-        # Must also refresh the carbon-hydrogen footprint; otherwise it keeps
-        # describing the pre-desalt (salted) molecule.
-        self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
+
+        # Refresh everything that describes orig_smi; otherwise the counts and
+        # the carbon-hydrogen footprint keep describing the pre-desalt (salted)
+        # molecule.
+        self.derive_from_orig_smi()
 
         # None of the mols derived to date, if present, are accurate.
         self.mols = []

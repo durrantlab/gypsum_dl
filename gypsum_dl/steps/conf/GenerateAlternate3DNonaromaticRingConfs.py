@@ -138,8 +138,14 @@ def generate_alternate_3d_nonaromatic_ring_confs(
         contnr = contnr_by_idx[contnr_idx]
         contnr.mols = []  # Note that only affects ones that
         # had non-aromatic rings.
-        lst_enrgy_mol_pairs.sort()  # Sorting by energy (first item in
-        # pair).
+        # Sort by energy, breaking ties on the canonical SMILES. A bare sort()
+        # falls through to comparing the MyMol objects themselves, which
+        # compare by hash(canonical_smiles); CPython salts string hashing per
+        # invocation, so tied conformers (both UFF setups failing gives each
+        # the same sentinel energy) were ordered differently on every run,
+        # including runs with random_seed set. smiles() reports failure as
+        # None.
+        lst_enrgy_mol_pairs.sort(key=lambda pair: (pair[0], pair[1].smiles() or ""))
 
         # Keep only the top ones.
         lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:variant_cap]

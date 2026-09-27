@@ -113,6 +113,58 @@ def test_update_orig_smi_refreshes_carbon_hydrogen_count() -> None:
     assert contnr.carbon_hydrogen_count == expected
 
 
+def test_update_orig_smi_derives_the_same_fields_as_construction() -> None:
+    # Regression: the constructor and update_orig_smi each carried their own
+    # copy of the same derivation, and they drifted (one refreshed the
+    # carbon-hydrogen footprint, the other did not). Both now run one
+    # derivation, so a desalted container has to match a container built from
+    # the desalted SMILES outright.
+    built = MolContainer("CC(=O)C", "acetone", 0, {})
+    desalted = MolContainer("CC(=O)C.CCO", "salt", 0, {})
+    desalted.update_orig_smi("CC(=O)C")
+
+    for field in (
+        "orig_smi",
+        "orig_smi_deslt",
+        "orig_smi_canonical",
+        "num_nonaro_rngs",
+        "num_specif_chiral_cntrs",
+        "num_unspecif_chiral_cntrs",
+        "carbon_hydrogen_count",
+    ):
+        assert getattr(desalted, field) == getattr(built, field), field
+
+
+def test_update_orig_smi_stamps_the_container_index_on_the_rebuilt_mol() -> None:
+    # The rebuilt reference molecule is handed to later steps (the ionization
+    # fallback seeds a variant from it), and every step regroups its work by
+    # contnr_idx, so the rebuild has to carry the container's index the way
+    # construction does. update_orig_smi used to leave it at the MyMol default.
+    contnr = MolContainer("CC(=O)C.CCO", "salt", 7, {})
+    contnr.update_orig_smi("CC(=O)C")
+    assert contnr.mol_orig_frm_inp_smi.contnr_idx == 7
+
+
+def test_copy_of_orig_mol_is_independent_of_the_reference_mol() -> None:
+    contnr = MolContainer("CCO", "ethanol", 2, {})
+    contnr.mol_orig_frm_inp_smi.genealogy.append("CCO (source)")
+
+    mol_copy = contnr.copy_of_orig_mol()
+
+    assert mol_copy is not contnr.mol_orig_frm_inp_smi
+    assert mol_copy.smiles() == contnr.mol_orig_frm_inp_smi.smiles()
+    assert mol_copy.genealogy == ["CCO (source)"]
+    assert mol_copy.contnr_idx == 2
+
+    # The point of the copy: the working set can be rewritten in place without
+    # touching the container's record of the input.
+    mol_copy.genealogy.append("marker")
+    mol_copy.make_first_3d_conf_no_min()
+
+    assert contnr.mol_orig_frm_inp_smi.genealogy == ["CCO (source)"]
+    assert contnr.mol_orig_frm_inp_smi.conformers == []
+
+
 def test_update_idx_propagates_to_original_mol() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     contnr.update_idx(5)

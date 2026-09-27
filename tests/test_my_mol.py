@@ -136,6 +136,11 @@ def test_smiles_is_cached() -> None:
 
 
 def test_comparison_operators_follow_canonical_smiles() -> None:
+    # Regression: every operator delegated to __hash__. str hashing is salted
+    # per interpreter, so any sort that fell through to comparing molecules
+    # (sorting (energy, MyMol) pairs whose energies tie) ordered them
+    # differently on every run. Ordering follows the canonical SMILES itself
+    # now, which is stable.
     a = MyMol.MyMol("CCO")
     b = MyMol.MyMol("OCC")
     c = MyMol.MyMol("CCC")
@@ -143,9 +148,69 @@ def test_comparison_operators_follow_canonical_smiles() -> None:
     assert a != c
     assert a <= b
     assert a >= b
-    assert (a < c) == (hash(a) < hash(c))
-    assert (a > c) == (hash(a) > hash(c))
+    assert (a < c) == (a.smiles() < c.smiles())
+    assert (a > c) == (a.smiles() > c.smiles())
+    assert sorted([a, c]) == [c, a]
+    assert a.sort_key() == (0, "CCO")
     assert a is not None
+
+
+def test_hash_collision_does_not_make_molecules_equal() -> None:
+    # Regression: __eq__ compared hashes, so two distinct molecules whose
+    # canonical SMILES happened to hash to the same value compared equal, and
+    # the deduplication passes discarded one of them as a copy of the other.
+    class CollidingMol(MyMol.MyMol):
+        """A molecule that hashes the same as every other one of its kind.
+
+        Collisions between real SMILES hashes are too rare to provoke from a
+        test, so the collision is forced here instead.
+        """
+
+        def __hash__(self) -> int:
+            """Collide with every other instance of this class."""
+            return 1234
+
+    first = CollidingMol("CCO")
+    second = CollidingMol("CCC")
+
+    assert hash(first) == hash(second)
+    assert first != second
+    assert (first == second) is False
+    assert len(dict.fromkeys([first, second])) == 2
+
+
+def test_ordering_ties_molecules_that_cannot_be_canonicalized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Two molecules that both failed to canonicalize have not been shown to be
+    # the same molecule, so neither is less than, greater than, or equal to the
+    # other, and a stable sort leaves them in the order they arrived in. Under
+    # the hash-based operators their order came from their memory addresses.
+    def boom(*args, **kwargs):
+        raise ValueError("cannot canonicalize")
+
+    monkeypatch.setattr(MyMol.Chem, "MolToSmiles", boom)
+    first = MyMol.MyMol("CCO")
+    second = MyMol.MyMol("CCCCCC")
+
+    assert first.sort_key() == second.sort_key()
+    assert (first < second) is False
+    assert (second < first) is False
+    assert (first <= second) is False
+    assert (first >= second) is False
+    assert first != second
+    assert sorted([first, second]) == [first, second]
+
+
+def test_ordering_against_a_non_molecule_is_not_implemented() -> None:
+    # Regression: the operators asked the other operand for its hash, so
+    # comparing a molecule against an int compared canonical-SMILES hashes
+    # with hash(5) == 5 and answered as though the comparison meant something.
+    mol = MyMol.MyMol("CCO")
+
+    assert mol.__lt__(5) is NotImplemented
+    with pytest.raises(TypeError):
+        mol < 5  # noqa: B015
 
 
 def test_standardize_smiles_is_cached() -> None:

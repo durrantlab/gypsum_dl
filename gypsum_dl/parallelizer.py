@@ -39,6 +39,63 @@ try:
 except Exception:
     MPI_installed = False
 
+MIN_MPI4PY_VERSION: tuple[int, int] = (2, 1)
+"""Oldest mpi4py gypsum-dl runs against. 2.1.0 is where the "-m mpi4py" launch
+flag appeared, and the mpi job manager depends on it."""
+
+MPI_LAUNCH_FLAG_MSG: str = (
+    "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+)
+
+MPI4PY_MISSING_MSG: str = (
+    "\nmpi4py not installed but --job_manager is set to mpi. \n Either install mpi4py or switch job_manager to multiprocessing or serial.\n"
+)
+
+MPI4PY_VERSION_MSG: str = (
+    "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
+)
+
+
+def mpi4py_launch_flag_present() -> bool:
+    """Report whether python was started with the "-m mpi4py" runpy flag.
+
+    mpi4py overrides the way exceptions propagate, so this has to be settled
+    before the api is loaded. Both the parameter setup in start and the
+    Parallelizer's own probe ask the question, and they have to agree on how it
+    is detected.
+
+    Returns:
+        True if the flag appears to have been used.
+    """
+
+    return "runpy" in sys.modules
+
+
+def mpi4py_version_supported(version: str) -> bool:
+    """Judge an mpi4py version string against the minimum gypsum-dl needs.
+
+    Parses only the two components the comparison needs. Running int() over
+    every dot-separated component raised ValueError on a suffixed release
+    ("4.1.0rc1"), and indexing the minor unconditionally raised IndexError on a
+    single-component version ("2"), so a check meant to produce a friendly
+    message instead ended the run with a traceback (or, in the Parallelizer,
+    quietly demoted a perfectly good mpi4py to multiprocessing).
+
+    Args:
+        version: The version string reported by mpi4py.
+
+    Returns:
+        True if the version is recent enough, or if it cannot be parsed: an
+            unusual version string is not evidence of an old mpi4py.
+    """
+
+    try:
+        major, minor = (int(x) for x in version.split(".")[:2])
+    except ValueError:
+        return True
+
+    return (major, minor) >= MIN_MPI4PY_VERSION
+
 
 class Parallelizer(object):
     """
@@ -185,10 +242,8 @@ class Parallelizer(object):
             # We must check that it is being run with the "-m mpi4py" runpy flag
             # Although this is lower priority over mpi4py version (as mpi4py.__versions__ less than 2.1.0 do not offer the -m feature)
             #      This should get checked before loading the mpi4py api
-            sys_modules = sys.modules
-            if "runpy" not in sys_modules.keys():
-                printout = "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
-                print(printout)
+            if not mpi4py_launch_flag_present():
+                print(MPI_LAUNCH_FLAG_MSG)
                 return False
 
             try:
@@ -199,23 +254,24 @@ class Parallelizer(object):
         return False
 
     # TODO Rename this here and in `test_import_MPI`
-    def check_mpi_available(self):
+    def check_mpi_available(self) -> bool:
+        """Report whether the installed mpi4py can actually be used for mpi.
+
+        Importing the MPI sublibrary is the real test (it is what fails inside
+        an already-mpi-parallelized program), so the import stays here even
+        though nothing in this function uses the name.
+
+        Returns:
+            True if MPI imported and the mpi4py version is recent enough.
+        """
+
         import mpi4py
-        from mpi4py import MPI
+        from mpi4py import MPI  # noqa: F401
 
-        mpi4py_version = mpi4py.__version__
-        mpi4py_version = [int(x) for x in mpi4py_version.split(".")]
-
-        if (
-            mpi4py_version[0] == 2
-            and mpi4py_version[1] < 1
-            or mpi4py_version[0] != 2
-            and mpi4py_version[0] < 2
-        ):
-            print(
-                "\nmpi4py version 2.1.0 or higher is required. Use the 'python -m mpi4py' flag to run in mpi mode.\nPlease update mpi4py to a newer version, or switch job_manager to multiprocessing or serial.\n"
-            )
+        if not mpi4py_version_supported(mpi4py.__version__):
+            print(MPI4PY_VERSION_MSG)
             return False
+
         return True
 
     def start(self, mode: str | None = None):

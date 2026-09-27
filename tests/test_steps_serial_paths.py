@@ -87,6 +87,23 @@ def test_add_hydrogens_finds_failed_container_by_index(monkeypatch) -> None:
     )
 
 
+def test_add_hydrogens_fallback_does_not_alias_the_reference_mol(monkeypatch) -> None:
+    # Regression: the carry-over added failed_contnr.mol_orig_frm_inp_smi
+    # itself to the working set and overwrote its genealogy, so the container
+    # lost its record of the input (including the entries the desalter had
+    # stamped) and later steps rewrote the record in place.
+    contnr = _container_at_idx("CC(=O)O", "acetic_acid", 3)
+    reference = contnr.mol_orig_frm_inp_smi
+    reference.genealogy = ["CC(=O)O (source)"]
+    monkeypatch.setattr(AddHydrogens, "parallel_add_H", lambda *a: [])
+
+    add_hydrogens([contnr], 6.4, 8.4, 1.0, 5, 1, 1, "serial", None)
+
+    assert len(contnr.mols) == 1
+    assert contnr.mols[0] is not reference
+    assert reference.genealogy == ["CC(=O)O (source)"]
+
+
 def test_parallel_add_h_does_not_mutate_shared_settings() -> None:
     # Regression: one protonation-settings dict is built per step and aliased
     # into every task tuple, and the worker wrote the current molecule's
@@ -474,6 +491,52 @@ def test_durrant_lab_filters_keeps_clean_molecule() -> None:
     assert len(contnr.mols) == 1
 
 
+def test_durrant_lab_filters_sizes_its_variant_cap_to_the_candidates(
+    monkeypatch,
+) -> None:
+    # Regression: the step passed a fixed cap of 1000 to the energy-based
+    # selector, which is a no-op only while every container holds fewer
+    # variants than that. max_variants_per_compound has no upper bound, so a
+    # container allowed past the constant would have been silently pruned by a
+    # step that is only supposed to rebuild container membership, with
+    # throwaway conformers embedded to rank the variants it dropped. The cap is
+    # now sized to the candidate list, so no container can exceed it.
+    first = MolContainer("CCO", "ethanol", 0, {})
+    first.add_smiles(["CCO", "CCCO", "CCCCO"])
+    second = MolContainer("CCC", "propane", 1, {})
+    second.add_smiles(["CCC", "CCCC"])
+    candidates = len(first.mols) + len(second.mols)
+
+    caps: list[int] = []
+    real_pick = chem_utils.pick_lowest_enrgy_mols
+
+    def recording_pick(
+        mol_lst: list[MyMol], num: int, thoroughness: int
+    ) -> list[MyMol]:
+        """Record the cap the filter asks for, then select as usual.
+
+        Args:
+            mol_lst: The candidate variants for one container.
+            num: The number of variants the caller is willing to keep.
+            thoroughness: How many candidates to evaluate per kept variant.
+
+        Returns:
+            The variants the real selector would keep.
+        """
+        caps.append(num)
+        return real_pick(mol_lst, num, thoroughness)
+
+    monkeypatch.setattr(chem_utils, "pick_lowest_enrgy_mols", recording_pick)
+
+    durrant_lab_filters([first, second], 1, "serial", None)
+
+    assert caps == [candidates, candidates]
+    assert len(first.mols) == 3
+    assert len(second.mols) == 2
+    # Nothing was ranked, so nothing was embedded.
+    assert all(not mol.conformers for contnr in (first, second) for mol in contnr.mols)
+
+
 def test_durrant_lab_filters_does_not_claim_originals_were_kept(capsys) -> None:
     # Regression (B14): the step empties every container before calling
     # bst_for_each_contnr_no_opt, so the carry-over default logged "Keeping
@@ -527,6 +590,82 @@ def test_generate_alternate_ring_confs_keeps_variants() -> None:
     )
     assert len(contnr.mols) >= 1
     assert len(contnr.mols[0].conformers) == 1
+
+
+class _TiedConformer:
+    """A stand-in conformer that only has to report an energy.
+
+    The tie-breaking code reads `conformers[0].energy` and nothing else, and
+    the tie that matters in practice is the sentinel energy MyConformer
+    assigns when the UFF setup fails, which no real conformer can be made to
+    produce on demand.
+    """
+
+    def __init__(self, energy: float) -> None:
+        self.energy = energy
+
+
+def _tied_ring_conf_variant(smiles: str) -> MyMol:
+    """Build a ring-conformer result whose energy ties with its siblings.
+
+    Args:
+        smiles: SMILES string for the variant.
+
+    Returns:
+        A MyMol at container index zero carrying the sentinel energy.
+    """
+    mol = MyMol(smiles)
+    mol.contnr_idx = 0
+    mol.conformers = [_TiedConformer(9999)]
+    return mol
+
+
+def test_generate_alternate_ring_confs_breaks_energy_ties_by_smiles(
+    monkeypatch,
+) -> None:
+    # Regression: the (energy, mol) pairs were sorted with a bare sort(), so
+    # tied energies fell through to comparing the MyMol objects themselves,
+    # which compare by hash(canonical_smiles). CPython salts string hashing
+    # per invocation, and ties are routine (a failed UFF setup gives every
+    # conformer the same sentinel energy), so which variants survived the
+    # max_variants_per_compound trim changed between otherwise identical runs,
+    # including runs with random_seed set. The expected order below is the
+    # SMILES order, which does not move with the hash seed.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    variants = [_tied_ring_conf_variant(smi) for smi in ("CCCO", "CCO", "CCCCO")]
+    monkeypatch.setattr(
+        "gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs."
+        "parallel_get_ring_confs",
+        lambda *a: variants,
+    )
+
+    generate_alternate_3d_nonaromatic_ring_confs(
+        [contnr], 2, 1, 1, False, "serial", None
+    )
+
+    assert [mol.smiles() for mol in contnr.mols] == ["CCCCO", "CCCO"]
+
+
+def test_generate_alternate_ring_confs_tolerates_a_tie_with_no_smiles(
+    monkeypatch,
+) -> None:
+    # smiles() reports failure as None, which the tie-break key has to absorb:
+    # comparing None against a string raises TypeError, and this sort runs in
+    # the main process after the step has fanned out.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    variants = [_tied_ring_conf_variant(smi) for smi in ("CCO", "CCCO")]
+    variants[0].can_smi = None
+    monkeypatch.setattr(
+        "gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs."
+        "parallel_get_ring_confs",
+        lambda *a: variants,
+    )
+
+    generate_alternate_3d_nonaromatic_ring_confs(
+        [contnr], 2, 1, 1, False, "serial", None
+    )
+
+    assert len(contnr.mols) == 2
 
 
 def test_generate_alternate_ring_confs_skips_molecules_without_rings() -> None:

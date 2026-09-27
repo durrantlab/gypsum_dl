@@ -150,6 +150,30 @@ class MyMol:
         # So it hashes based on the cannonical smiles.
         return hash(can_smi)
 
+    def sort_key(self) -> tuple[int, str]:
+        """Give a stable key for ordering molecules.
+
+        The ordering operators used to compare hashes, but str hashing is
+        salted per interpreter, so any sort that fell through to comparing
+        molecules (sorting (energy, MyMol) pairs whose energies tie, for
+        instance) put them in a different order on every run. The canonical
+        SMILES is stable across runs. A molecule that cannot be canonicalized
+        sorts after every molecule that can, and ties with the others that
+        cannot, which leaves those in their original order under a stable
+        sort.
+
+        Returns:
+            A tuple of (rank, canonical smiles), comparable against the same
+                from any other molecule.
+        """
+
+        can_smi = self.smiles()
+
+        if not isinstance(can_smi, str):
+            return (1, "")
+
+        return (0, can_smi)
+
     def __eq__(self, other):
         """Allows you to compare MyMol.MyMol objects.
 
@@ -165,7 +189,21 @@ class MyMol:
             # molecule could otherwise compare equal to a bool sentinel.
             return False
 
-        return self.__hash__() == other.__hash__()
+        can_smi = self.smiles()
+        other_can_smi = other.smiles()
+
+        if not isinstance(can_smi, str) or not isinstance(other_can_smi, str):
+            # smiles() reports failure as None. Two molecules that both failed
+            # to canonicalize have not been shown to be the same molecule, so
+            # such a molecule is equal only to itself. This matches the
+            # identity fallback in __hash__.
+            return self is other
+
+        # Compare the canonical smiles themselves rather than their hashes:
+        # two distinct molecules whose SMILES happen to hash to the same value
+        # are not the same molecule, and the deduplication passes treat
+        # equality as "this is a copy, drop it."
+        return can_smi == other_can_smi
 
     def __ne__(self, other):
         """Allows you to compare MyMol.MyMol objects.
@@ -190,7 +228,10 @@ class MyMol:
         :rtype: boolean
         """
 
-        return self.__hash__() < other.__hash__()
+        if not isinstance(other, MyMol):
+            return NotImplemented
+
+        return self.sort_key() < other.sort_key()
 
     def __le__(self, other):
         """Is this MyMol less than or equal to another one? Gypsum-DL often
@@ -204,7 +245,13 @@ class MyMol:
         :rtype: boolean
         """
 
-        return self.__hash__() <= other.__hash__()
+        if not isinstance(other, MyMol):
+            return NotImplemented
+
+        # Deferring to the strict operator and equality keeps the two in step:
+        # molecules that merely tie in the sort order (two that could not be
+        # canonicalized) are not equal, so neither is <= the other.
+        return self.__lt__(other) or self.__eq__(other)
 
     def __gt__(self, other):
         """Is this MyMol greater than another one? Gypsum-DL often sorts
@@ -218,7 +265,10 @@ class MyMol:
         :rtype: boolean
         """
 
-        return self.__hash__() > other.__hash__()
+        if not isinstance(other, MyMol):
+            return NotImplemented
+
+        return self.sort_key() > other.sort_key()
 
     def __ge__(self, other):
         """Is this MyMol greater than or equal to another one? Gypsum-DL often
@@ -232,7 +282,10 @@ class MyMol:
         :rtype: boolean
         """
 
-        return self.__hash__() >= other.__hash__()
+        if not isinstance(other, MyMol):
+            return NotImplemented
+
+        return self.__gt__(other) or self.__eq__(other)
 
     def make_mol_frm_smiles_sanitze(self):
         """Construct a rdkit.mol for this object, in case you only received

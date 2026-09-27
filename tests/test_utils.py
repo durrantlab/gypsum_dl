@@ -1,6 +1,7 @@
 """Unit tests for the logging, sampling, and bookkeeping helpers in utils."""
 
 import os
+import random
 import subprocess
 import sys
 
@@ -51,6 +52,21 @@ def test_random_sample_keeps_everything_when_num_is_large() -> None:
 
 def test_random_sample_tolerates_unhashable_items() -> None:
     assert len(utils.random_sample([[1], [2]], 5)) == 2
+
+
+def test_random_sample_does_not_reorder_the_callers_list() -> None:
+    # Regression: the dedup that rebinds lst to a fresh list sits inside
+    # suppress(TypeError), so when the elements are unhashable (the live case:
+    # EnumerateChiralMols.parallel_get_chiral passes a list of lists) lst was
+    # still the caller's list by the time random.shuffle reordered it in
+    # place. Seeded so that the shuffle is known to move these five elements.
+    random.seed(0)
+    original = [[1], [2], [3], [4], [5]]
+    snapshot = [list(item) for item in original]
+
+    utils.random_sample(original, 2)
+
+    assert original == snapshot
 
 
 def test_group_mols_by_container_index_groups_and_skips_none() -> None:

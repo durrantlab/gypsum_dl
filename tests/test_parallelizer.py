@@ -7,11 +7,32 @@ when MPI is requested but unavailable.
 
 import multiprocessing
 import os
+import sys
 import time
+import types
 
 import pytest
 
 from gypsum_dl import parallelizer
+
+
+def _stub_mpi4py(monkeypatch: pytest.MonkeyPatch, version: str) -> None:
+    """Install a stand-in mpi4py reporting a chosen version.
+
+    check_mpi_available imports both mpi4py and its MPI sublibrary, neither of
+    which is available (or launchable) in a plain test run, so an arbitrary
+    version string can only be exercised through stand-ins.
+
+    Args:
+        monkeypatch: Fixture used to install the stand-ins.
+        version: The version string the stand-in should report.
+    """
+    stub = types.ModuleType("mpi4py")
+    stub.__version__ = version
+    stub_mpi = types.ModuleType("mpi4py.MPI")
+    stub.MPI = stub_mpi
+    monkeypatch.setitem(sys.modules, "mpi4py", stub)
+    monkeypatch.setitem(sys.modules, "mpi4py.MPI", stub_mpi)
 
 
 def add_one(value: int) -> int:
@@ -302,3 +323,45 @@ def test_parallelizer_pick_mode_method_survives_init() -> None:
     assert par.picked_mode == "multiprocessing"
     assert par.pick_mode() == par.picked_mode
     par.end()
+
+
+@pytest.mark.parametrize("version", ["2.1.0", "2.1", "3.1.4", "4.1.0rc1", "2", "10.0"])
+def test_mpi4py_version_supported_accepts_usable_releases(version: str) -> None:
+    # Regression: the version was parsed by running int() over every
+    # dot-separated component and indexing the minor unconditionally, so a
+    # suffixed release ("4.1.0rc1") raised ValueError and a single-component
+    # version ("2") raised IndexError. An unusual version string is not
+    # evidence of an old mpi4py.
+    assert parallelizer.mpi4py_version_supported(version) is True
+
+
+@pytest.mark.parametrize("version", ["2.0.1", "1.3.1"])
+def test_mpi4py_version_supported_rejects_old_releases(version: str) -> None:
+    assert parallelizer.mpi4py_version_supported(version) is False
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [("4.1.0rc1", True), ("2", True), ("3.1.4", True), ("2.0.1", False)],
+)
+def test_check_mpi_available_follows_the_shared_version_gate(
+    monkeypatch: pytest.MonkeyPatch, version: str, expected: bool
+) -> None:
+    # Regression: this check had its own copy of the version parse, so the
+    # version strings that start handles fine raised in here instead. The
+    # caller catches every exception and returns False, which silently demoted
+    # a perfectly good mpi4py to multiprocessing.
+    _stub_mpi4py(monkeypatch, version)
+    par = parallelizer.Parallelizer("serial", 1)
+
+    assert par.check_mpi_available() is expected
+
+
+def test_mpi4py_launch_flag_present_reads_sys_modules(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(sys.modules, "runpy", types.ModuleType("runpy"))
+    assert parallelizer.mpi4py_launch_flag_present() is True
+
+    monkeypatch.delitem(sys.modules, "runpy")
+    assert parallelizer.mpi4py_launch_flag_present() is False
