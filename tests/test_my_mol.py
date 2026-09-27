@@ -41,6 +41,33 @@ def test_mymol_smiles_describes_the_sanitized_molecule() -> None:
     )
 
 
+def test_mymol_reports_no_smiles_when_sanitization_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: __init__ canonicalized an RDKit-mol starter before
+    # sanitizing it and cleared that cache only when sanitization succeeded. A
+    # molecule check_sanitization rejected was therefore left with rdkit_mol
+    # None but a healthy-looking cached SMILES, which defeats every caller
+    # that treats a non-string SMILES as "molecule of unknown identity":
+    # uniq_mols_in_list deduplicated it against unrelated molecules, and
+    # remove_highly_charged_molecules would hand None to
+    # Chem.GetFormalCharge.
+    monkeypatch.setattr(MyMol.MOH, "check_sanitization", lambda mol: None)
+
+    from_rdkit_mol = MyMol.MyMol(Chem.MolFromSmiles("CCO"), "ethanol")
+
+    assert from_rdkit_mol.rdkit_mol is None
+    assert from_rdkit_mol.can_smi is None
+    assert from_rdkit_mol.smiles() is None
+
+    # The SMILES-starter path never had a pre-sanitization SMILES to keep, so
+    # it still discovers the failure in smiles() itself.
+    from_smiles = MyMol.MyMol("CCO", "ethanol")
+
+    assert from_smiles.rdkit_mol is None
+    assert from_smiles.smiles() is None
+
+
 def test_mymol_from_rdkit_mol_survives_smiles_conversion_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

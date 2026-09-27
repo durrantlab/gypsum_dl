@@ -103,17 +103,19 @@ class MyMol:
         # regardless.
         sanitized = self.make_mol_frm_smiles_sanitze()
 
-        if (
-            sanitized is not None
-            and isinstance(self.can_smi, str)
-            and self.can_smi != ""
-        ):
+        if isinstance(self.can_smi, str) and self.can_smi != "":
             # check_sanitization can hand back a modified copy of the molecule
             # (the four-bond nitrogen fix), and sanitizing in place can change
             # how a molecule is written, so any SMILES canonicalized above may
             # describe a molecule this object no longer holds. Drop it so
-            # smiles() recomputes from self.rdkit_mol.
-            self.can_smi = ""
+            # smiles() recomputes from self.rdkit_mol. If sanitization failed
+            # outright there is nothing to recompute from (rdkit_mol is None),
+            # so record the failure the way smiles() does rather than keeping a
+            # string that describes the structure we just discarded: callers
+            # that guard on a non-string SMILES (uniq_mols_in_list,
+            # contains_canonical_smiles, remove_highly_charged_molecules) would
+            # otherwise treat this object as a usable molecule.
+            self.can_smi = "" if sanitized is not None else None
 
     def standardize_smiles(self):
         """Standardize the smiles string if you can."""

@@ -5,6 +5,8 @@ mode, so the inline code paths in every pipeline step are otherwise never
 executed.
 """
 
+import numpy
+
 from gypsum_dl import chem_utils
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.MyMol import MyMol
@@ -19,6 +21,7 @@ from gypsum_dl.steps.smiles import (
 from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d
 from gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs import (
     generate_alternate_3d_nonaromatic_ring_confs,
+    parallel_get_ring_confs,
 )
 from gypsum_dl.steps.conf.Minimize3D import minimize_3d
 from gypsum_dl.steps.smiles.AddHydrogens import add_hydrogens
@@ -674,6 +677,47 @@ def test_generate_alternate_ring_confs_tolerates_a_tie_with_no_smiles(
     )
 
     assert len(contnr.mols) == 2
+
+
+def test_parallel_get_ring_confs_clusters_several_ring_conformers() -> None:
+    # Regression: the degenerate-shape guard tested pts.shape == (0,), a shape
+    # the earlier "no rings" return already makes unreachable, so it was
+    # protecting nothing. Written as a check on pts.shape[0] instead it would
+    # have swallowed every molecule, since the rmsd points are measured
+    # relative to the first conformer and so are one row short until the
+    # vstack adds it. Cyclohexane keeps several distinct ring geometries, so
+    # collapsing to a single conformer here is a real loss of output.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    convert_2d_to_3d([contnr], 3, 2, 1, "serial", None)
+    mol = contnr.mols[0]
+
+    results = parallel_get_ring_confs(mol, 3, 2, False)
+
+    # Precondition: with only one surviving conformer a single variant would
+    # be the correct answer, and the assertion below would say nothing.
+    assert len(mol.conformers) > 1
+    assert len(results) > 1
+    coords = {
+        tuple(numpy.round(variant.conformers[0].coords().flatten(), 3))
+        for variant in results
+    }
+    assert len(coords) == len(results)
+
+
+def test_parallel_get_ring_confs_keeps_a_lone_conformer() -> None:
+    # A single conformer leaves every ring rmsd list empty, so pts arrives
+    # with shape (0, num_rings). That is the reference conformer rather than a
+    # molecule with nothing to cluster, and the guard has to let it reach the
+    # vstack that supplies its row of zeros.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+    mol = contnr.mols[0]
+
+    results = parallel_get_ring_confs(mol, 1, 1, False)
+
+    assert len(mol.conformers) == 1
+    assert len(results) == 1
+    assert len(results[0].conformers) == 1
 
 
 def test_generate_alternate_ring_confs_skips_molecules_without_rings() -> None:

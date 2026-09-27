@@ -254,9 +254,12 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         # Get points for each conformer (rmsd_ring1, rmsd_ring2, rmsd_ring3)
         pts = numpy.array(list_of_rmslists).T
 
-        # This can happen if, for example, tautomerization removes the
-        # non-aromatic ring.
-        if pts.shape == (0,):
+        # With no ring submols to align, list_of_rmslists is empty and the
+        # transpose has no second dimension, so there is nothing to cluster on.
+        # A single conformer is not this case: every RMS list is then empty and
+        # pts has shape (0, num_rings), which the vstack below turns into the
+        # one row describing the reference conformer.
+        if pts.ndim != 2 or pts.shape[1] == 0:
             return [mol]
 
         pts = numpy.vstack((numpy.array([[0.0] * pts.shape[1]]), pts))
