@@ -10,11 +10,13 @@ import subprocess
 import sys
 import textwrap
 
+import pytest
 from rdkit import Chem
 
 import gypsum_dl
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.start import prepare_molecules
+from gypsum_dl.steps.io import ProcessOutput
 from gypsum_dl.steps.io.SaveToSDF import save_to_sdf
 from gypsum_dl.steps.io.Web2DOutput import web_2d_output
 
@@ -255,3 +257,79 @@ def test_web_2d_output_survives_a_non_utf8_locale(tmp_path) -> None:
     assert written.startswith(b'<meta charset="utf-8">')
     # The name has to land as UTF-8 bytes, not as whatever the locale implied.
     assert "caf\u00e9".encode() in written
+
+
+def _molecules_in(sdf_path: str) -> list:
+    """Read back the real molecules from an SDF written by save_to_sdf.
+
+    The first record is always an atomless placeholder holding the run
+    parameters, so tests that count output molecules have to drop it.
+
+    Args:
+        sdf_path: Path to the SDF file to read.
+
+    Returns:
+        The records that carry atoms.
+    """
+    supplier = Chem.SDMolSupplier(sdf_path, removeHs=False)
+    return [m for m in supplier if m is not None and m.GetNumAtoms() > 0]
+
+
+def test_sdf_is_written_even_when_the_html_pass_fails(tmp_path, monkeypatch) -> None:
+    # Regression: with --add_html_output, the unguarded 2D depiction pass ran
+    # before the SDF was written. One variant that survives the pipeline but
+    # cannot be depicted turned a completed run into no output at all, even
+    # though the HTML is documented as a debugging aid.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("cannot depict this molecule")
+
+    monkeypatch.setattr(ProcessOutput, "web_2d_output", boom)
+
+    ProcessOutput.proccess_output(
+        [contnr],
+        {
+            "separate_output_files": False,
+            "output_folder": str(tmp_path),
+            "add_pdb_output": False,
+            "add_html_output": True,
+        },
+    )
+
+    assert len(_molecules_in(str(tmp_path / "gypsum_dl_success.sdf"))) == 1
+
+
+def test_save_to_sdf_skips_molecules_with_no_rdkit_mol(tmp_path) -> None:
+    # Regression: SDWriter.write(None) raises, so one unwritable variant took
+    # the whole SDF with it. Such a molecule has nothing to write anyway.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+    contnr.add_smiles("CCCO")
+    contnr.mols[0].rdkit_mol = None
+
+    save_to_sdf([contnr], {"thoroughness": 1}, False, str(tmp_path))
+
+    mols = _molecules_in(str(tmp_path / "gypsum_dl_success.sdf"))
+    assert len(mols) == 1
+    assert Chem.MolToSmiles(mols[0]) == "CCCO"
+
+
+def test_save_to_sdf_finishes_the_file_when_a_molecule_raises(tmp_path) -> None:
+    # Regression: the writer was flushed and closed only on the success path, so
+    # an exception part way through the molecules left a truncated or empty SDF
+    # behind. Whatever was written before the failure has to be readable.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+    contnr.add_smiles("CCCO")
+
+    def boom() -> None:
+        raise RuntimeError("cannot load conformers")
+
+    contnr.mols[1].load_conformers_into_rdkit_mol = boom
+
+    with pytest.raises(RuntimeError):
+        save_to_sdf([contnr], {"thoroughness": 1}, False, str(tmp_path))
+
+    assert len(_molecules_in(str(tmp_path / "gypsum_dl_success.sdf"))) == 1

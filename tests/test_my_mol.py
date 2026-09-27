@@ -8,8 +8,34 @@ from gypsum_dl import MyMol
 
 def test_mymol_from_rdkit_mol_sets_canonical_smiles() -> None:
     mol = MyMol.MyMol(Chem.MolFromSmiles("OCC"), "ethanol")
-    assert mol.can_smi == "CCO"
+    # Asked through the accessor rather than read off can_smi: __init__ drops
+    # the cache once the molecule has been sanitized, since sanitization can
+    # replace the molecule the SMILES was taken from.
+    assert mol.smiles() == "CCO"
     assert mol.name == "ethanol"
+
+
+def test_mymol_smiles_describes_the_sanitized_molecule() -> None:
+    # Regression: __init__ canonicalized the starter before
+    # make_mol_frm_smiles_sanitze ran, and check_sanitization hands back a
+    # modified copy when it applies the four-bond nitrogen fix. The cached
+    # SMILES then described a molecule the object no longer held, and smiles()
+    # kept returning it, so molecular identity (hashing, deduplication) and the
+    # SMILES written to the SDF disagreed about the molecule.
+    starter = Chem.MolFromSmiles("C[N](C)(C)C", sanitize=False)
+    # Enough bookkeeping for the SMILES writer to run, but not a sanitization:
+    # the neutral quaternary nitrogen has to reach MyMol uncorrected.
+    starter.UpdatePropertyCache(strict=False)
+    Chem.FastFindRings(starter)
+    assert "+" not in Chem.MolToSmiles(starter)
+
+    mol = MyMol.MyMol(starter)
+
+    assert mol.rdkit_mol is not None
+    assert "+" in mol.smiles()
+    assert mol.smiles() == Chem.MolToSmiles(
+        mol.rdkit_mol, isomericSmiles=True, canonical=True
+    )
 
 
 def test_mymol_from_rdkit_mol_survives_smiles_conversion_failure(
@@ -29,6 +55,20 @@ def test_mymol_from_rdkit_mol_survives_smiles_conversion_failure(
 
 def test_smiles_noh_strips_explicit_hydrogens() -> None:
     assert MyMol.MyMol("CCO").smiles(True) == "CCO"
+
+
+def test_smiles_noh_returns_none_when_there_is_no_molecule() -> None:
+    # Regression: the noh == True branch had no failure guard. When rdkit_mol is
+    # None (a molecule that failed sanitization or 3D optimization), the copy
+    # and the deprotonation both give None and MolToSmiles raised a Boost
+    # ArgumentError. set_all_rdkit_mol_props reaches this accessor from the main
+    # process, after every expensive step, so that exception ended the run
+    # before anything was written to disk.
+    mol = MyMol.MyMol("CCO")
+    mol.rdkit_mol = None
+
+    assert mol.smiles(True) is None
+    mol.set_all_rdkit_mol_props()  # must not raise
 
 
 def test_smiles_is_cached() -> None:

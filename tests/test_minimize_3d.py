@@ -110,6 +110,13 @@ def test_minimize_3d_flags_mols_that_failed_to_embed() -> None:
     assert ok.genealogy == []
     assert ok.conformers != []
 
+    # Regression: the flagged molecule also has to leave the container. It is
+    # not writable (load_conformers_into_rdkit_mol returns early on a None
+    # rdkit_mol), but the steps that follow minimization call accessors on it
+    # from the main process, where an exception ends the run after all the
+    # expensive work is done.
+    assert contnr.mols == [ok]
+
 
 _PrepareThreeDParams = TypedDict(
     "_PrepareThreeDParams",

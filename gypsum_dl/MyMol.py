@@ -98,7 +98,19 @@ class MyMol:
 
         # Makes the molecule if a smiles was provided. Sanitizes the molecule
         # regardless.
-        self.make_mol_frm_smiles_sanitze()
+        sanitized = self.make_mol_frm_smiles_sanitze()
+
+        if (
+            sanitized is not None
+            and isinstance(self.can_smi, str)
+            and self.can_smi != ""
+        ):
+            # check_sanitization can hand back a modified copy of the molecule
+            # (the four-bond nitrogen fix), and sanitizing in place can change
+            # how a molecule is written, so any SMILES canonicalized above may
+            # describe a molecule this object no longer holds. Drop it so
+            # smiles() recomputes from self.rdkit_mol.
+            self.can_smi = ""
 
     def standardize_smiles(self):
         """Standardize the smiles string if you can."""
@@ -296,6 +308,19 @@ class MyMol:
             # this function previously with noh = False
             amol = copy.copy(self.rdkit_mol)
             amol = MOH.try_deprotanation(amol)
+            if amol is None:
+                # rdkit_mol can be None (a molecule that failed sanitization or
+                # 3D optimization), and deprotonation can fail on its own.
+                # MolToSmiles would then raise, and unlike the noh == False
+                # branch, several callers of this accessor run in the main
+                # process after every expensive step, so the exception aborts
+                # the whole run before any output is written. Report failure the
+                # same way the other branch does instead.
+                utils.log(
+                    f"Warning: Couldn't put {self.orig_smi} ({self.name}) in canonical form without hydrogens. This molecule will be discarded."
+                )
+                self.can_smi_noh = None
+                return None
             self.can_smi_noh = Chem.MolToSmiles(
                 amol, isomericSmiles=True, canonical=True
             )

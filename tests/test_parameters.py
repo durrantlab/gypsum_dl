@@ -198,6 +198,19 @@ def test_add_mol_id_props_assigns_unique_ids() -> None:
     assert contnr.mols[0].rdkit_mol.GetProp("UniqueID") == "1_1"
 
 
+def test_add_mol_id_props_tolerates_a_molecule_with_no_rdkit_mol() -> None:
+    # Regression: minimize_3d left molecules whose rdkit_mol is None inside
+    # their container, and this function (the next call in execute_gypsum_dl,
+    # running in the main process) reaches MyMol.smiles(True) on every one of
+    # them. MolToSmiles(None) raised there, aborting the run after every
+    # expensive step and before the SDF was written.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+    contnr.mols[0].rdkit_mol = None
+
+    start.add_mol_id_props([contnr])  # must not raise
+
+
 def test_add_mol_id_props_ids_differ_across_separate_calls() -> None:
     # Regression (bug 16): the id came from a counter that restarted at 1 in
     # every call, and execute_gypsum_dl (which calls this) runs once per mpi

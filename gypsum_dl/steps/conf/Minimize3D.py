@@ -108,12 +108,21 @@ def minimize_3d(
     for mol in results:
         contnrs[mol.contnr_idx].add_mol(mol)
 
-    # Alert the user to any errors.
+    # Alert the user to any errors, and drop the molecules behind them. Such a
+    # molecule has nothing writable in it (load_conformers_into_rdkit_mol
+    # returns early when rdkit_mol is None), but the steps that follow do call
+    # accessors on it, in the main process, where an exception ends the run
+    # after all the expensive work is done. Dropping it also lets
+    # deal_with_failed_molecules report the input as failed.
     for contnr in contnrs:
+        kept = []
         for mol in contnr.mols:
             if mol.rdkit_mol is None:
                 mol.genealogy.append("(WARNING: Could not optimize 3D geometry)")
                 mol.conformers = []
+                continue
+            kept.append(mol)
+        contnr.mols = kept
 
 
 def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
