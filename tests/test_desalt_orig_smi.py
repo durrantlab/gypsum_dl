@@ -71,7 +71,7 @@ def test_desalt_orig_smi_keeps_the_source_record_after_rebuilding_the_container(
     # downstream.
     salted = MolContainer("CCCCO.[Na+]", "salted", 0, {})
 
-    desalt_orig_smi([salted], 1, "serial", None)
+    desalt_orig_smi([salted])
 
     genealogy = salted.mol_orig_frm_inp_smi.genealogy
     assert genealogy[0] == "CCCCO.[Na+] (source)"
@@ -86,7 +86,7 @@ def test_desalt_orig_smi_pairs_each_container_with_its_own_mol() -> None:
     clean = MolContainer("c1ccccc1", "benzene", 1, {})
     contnrs = [salted, clean]
 
-    desalt_orig_smi(contnrs, 1, "serial", None)
+    desalt_orig_smi(contnrs)
 
     assert len(salted.mols) == 1
     assert len(clean.mols) == 1
@@ -124,7 +124,7 @@ def test_desalt_orig_smi_isolates_a_container_whose_desalting_raises(
 
     monkeypatch.setattr(DeSaltOrigSmiles, "desalter", exploding_desalter)
 
-    desalt_orig_smi([salted, clean], 1, "serial", None)
+    desalt_orig_smi([salted, clean])
 
     # The healthy container is unaffected.
     assert len(clean.mols) == 1
@@ -160,7 +160,7 @@ def test_desalt_orig_smi_rejects_a_fragment_that_failed_sanitization(
 
     monkeypatch.setattr(DeSaltOrigSmiles, "desalter", unsanitizable_desalter)
 
-    desalt_orig_smi([salted], 1, "serial", None)
+    desalt_orig_smi([salted])
 
     assert len(salted.mols) == 1
     kept = salted.mols[0]
@@ -182,7 +182,7 @@ def test_desalt_orig_smi_does_not_alias_the_containers_reference_mol() -> None:
     # disagreed about what the reference molecule described.
     contnr = MolContainer("CCO", "ethanol", 0, {})
 
-    desalt_orig_smi([contnr], 1, "serial", None)
+    desalt_orig_smi([contnr])
 
     variant = contnr.mols[0]
     reference = contnr.mol_orig_frm_inp_smi

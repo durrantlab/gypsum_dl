@@ -39,7 +39,7 @@ def prepare_smiles(contnrs, params):
     # Desalt the molecules. Note that the program always desalts (can't turn it
     # off).
     # utils.log("Begin Desaltings")
-    desalt_orig_smi(contnrs, num_procs, job_manager, parallelizer_obj)
+    desalt_orig_smi(contnrs)
     # utils.log("Done with Desalting")
 
     # Note: Metal-containing and other bad-substring compounds are removed by

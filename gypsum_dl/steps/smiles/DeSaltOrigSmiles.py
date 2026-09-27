@@ -5,6 +5,8 @@ molecule, keep the larger one.
 
 import __future__
 
+from typing import TYPE_CHECKING
+
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import MyMol, chem_utils, utils
 
@@ -13,21 +15,16 @@ try:
 except Exception:
     utils.exception("You need to install rdkit and its dependencies.")
 
+if TYPE_CHECKING:
+    from gypsum_dl.MolContainer import MolContainer
 
-def desalt_orig_smi(
-    contnrs, num_procs, job_manager, parallelizer_obj, durrant_lab_filters=False
-):
+
+def desalt_orig_smi(contnrs: list["MolContainer"]) -> None:
     """If an input molecule has multiple unconnected fragments, this removes
        all but the largest fragment.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
-    :param num_procs: The number of processors to use.
-    :type num_procs: int
-    :param job_manager: The multiprocess mode.
-    :type job_manager: string
-    :param parallelizer_obj: The Parallelizer object.
-    :type parallelizer_obj: Parallelizer.Parallelizer
     """
 
     utils.log("Desalting all molecules (i.e., keeping only largest fragment).")

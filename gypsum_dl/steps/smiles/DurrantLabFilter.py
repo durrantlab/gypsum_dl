@@ -5,6 +5,9 @@ filters.
 
 import __future__
 
+from functools import cache
+from typing import TYPE_CHECKING
+
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
 
@@ -12,6 +15,9 @@ try:
     from rdkit import Chem
 except Exception:
     utils.exception("You need to install rdkit and its dependencies.")
+
+if TYPE_CHECKING:
+    from gypsum_dl.MolContainer import MolContainer
 
 # Get the substructures you won't permit (per substructure matching, not
 # substring matching)
@@ -73,6 +79,24 @@ def durrant_lab_contains_bad_substr(smiles):
     return any(s in smiles for s in prohibited_smi_substrs_for_substr)
 
 
+@cache
+def get_prohibited_substructs() -> tuple["Chem.Mol", ...]:
+    """Compile the prohibited substructure queries once per process.
+
+    The queries used to be built in the parent and handed to the parallelizer
+    alongside each container, which pushed them through the task queue (or the
+    mpi scatter) once per container and made the filtering depend on RDKit
+    preserving SMARTS query features across a pickle round trip. Building them
+    inside the worker keeps the serial and parallel paths identical by
+    construction, whatever the installed RDKit does.
+
+    Returns:
+        The compiled queries, in the order the patterns are declared.
+    """
+
+    return tuple(Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc)
+
+
 def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     """Removes any molecules that contain prohibited substructures, per the
     durrant-lab filters.
@@ -89,12 +113,9 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
 
     utils.log("Applying Durrant-lab filters to all molecules...")
 
-    prohibited_substructs = [
-        Chem.MolFromSmarts(s) for s in prohibited_smi_substrs_for_substruc
-    ]
-
-    # Get the parameters to pass to the parallelizer object.
-    params = [[c, prohibited_substructs] for c in contnrs]
+    # Get the parameters to pass to the parallelizer object. The queries
+    # themselves are compiled in the worker, not sent through the queue.
+    params = [[c] for c in contnrs]
 
     # Run the tautomizer through the parallel object.
     tmp = []
@@ -145,18 +166,18 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     )
 
 
-def parallel_durrant_lab_filter(contnr, prohibited_substructs):
+def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None":
     """A parallelizable helper function that checks that tautomers do not
        break any nonaromatic rings present in the original object.
 
     :param contnr: The molecule container.
     :type contnr: MolContainer.MolContainer
-    :param prohibited_substructs: A list of the prohibited substructures.
-    :type prohibited_substructs: list
     :return: Either the container with bad molecules removed, or a None
       object.
     :rtype: MolContainer.MolContainer | None
     """
+
+    prohibited_substructs = get_prohibited_substructs()
 
     # Replace any molecules that have prohibited substructure with None.
     for mi, m in enumerate(contnr.mols):
@@ -174,26 +195,28 @@ def parallel_durrant_lab_filter(contnr, prohibited_substructs):
             contnr.mols[mi] = None
             continue
 
-        for pattrn in prohibited_substructs:
-            if durrant_lab_contains_bad_substr(
-                m.orig_smi_deslt
-            ) or m.rdkit_mol.HasSubstructMatch(pattrn):
-                utils.log(
-                    "\t"
-                    + m.smiles(True)
-                    + ", a variant generated "
-                    + "from "
-                    + contnr.orig_smi
-                    + " ("
-                    + m.name
-                    + "), contains a prohibited substructure, so I'm "
-                    + "discarding it."
-                )
+        # The substring test looks at the molecule alone, so it belongs outside
+        # the pattern loop; inside, it was re-evaluated once per query. Both
+        # tests still short circuit, so a molecule is matched against no more
+        # patterns than before.
+        prohibited = durrant_lab_contains_bad_substr(m.orig_smi_deslt) or any(
+            m.rdkit_mol.HasSubstructMatch(pattrn) for pattrn in prohibited_substructs
+        )
 
-                contnr.mols[mi] = None
+        if prohibited:
+            utils.log(
+                "\t"
+                + m.smiles(True)
+                + ", a variant generated "
+                + "from "
+                + contnr.orig_smi
+                + " ("
+                + m.name
+                + "), contains a prohibited substructure, so I'm "
+                + "discarding it."
+            )
 
-                # continue # JDD: this was wrong, wasn't it?
-                break  # On to next mol in mols.
+            contnr.mols[mi] = None
 
     # Now go back and remove those Nones
     contnr.mols = Parallelizer.strip_none(contnr.mols)

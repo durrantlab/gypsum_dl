@@ -418,7 +418,7 @@ def test_prepare_molecules_mpi_reindex_restamps_original_mol(
 
         # The manifestation: with a stale index on the pristine mol, the
         # container comes out of the filter empty.
-        desalt_orig_smi([contnr], 1, "serial", None)
+        desalt_orig_smi([contnr])
         durrant_lab_filters([contnr], 1, "serial", None)
         assert len(contnr.mols) == 1
 

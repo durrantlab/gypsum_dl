@@ -14,10 +14,9 @@ try:
 except Exception:
     utils.exception("You need to install rdkit and its dependencies.")
 
-# The parameters record is written before the run finishes, so end_time and
-# run_time would always carry their defaults; Parallelizer stringifies to an
-# address that changes every run, which makes byte-identical reruns impossible.
-_PARAMS_NOT_WRITTEN = frozenset({"Parallelizer", "end_time", "run_time"})
+# Parallelizer stringifies to an address that changes every run, which makes
+# byte-identical reruns impossible.
+_PARAMS_NOT_WRITTEN = frozenset({"Parallelizer"})
 
 
 def save_to_sdf(contnrs, params, separate_output_files, output_folder):

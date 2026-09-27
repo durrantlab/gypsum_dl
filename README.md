@@ -152,6 +152,16 @@ gypsum-dl --source ./examples/sample_molecules.smi \
     --output_folder /my/folder/ --max_variants_per_compound 2
 ```
 
+Setting this parameter to zero turns variant enumeration off entirely.
+Gypsum-DL still desalts each input molecule and still writes one 3D model per
+input, but it does not generate alternate ionization states, tautomers,
+enantiomers, or double-bond isomers:
+
+```bash
+gypsum-dl --source ./examples/sample_molecules.smi \
+    --output_folder /my/folder/ --max_variants_per_compound 0
+```
+
 Control how Gypsum-DL ionizes the input molecules:
 
 ```bash

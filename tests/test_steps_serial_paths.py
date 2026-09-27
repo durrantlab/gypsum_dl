@@ -218,14 +218,14 @@ def test_generate_alternate_ring_confs_flags_failure_by_index(monkeypatch) -> No
 
 def test_desalt_orig_smi_keeps_largest_fragment() -> None:
     contnr = MolContainer("CCCCCCO.C", "salt", 0, {})
-    desalt_orig_smi([contnr], 1, "serial", None)
+    desalt_orig_smi([contnr])
     assert "." not in contnr.orig_smi
     assert len(contnr.mols) == 1
 
 
 def test_desalt_orig_smi_leaves_single_fragment_alone() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
-    desalt_orig_smi([contnr], 1, "serial", None)
+    desalt_orig_smi([contnr])
     assert contnr.orig_smi == "CCO"
     assert len(contnr.mols) == 1
 
@@ -481,6 +481,14 @@ def test_durrant_lab_contains_bad_substr_detects_metals() -> None:
 
 def test_durrant_lab_filters_discards_boron() -> None:
     contnr = _container("B(O)(O)O", "boric_acid")
+    durrant_lab_filters([contnr], 1, "serial", None)
+    assert contnr.mols == []
+
+
+def test_durrant_lab_filters_discards_metal_by_substring() -> None:
+    # The metal check is a SMILES substring test rather than a substructure
+    # match, so it is the one branch of the filter that no pattern covers.
+    contnr = _container("CCO.[Zn+2]", "zinc_salt")
     durrant_lab_filters([contnr], 1, "serial", None)
     assert contnr.mols == []
 

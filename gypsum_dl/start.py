@@ -282,7 +282,10 @@ def prepare_molecules(args: dict[str, Any]) -> None:
 
         params["Parallelizer"].run(job_input, execute_gypsum_dl)
 
-    # Calculate the total run time.
+    # Calculate the total run time. Neither of these is a parameter: the
+    # parameters record is written by save_to_sdf while the run is still going,
+    # so it can carry start_time but never these two. They are reported here
+    # only.
     end_time = datetime.now()
     run_time = end_time - start_time
 
@@ -404,8 +407,6 @@ def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
             "add_html_output": False,
             "num_processors": -1,
             "start_time": 0,
-            "end_time": 0,
-            "run_time": 0,
             "min_ph": 6.4,
             "max_ph": 8.4,
             "pka_precision": 1.0,
