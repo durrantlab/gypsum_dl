@@ -4,6 +4,7 @@ debugging.
 """
 
 # import webbrowser
+import html
 import os
 
 from gypsum_dl import chem_utils, utils
@@ -66,7 +67,7 @@ def web_2d_output(contnrs, output_folder):
                 svg = drawer.GetDrawingText()
                 f.write(
                     '<div style="float: left; width:200px; height: 220px;" title="'
-                    + mol.name
+                    + html.escape(mol.name, quote=True)
                     + '">'
                     + '<div style="width: 200px; height: 200px;">'
                     + svg.replace("svg:", "")

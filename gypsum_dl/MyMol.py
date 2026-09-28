@@ -448,7 +448,15 @@ class MyMol:
         return nonaro_rngs
 
     def chiral_cntrs_w_unasignd(self):
-        """Get the chiral centers that haven't been assigned.
+        """Get every chiral center, whether or not it has been assigned.
+
+        Despite the name, this is a superset of chiral_cntrs_only_asignd()
+        rather than its complement: unassigned centers are marked '?' and
+        assigned ones carry their 'R' or 'S'. So the length of this list is the
+        total number of chiral centers, and adding it to the length of
+        chiral_cntrs_only_asignd() counts every assigned center twice. Callers
+        wanting only the unassigned centers filter on '?' (see
+        EnumerateChiralMols.parallel_get_chiral).
 
         :return: The chiral centers. Also saved to
            self.chiral_cntrs_include_unasignd. Looks like [(10, '?')]
@@ -776,6 +784,13 @@ class MyConformer:
         # Save some values to the object.
         self.smiles = mol.smiles()
         self.orig_smi = mol.orig_smi
+
+        # Set before any of the failure paths below: callers read .energy
+        # without first checking .mol (the minimization and ring-conformer
+        # steps both do), and add_conformers sorts on it. Infinity is the same
+        # placeholder used when the force field cannot score a conformer, so a
+        # failed one loses every comparison.
+        self.energy = float("inf")
 
         # A caller can hand us a MyMol whose rdkit_mol is None (e.g. failed
         # reprotonation). deepcopy(None) is None, and the subsequent

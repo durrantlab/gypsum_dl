@@ -57,7 +57,8 @@ def make_tauts(
     :param num_procs: The number of processors to use.
     :type num_procs: int
     :param let_tautomers_change_chirality: Whether to allow tautomers that
-      change the total number of chiral centers.
+      change the number of chiral centers, or the number of those centers
+      carrying an assigned stereochemistry.
     :type let_tautomers_change_chirality: bool
     :param job_manager: The multithred mode to use.
     :type job_manager: string
@@ -261,8 +262,11 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
     """Unfortunately, molvs sees removing chiral specifications as being a
        distinct taut. I imagine there are cases where tautization could
        remove a chiral center, but I think these cases are rare. To compensate
-       for the error in other folk's code, let's just require that the number
-       of chiral centers remain unchanged with isomerization.
+       for the error in other folk's code, let's require that isomerization
+       leave both the number of chiral centers and the number of them carrying
+       an assigned stereochemistry unchanged. The second count is what rejects
+       the molvs artifact: dropping a specification leaves the center in place,
+       so the total by itself does not move.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
@@ -338,13 +342,26 @@ def parallel_check_nonarom_rings(taut, contnr):
             + contnr.orig_smi
             + " ("
             + taut.name
-            + "), changed the number of aromatic rings, so I'm discarding it."
+            + "), changed the number of non-aromatic rings, so I'm discarding it."
         )
 
 
-def parallel_check_chiral_centers(taut, contnr):
+def parallel_check_chiral_centers(
+    taut: MyMol.MyMol, contnr: "MolContainer"
+) -> MyMol.MyMol | None:
     """A parallelizable helper function that checks that tautomers do not break
        any chiral centers in the original molecule.
+
+       Two counts describe a molecule's chirality, and a tautomer has to match
+       the original on both. The total number of chiral centers catches a
+       transformation that created or destroyed a stereocenter. The number of
+       those centers carrying an assignment catches the MolVS artifact this
+       filter exists for (see tauts_no_elim_chiral): a form differing from the
+       input only in having dropped a chiral specification. That form has the
+       same total, so comparing totals alone would admit it, and
+       EnumerateChiralMols runs later in prepare_smiles and expands every
+       unassigned center into both R and S, which would put the enantiomer the
+       input ruled out into the output.
 
     :param taut: The tautomer to evaluate.
     :type taut: MyMol.MyMol
@@ -354,33 +371,54 @@ def parallel_check_chiral_centers(taut, contnr):
     :rtype: MyMol.MyMol | None
     """
 
-    # How many chiral centers in the original smiles?
-    num_specif_chiral_cntrs_orig = (
-        contnr.num_specif_chiral_cntrs + contnr.num_unspecif_chiral_cntrs
+    # chiral_cntrs_w_unasignd reports assigned and unassigned centers alike, so
+    # its length is the total; num_unspecif_chiral_cntrs holds that length
+    # despite its name. Adding it to the assigned count would tally every
+    # assigned center twice.
+    num_chiral_cntrs_orig = contnr.num_unspecif_chiral_cntrs
+    num_assignd_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs
+
+    num_chiral_cntrs_taut = len(taut.chiral_cntrs_w_unasignd())
+    num_assignd_chiral_cntrs_taut = len(taut.chiral_cntrs_only_asignd())
+
+    if (
+        num_chiral_cntrs_taut == num_chiral_cntrs_orig
+        and num_assignd_chiral_cntrs_taut == num_assignd_chiral_cntrs_orig
+    ):
+        # Same chirality as the original molecule. Save this good one.
+        return taut
+
+    rejection_prefix = (
+        "\t"
+        + contnr.orig_smi
+        + " ==> "
+        + taut.smiles(True)
+        + " (tautomer transformation on "
+        + taut.name
+        + ") "
     )
 
-    # Make a new list containing only the ones that don't break chiral centers
-    # (or that add new chiral centers).
-    m_num_specif_chiral_cntrs = len(taut.chiral_cntrs_only_asignd()) + len(
-        taut.chiral_cntrs_w_unasignd()
-    )
-    if m_num_specif_chiral_cntrs == num_specif_chiral_cntrs_orig:
-        # Same number of chiral centers as original molecule. Save this good
-        # one.
-        return taut
-    else:
+    if num_chiral_cntrs_taut != num_chiral_cntrs_orig:
         utils.log(
-            "\t"
-            + contnr.orig_smi
-            + " ==> "
-            + taut.smiles(True)
-            + " (tautomer transformation on "
-            + taut.name
-            + ") "
-            + "changed the molecules total number of specified "
+            rejection_prefix
+            + "changed the molecules total number of "
             + "chiral centers from "
-            + str(num_specif_chiral_cntrs_orig)
+            + str(num_chiral_cntrs_orig)
             + " to "
-            + str(m_num_specif_chiral_cntrs)
+            + str(num_chiral_cntrs_taut)
             + ", so I'm deleting it."
         )
+    else:
+        utils.log(
+            rejection_prefix
+            + "kept all "
+            + str(num_chiral_cntrs_orig)
+            + " chiral centers but changed how many of them carry an assigned "
+            + "stereochemistry, from "
+            + str(num_assignd_chiral_cntrs_orig)
+            + " to "
+            + str(num_assignd_chiral_cntrs_taut)
+            + ", so I'm deleting it."
+        )
+
+    return None

@@ -2,6 +2,7 @@
 
 from typing import TypedDict
 
+from gypsum_dl import MyMol
 from gypsum_dl.steps.conf import Minimize3D, PrepareThreeD
 
 
@@ -339,3 +340,25 @@ def test_prepare_3d_leaves_ring_mols_to_the_ring_conf_step_by_default(
 
     assert captured["ring_confs_ran"] is True
     assert captured["include_nonaro_rings"] is False
+
+
+def test_parallel_minit_survives_a_mol_with_no_rdkit_mol() -> None:
+    # Regression (F6): the real MyConformer left .energy unset on its failure
+    # paths, and parallel_minit reads it unconditionally. A molecule that
+    # reached this step with conformers but a None rdkit_mol therefore raised
+    # AttributeError inside the worker, which reported it as a molecule that
+    # simply produced nothing. It must come back with the failed conformer and
+    # a genealogy line saying so; minimize_3d's own alert loop then drops it.
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+    assert mol.conformers
+    mol.rdkit_mol = None
+
+    result = Minimize3D.parallel_minit(
+        mol, max_variants_per_compound=1, thoroughness=1, second_embed=False
+    )
+
+    assert result is not None
+    assert result.conformers[0].mol is False
+    assert result.conformers[0].energy == float("inf")
+    assert "energy unavailable" in result.genealogy[-1]

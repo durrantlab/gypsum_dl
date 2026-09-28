@@ -476,6 +476,20 @@ def test_myconformer_with_none_rdkit_mol_is_marked_failed() -> None:
     assert conf.mol is False
 
 
+def test_myconformer_has_an_energy_even_when_it_fails() -> None:
+    # Regression (F6): the failure paths returned (or fell past) the block that
+    # assigns self.energy, so the attribute never existed. Two callers read it
+    # without checking .mol first (the minimization and ring-conformer steps),
+    # and add_conformers sorts on it, so a failed conformer raised
+    # AttributeError inside a worker and the molecule was dropped with no
+    # explanation. Infinity also keeps a scoreless conformer from outranking a
+    # real one.
+    mol = MyMol.MyMol("CCO")
+    mol.rdkit_mol = None
+    conf = MyMol.MyConformer(mol)
+    assert conf.energy == float("inf")
+
+
 def test_add_conformers_sorts_by_energy() -> None:
     mol = MyMol.MyMol("CCCCCC")
     # `MyConformer.rmsd_to_me` rebuilds the molecule from SMILES and

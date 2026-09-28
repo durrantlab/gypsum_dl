@@ -12,6 +12,9 @@ import pytest
 from rdkit import Chem
 
 from gypsum_dl.steps.smiles.DurrantLabFilter import (
+    durrant_lab_contains_bad_substr,
+    metal_element_symbols,
+    prohibited_smi_substrs_for_substr,
     prohibited_smi_substrs_for_substruc,
 )
 
@@ -83,3 +86,69 @@ def test_internal_iminol_is_only_caught_by_the_in_code_pattern() -> None:
     mol = Chem.MolFromSmiles("CN=C(O)C")
     assert mol.HasSubstructMatch(Chem.MolFromSmarts(TERMINAL_ONLY_IMINOL)) is False
     assert TERMINAL_ONLY_IMINOL not in prohibited_smi_substrs_for_substruc
+
+
+# The eleven metals the filter rejected before the list was completed.
+ORIGINAL_METALS = ["Al", "V", "Fe", "Co", "Cu", "Zn", "Mo", "Cd", "Au", "Pb", "Bi"]
+
+# Metals that used to pass the filter, which is the gap these tests close.
+PREVIOUSLY_PERMITTED_METALS = [
+    "Mg",
+    "Mn",
+    "Ni",
+    "Hg",
+    "Pt",
+    "Ag",
+    "Pd",
+    "Ru",
+    "Sn",
+    "Ti",
+    "Cr",
+]
+
+
+@pytest.mark.parametrize("symbol", metal_element_symbols)
+def test_every_metal_symbol_is_a_real_element(symbol: str) -> None:
+    # A typo in the symbol list would silently stop filtering that metal, since
+    # a substring that matches nothing is indistinguishable from one that has
+    # nothing to match.
+    mol = Chem.MolFromSmiles(f"[{symbol}]")
+    assert mol is not None
+    assert mol.GetAtomWithIdx(0).GetSymbol() == symbol
+    assert mol.GetAtomWithIdx(0).GetAtomicNum() <= 92
+
+
+@pytest.mark.parametrize("symbol", metal_element_symbols)
+def test_every_metal_symbol_has_a_prohibited_substring(symbol: str) -> None:
+    assert f"[{symbol}" in prohibited_smi_substrs_for_substr
+
+
+@pytest.mark.parametrize("symbol", ORIGINAL_METALS + PREVIOUSLY_PERMITTED_METALS)
+def test_metal_containing_smiles_are_rejected(symbol: str) -> None:
+    assert durrant_lab_contains_bad_substr(f"[{symbol}]") is True
+    assert durrant_lab_contains_bad_substr(f"CC(=O)[O-].[{symbol}+2]") is True
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "CC(=O)Oc1ccccc1C(=O)O",  # Aspirin.
+        "C[C@H](N)C(=O)O",  # Bracketed chiral carbon, not cadmium or cobalt.
+        "c1cc[nH]c1",  # Bracketed aromatic nitrogen, not sodium.
+        "C[N+](C)(C)C",  # Charged nitrogen, not niobium.
+        "[I-]",  # Iodide, not indium.
+        "O=[PH](=O)([O-])[O-]",  # Bracketed phosphorus, not lead or platinum.
+        "[Si](C)(C)C",  # A metalloid, left alone on purpose.
+        "[2H]C(Cl)(Cl)Cl",  # Isotope label on a non-metal.
+    ],
+)
+def test_non_metal_bracket_atoms_are_kept(smiles: str) -> None:
+    # The substrings keep the opening bracket precisely so that these do not
+    # collide with a metal symbol that shares a first letter.
+    assert durrant_lab_contains_bad_substr(smiles) is False
+
+
+def test_krypton_is_caught_by_the_potassium_substring() -> None:
+    # Known and accepted overreach: "[K" matches krypton as well as potassium.
+    # Pinned so that it reads as a decision rather than a surprise.
+    assert durrant_lab_contains_bad_substr("[Kr]") is True

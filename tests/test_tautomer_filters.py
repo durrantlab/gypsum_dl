@@ -121,3 +121,90 @@ def test_enol_tautomers_survive_the_filters() -> None:
     kept = tauts_no_elim_chiral([contnr], kept, 1, "serial", None)
 
     assert kept == [keto, enol]
+
+
+def _logged_message(captured: str) -> str:
+    """Collapse a captured log record into one space-separated line.
+
+    utils.log wraps at 80 columns, so an assertion on message wording has to
+    ignore where the line breaks landed.
+
+    Args:
+        captured: Everything the log sink wrote during the call under test.
+
+    Returns:
+        The same text with every run of whitespace reduced to one space.
+    """
+    return " ".join(captured.split())
+
+
+def test_nonarom_ring_rejection_names_non_aromatic_rings(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression (F7): the filter compares counts of non-aromatic rings, but
+    # the rejection message reported a change in the number of aromatic rings,
+    # sending anyone chasing a missing tautomer after the wrong quantity.
+    contnr = MolContainer("C1CCCCC1", "cyclohexane", 0, {})
+    taut = _taut("c1ccccc1", "cyclohexane")
+
+    assert parallel_check_nonarom_rings(taut, contnr) is None
+
+    message = _logged_message(capsys.readouterr().out)
+    assert "changed the number of non-aromatic rings" in message
+
+
+def test_chiral_rejection_does_not_call_the_count_specified(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression (F7): the message called the number it printed the total
+    # number of specified centers, which was neither of the things being
+    # compared. Also a regression on the arithmetic behind that number: the
+    # filter summed chiral_cntrs_only_asignd() and chiral_cntrs_w_unasignd(),
+    # and since the latter returns assigned centers too, every assigned center
+    # was counted twice. Alanine has one chiral center, so the message read 2.
+    contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
+    taut = _taut("CCC(=O)O", "alanine")
+
+    assert parallel_check_chiral_centers(taut, contnr) is None
+
+    message = _logged_message(capsys.readouterr().out)
+    assert "total number of chiral centers from 1 to 0" in message
+    assert "specified" not in message
+
+
+def test_chiral_filter_rejects_tautomer_that_drops_a_stereo_assignment() -> None:
+    # The artifact tauts_no_elim_chiral was written for: MolVS reports a form
+    # that differs from the input only in having dropped a chiral
+    # specification. The center survives, so the total count is unchanged (1
+    # either way) and a filter comparing only totals would keep it. Keeping it
+    # matters because EnumerateChiralMols runs afterwards and expands every
+    # unassigned center into both R and S, so the output would carry the
+    # enantiomer the input's "@" ruled out.
+    contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
+    taut = _taut("CC(N)C(=O)O", "alanine")
+
+    assert len(taut.chiral_cntrs_w_unasignd()) == contnr.num_unspecif_chiral_cntrs
+    assert parallel_check_chiral_centers(taut, contnr) is None
+
+
+def test_chiral_rejection_names_the_assignment_change(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # A rejection for a changed assignment count must not report it as a change
+    # in the total, which is unchanged and would read "from 1 to 1".
+    contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
+    taut = _taut("CC(N)C(=O)O", "alanine")
+
+    assert parallel_check_chiral_centers(taut, contnr) is None
+
+    message = _logged_message(capsys.readouterr().out)
+    assert "assigned stereochemistry, from 1 to 0" in message
+    assert "total number of chiral centers" not in message
+
+
+def test_tauts_no_elim_chiral_drops_taut_with_dropped_stereo_assignment() -> None:
+    contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
+    keep = _taut("C[C@H](N)C(=O)O", "alanine")
+    drop = _taut("CC(N)C(=O)O", "alanine")
+    result = tauts_no_elim_chiral([contnr], [keep, drop], 1, "serial", None)
+    assert result == [keep]

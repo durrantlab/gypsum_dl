@@ -36,6 +36,15 @@ from gypsum_dl.steps.smiles.PrepareSmiles import prepare_smiles
 # the first fan-out step with a message about development overrides.
 VALID_JOB_MANAGERS = ("mpi", "multiprocessing", "serial")
 
+# Ceiling on "thoroughness". The parameter multiplies into the embedding count
+# in Minimize3D and GenerateAlternate3DNonaromaticRingConfs, into the
+# ionization budget in AddHydrogens, and into the tautomer and double-bond
+# budgets, so a mistyped value buys hours of conformer generation and the
+# memory to hold it rather than an error. The default is 3 and a deliberately
+# exhaustive run is still well under this, so a value above it is a typo (a
+# stray digit, a shifted decimal) far more often than a request.
+MAX_THOROUGHNESS = 1000
+
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def prepare_molecules(args: dict[str, Any]) -> None:
@@ -208,9 +217,14 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # print("###########################")
     # print("")
 
-    # Make the molecule containers.
+    # Make the molecule containers. The index is the position of the record in
+    # the input file, not a count of the records accepted: every external
+    # number (output filenames, UniqueID, the failed-molecule file) derives
+    # from it, so it has to line up with the input the user can look at. A
+    # rejected record therefore leaves a gap, which nothing downstream minds
+    # (utils.contnrs_by_idx needs only uniqueness, and mpi mode rewrites the
+    # live index to 0 anyway).
     contnrs = []
-    idx_counter = 0
     for i in range(0, len(smiles_data)):
         try:
             smiles, name, props = smiles_data[i]
@@ -225,7 +239,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             )
             continue
 
-        new_contnr = MolContainer(smiles, name, idx_counter, props)
+        new_contnr = MolContainer(smiles, name, i, props)
         if (
             new_contnr.orig_smi_canonical == None
             or type(new_contnr.orig_smi_canonical) != str
@@ -237,12 +251,9 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             continue
 
         contnrs.append(new_contnr)
-        idx_counter += 1
 
     # Remove None types from failed conversion
     contnrs = [x for x in contnrs if x.orig_smi_canonical != None]
-    if len(contnrs) != idx_counter:
-        utils.exception("There is a corrupted container")
 
     # In multiprocessing mode, Gypsum-DL parallelizes each small-molecule
     # preparation step separately. But this scheme is inefficient in MPI mode
@@ -579,6 +590,15 @@ def finalize_params(params: dict[str, Any]) -> dict[str, Any]:
     # parameter dictionaries.
     if "thoroughness" in params and params["thoroughness"] < 1:
         utils.exception('The parameter "thoroughness" must be at least 1.')
+
+    if "thoroughness" in params and params["thoroughness"] > MAX_THOROUGHNESS:
+        utils.exception(
+            'The parameter "thoroughness" must be '
+            + str(MAX_THOROUGHNESS)
+            + " or less, but it is "
+            + str(params["thoroughness"])
+            + "."
+        )
 
     # Zero is allowed for max_variants_per_compound: the SMILES enumeration
     # steps treat it as a sentinel that skips them entirely.

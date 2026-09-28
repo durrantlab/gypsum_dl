@@ -147,6 +147,32 @@ def test_set_parameters_allows_thoroughness_of_one(tmp_path) -> None:
     assert params["thoroughness"] == 1
 
 
+def test_set_parameters_rejects_thoroughness_above_ceiling(tmp_path) -> None:
+    # Regression: thoroughness was only checked from below. It multiplies into
+    # add_conformers(thoroughness * max_variants_per_compound) in Minimize3D
+    # and GenerateAlternate3DNonaromaticRingConfs, into the AddHydrogens
+    # ionization budget, and into the tautomer and double-bond budgets, so a
+    # mistyped value bought hours of embedding work and the memory to hold it
+    # instead of an error at startup.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    with pytest.raises(Exception, match="thoroughness"):
+        start.set_parameters(
+            {"source": str(src), "thoroughness": start.MAX_THOROUGHNESS + 1}
+        )
+
+
+def test_set_parameters_allows_thoroughness_at_ceiling(tmp_path) -> None:
+    # The ceiling itself has to stay usable; rejecting it would make the
+    # documented bound off by one.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params = start.set_parameters(
+        {"source": str(src), "thoroughness": start.MAX_THOROUGHNESS}
+    )
+    assert params["thoroughness"] == start.MAX_THOROUGHNESS
+
+
 def test_set_parameters_rejects_unknown_job_manager(tmp_path) -> None:
     # Regression: only the type of job_manager was checked outside the CLI, and
     # Parallelizer's bare "else" silently substitutes multiprocessing while

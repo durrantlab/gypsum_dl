@@ -38,32 +38,30 @@ prohibited_smi_substrs_for_substruc = [
     "[$(N)]C(=C)[$([OH]),$([O-])]",  # A mistaken amide tautomer that sometimes arises
 ]
 
-# Get the substrings you won't permit (per substring matching)
-prohibited_smi_substrs_for_substr = [
-    # Let's eliminate ones with common metals too (not really druglike)
-    # "[#13]",  # Al
-    # "[#23]",  # V
-    # "[#26]",  # Fe
-    # "[#27]",  # Co
-    # "[#29]",  # Cu
-    # "[#30]",  # Zn
-    # "[#42]",  # Mo
-    # "[#48]",  # Cd
-    # "[#79]",  # Au
-    # "[#82]"   # Pb
-    # "[#83]",  # Bi
-    "[Al",  # Al
-    "[V",  # V
-    "[Fe",  # Fe
-    "[Co",  # Co
-    "[Cu",  # Cu
-    "[Zn",  # Zn
-    "[Mo",  # Mo
-    "[Cd",  # Cd
-    "[Au",  # Au
-    "[Pb",  # Pb
-    "[Bi",  # Bi
-]
+# Metals are not druglike, so every one of them is rejected. The list stops at
+# uranium: everything heavier is synthetic and will not appear in a ligand
+# file. Metalloids (Si, Ge, As, Sb, Te, Po, At) are deliberately absent, and
+# boron has its own [#5] entry in the substructure list above.
+metal_element_symbols: list[str] = (
+    # Alkali and alkaline earth metals.
+    "Li Na K Rb Cs Fr Be Mg Ca Sr Ba Ra "
+    # Transition metals.
+    "Sc Ti V Cr Mn Fe Co Ni Cu Zn "
+    "Y Zr Nb Mo Tc Ru Rh Pd Ag Cd "
+    "Hf Ta W Re Os Ir Pt Au Hg "
+    # Lanthanides.
+    "La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu "
+    # Actinides, through uranium.
+    "Ac Th Pa U "
+    # Post-transition metals.
+    "Al Ga In Sn Tl Pb Bi"
+).split()
+
+# Get the substrings you won't permit (per substring matching). A metal can
+# only be written as a bracketed atom, so keeping the opening bracket is what
+# separates indium from iodine and sodium from nitrogen. One symbol overreaches
+# slightly: "[K" also catches krypton, which is no more druglike than a metal.
+prohibited_smi_substrs_for_substr = [f"[{sym}" for sym in metal_element_symbols]
 
 
 def durrant_lab_contains_bad_substr(smiles):

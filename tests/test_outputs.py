@@ -93,6 +93,39 @@ def test_unassigned_bond_and_unparseable_smiles_are_dropped(tmp_path) -> None:
         assert "garbage" not in f.read()
 
 
+def test_output_numbering_follows_input_position(tmp_path) -> None:
+    # Regression (F5): the container index was a count of the records that
+    # survived parsing rather than the record's position in the input file, so
+    # a rejected line shifted every external number down by one. The filename
+    # suffix, the UniqueID property, and the failed-molecule filename all come
+    # from that index, so the molecule on line 2 was reported as input 1 and
+    # cross-referencing output against input silently misattributed it.
+    src = tmp_path / "input.smi"
+    src.write_text("moosedogfacecat\tgarbage\nCCO\tethanol\n")
+    output_folder = tmp_path / "out_numbering"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "separate_output_files": True,
+            "2d_output_only": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+
+    sdf_path = os.path.join(str(output_folder), "ethanol__input2.sdf")
+    assert os.path.exists(sdf_path)
+    assert not os.path.exists(os.path.join(str(output_folder), "ethanol__input1.sdf"))
+
+    supplier = Chem.SDMolSupplier(sdf_path, removeHs=False)
+    mols = [m for m in supplier if m is not None and m.GetNumAtoms() > 0]
+    assert mols
+    for mol in mols:
+        assert mol.GetProp("UniqueID").startswith("2_")
+
+
 def test_nested_output_folder_is_created(tmp_path) -> None:
     # Regression (M5): os.mkdir raised FileNotFoundError when a parent segment
     # of output_folder was missing, before the "couldn't be created" message
@@ -433,3 +466,19 @@ def test_web_2d_output_skips_variants_the_other_writers_skip(tmp_path) -> None:
     html = (tmp_path / "gypsum_dl_success.html").read_text(encoding="utf-8")
     assert html.count('<div style="float: left') == 1
     assert "CCO" in html
+
+
+def test_web_2d_output_escapes_the_ligand_name(tmp_path) -> None:
+    # Regression (F8): the name was interpolated into the title attribute with
+    # no escaping. Names come from an SDF _Name field or the tail of an SMI
+    # line, so a quotation mark closed the attribute early and the rest of the
+    # div was parsed as attributes, wrecking the depiction grid from that point
+    # on.
+    contnr = MolContainer("CCO", 'lig "A"', 0, {})
+    contnr.add_smiles("CCO")
+
+    web_2d_output([contnr], str(tmp_path))
+
+    html_text = (tmp_path / "gypsum_dl_success.html").read_text(encoding="utf-8")
+    assert 'title="lig &quot;A&quot;"' in html_text
+    assert html_text.count('<div style="float: left') == 1

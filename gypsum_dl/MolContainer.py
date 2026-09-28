@@ -77,7 +77,9 @@ class MolContainer:
             self.mol_orig_frm_inp_smi.chiral_cntrs_only_asignd()
         )
 
-        # Also get the number of chiral centers, unassigned
+        # Get the total number of chiral centers, assigned or not. The name
+        # says unspecified, but chiral_cntrs_w_unasignd returns both kinds, so
+        # this count includes the assigned centers tallied above.
         self.num_unspecif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_w_unasignd()
         )
