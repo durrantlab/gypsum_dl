@@ -1,6 +1,7 @@
 """Some helpful utility definitions used throughout the code."""
 
 import contextlib
+import math
 import random
 import string
 import textwrap
@@ -215,6 +216,45 @@ def exception(msg: str) -> None:
     log("=" * 79)
     log("")
     raise Exception(msg)
+
+
+def energy_for_output(energy: float) -> float | None:
+    """Convert a conformer energy into a value fit to publish as a property.
+
+    A conformer whose force field could not be set up carries an infinite
+    energy, which is what keeps it from being selected over a conformer that
+    was actually scored. That sentinel must not reach the output files, where
+    it reads as a measurement and breaks consumers that parse the field as a
+    number. Returning None hands the decision to set_rdkit_mol_prop, which
+    leaves a None-valued property out of the file entirely.
+
+    Args:
+        energy: The conformer energy, in kcal/mol.
+
+    Returns:
+        The energy when it is finite, otherwise None.
+    """
+
+    return energy if math.isfinite(energy) else None
+
+
+def describe_energy(energy: float) -> str:
+    """Render a conformer energy for the genealogy record.
+
+    Same reasoning as energy_for_output: the genealogy is read by users
+    tracking down where a variant came from, so a failed force field should say
+    so rather than print an infinity with a unit after it.
+
+    Args:
+        energy: The conformer energy, in kcal/mol.
+
+    Returns:
+        The energy with its unit, or a note that no energy is available.
+    """
+
+    if math.isfinite(energy):
+        return f"{energy} kcal/mol"
+    return "energy unavailable, force field failed"
 
 
 def slug(strng: str) -> str:

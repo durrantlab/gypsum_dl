@@ -237,12 +237,6 @@ def main():
         action="store_true",
         help="Skips the generate-3D-models step.",
     )
-    PARSER.add_argument(
-        "--cache_prerun",
-        "-c",
-        action="store_true",
-        help="Run this before running Gypsum-DL in mpi mode.",
-    )
 
     ARGS_DICT = vars(PARSER.parse_args())
     INPUTS = copy.deepcopy(ARGS_DICT)

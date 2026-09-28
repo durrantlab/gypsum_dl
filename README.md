@@ -113,7 +113,6 @@ Gypsum-DL accepts the following command-line parameters:
                         improbable by members of the Durrant lab. See
                         README.md for more details.
   --2d_output_only      Skips the generate-3D-models step.
-  --cache_prerun, -c    Run this before running Gypsum-DL in mpi mode.
 ```
 
 ### Examples

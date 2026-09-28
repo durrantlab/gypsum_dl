@@ -94,7 +94,7 @@ def minimize_3d(
     results = []  # Will contain MyMol.MyMol objects, with the saved energies
     # inside.
     for mol in Parallelizer.strip_none(tmp):
-        mol.mol_props["Energy"] = mol.conformers[0].energy
+        mol.mol_props["Energy"] = utils.energy_for_output(mol.conformers[0].energy)
         results.append(mol)
         contnr_list_not_empty.add(mol.contnr_idx)
 
@@ -191,7 +191,8 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
         # None, and a TypeError here would be caught by the worker wrapper and
         # reported as a molecule that simply produced nothing.
         new_mol.genealogy.append(
-            f"{new_mol.smiles(True)} (optimized conformer: {best_energy} kcal/mol)"
+            f"{new_mol.smiles(True)} (optimized conformer: "
+            f"{utils.describe_energy(best_energy)})"
         )
 
         # Save best conformation. For some reason molecular properties

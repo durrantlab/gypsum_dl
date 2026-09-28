@@ -110,10 +110,6 @@ def make_tauts(
             contnrs, taut_data, num_procs, job_manager, parallelizer_obj
         )
 
-    # taut_data = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-    #    contnrs, taut_data, num_procs, job_manager, parallelizer_obj
-    # )
-
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
     chem_utils.bst_for_each_contnr_no_opt(
@@ -209,9 +205,15 @@ def parallel_make_taut(
 def tauts_no_break_arom_rngs(
     contnrs, taut_data, num_procs, job_manager, parallelizer_obj
 ):
-    """For a given molecule, the number of atomatic rings should never change
-       regardless of tautization, ionization, etc. Any taut that breaks
-       aromaticity is unlikely to be worth pursuing. So remove it.
+    """For a given molecule, the number of aromatic rings should never change
+       regardless of tautization, ionization, etc. Any taut whose ring
+       aromaticity differs from the original is unlikely to be worth pursuing.
+       So remove it.
+
+       The test is run on nonaromatic ring counts rather than aromatic ones.
+       Tautomerization shifts protons and bond orders but never opens or closes
+       a ring, so the total ring count is fixed across the comparison, which
+       makes the two counts equivalent tests.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: A list.
@@ -303,56 +305,11 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
     return [x for x in tmp if x != None]
 
 
-def tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-    contnrs, taut_data, num_procs, job_manager, parallelizer_obj
-):
-    """Generally speaking, only carbons that are alpha to a carbonyl are
-       sufficiently acidic to participate in tautomer formation. The
-       tautomer-generating code you use makes these inappropriate tautomers.
-       Remove them here.
-
-    :param contnrs: A list of containers (MolContainer.MolContainer).
-    :type contnrs: list
-    :param taut_data: A list of MyMol.MyMol objects.
-    :type taut_data: list
-    :param num_procs: The number of processors to use.
-    :type num_procs: int
-    :param job_manager: The multithred mode to use.
-    :type job_manager: string
-    :param parallelizer_obj: The Parallelizer object.
-    :type parallelizer_obj: Parallelizer.Parallelizer
-    :return: A list of MyMol.MyMol objects, with certain bad ones removed.
-    :rtype: list
-    """
-
-    # Group the taut_data by container to run it through the parallelizer.
-    # Build an index map so a taut that matches no container is skipped rather
-    # than paired with a stale (or unbound) container.
-    by_idx = utils.contnrs_by_idx(contnrs)
-    params = []
-    for taut_mol in taut_data:
-        container = by_idx.get(taut_mol.contnr_idx)
-        if container is None:
-            continue
-        params.append((taut_mol, container))
-    params = tuple(params)
-
-    # Run it through the parallelizer.
-    tmp = []
-    if parallelizer_obj is None:
-        tmp.extend(
-            Parallelizer.run_one(parallel_check_carbon_hydrogens, i) for i in params
-        )
-    else:
-        tmp = parallelizer_obj.run(
-            params, parallel_check_carbon_hydrogens, num_procs, job_manager
-        )
-    return [x for x in tmp if x != None]
-
-
 def parallel_check_nonarom_rings(taut, contnr):
-    """A parallelizable helper function that checks that tautomers do not
-       break any nonaromatic rings present in the original object.
+    """A parallelizable helper function that checks that tautomers have the
+       same ring aromaticity as the original object. The test is symmetric: a
+       tautomer that makes a nonaromatic ring aromatic is rejected alongside
+       one that dearomatizes an aromatic ring.
 
     :param taut: The tautomer to evaluate.
     :type taut: MyMol.MyMol
@@ -365,7 +322,8 @@ def parallel_check_nonarom_rings(taut, contnr):
     # How many nonaromatic rings in the original smiles?
     num_nonaro_rngs_orig = contnr.num_nonaro_rngs
 
-    # Check if it breaks aromaticity.
+    # Note that a ring counts as nonaromatic here if any one of its atoms is
+    # nonaromatic, applied the same way on both sides of the comparison.
     get_idxs_of_nonaro_rng_atms = len(taut.get_idxs_of_nonaro_rng_atms())
     if get_idxs_of_nonaro_rng_atms == num_nonaro_rngs_orig:
         # Same number of nonaromatic rings as original molecule. Saves the
@@ -380,7 +338,7 @@ def parallel_check_nonarom_rings(taut, contnr):
             + contnr.orig_smi
             + " ("
             + taut.name
-            + "), broke an aromatic ring, so I'm discarding it."
+            + "), changed the number of aromatic rings, so I'm discarding it."
         )
 
 
@@ -425,39 +383,4 @@ def parallel_check_chiral_centers(taut, contnr):
             + " to "
             + str(m_num_specif_chiral_cntrs)
             + ", so I'm deleting it."
-        )
-
-
-def parallel_check_carbon_hydrogens(taut, contnr):
-    """A parallelizable helper function that checks that tautomers do not
-       change the hydrogens on inappropriate carbons.
-
-    :param taut: The tautomer to evaluate.
-    :type taut: MyMol.MyMol
-    :param contnr: The original molecule container.
-    :type contnr: MolContainer.MolContainer
-    :return: Either the tautomer or a None object.
-    :rtype: MyMol.MyMol | None
-    """
-
-    # What's the carbon-hydrogen fingerprint of the original smiles?
-    orig_carbon_hydrogen_count = contnr.carbon_hydrogen_count
-
-    # How about this tautomer?
-    this_carbon_hydrogen_count = taut.count_hyd_bnd_to_carb()
-
-    # Only keep if they are the same.
-    if orig_carbon_hydrogen_count == this_carbon_hydrogen_count:
-        return taut
-    else:
-        utils.log(
-            "\t"
-            + contnr.orig_smi
-            + " ==> "
-            + taut.smiles(True)
-            + " (tautomer transformation on "
-            + taut.name
-            + ") "
-            + "changed the number of hydrogen atoms bound to a "
-            + "carbon, so I'm deleting it."
         )

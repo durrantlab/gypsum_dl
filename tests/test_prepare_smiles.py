@@ -33,9 +33,7 @@ def test_prepare_smiles_debug_defaults_off(monkeypatch) -> None:
     # full print_current_smiles dumps. It now defaults to False via params.
     calls = []
     monkeypatch.setattr(PrepareSmiles, "desalt_orig_smi", lambda *a, **k: None)
-    monkeypatch.setattr(
-        utils, "print_current_smiles", lambda contnrs: calls.append(1)
-    )
+    monkeypatch.setattr(utils, "print_current_smiles", lambda contnrs: calls.append(1))
 
     PrepareSmiles.prepare_smiles([], _skip_all_params())
 
@@ -46,9 +44,7 @@ def test_prepare_smiles_debug_dumps_when_enabled(monkeypatch) -> None:
     # With debug explicitly on, the six diagnostic dumps must still fire.
     calls = []
     monkeypatch.setattr(PrepareSmiles, "desalt_orig_smi", lambda *a, **k: None)
-    monkeypatch.setattr(
-        utils, "print_current_smiles", lambda contnrs: calls.append(1)
-    )
+    monkeypatch.setattr(utils, "print_current_smiles", lambda contnrs: calls.append(1))
 
     params = _skip_all_params()
     params["debug"] = True

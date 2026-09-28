@@ -90,6 +90,18 @@ def test_cli_requires_a_source(monkeypatch) -> None:
         run.main()
 
 
+def test_cli_rejects_the_removed_cache_prerun_flag(monkeypatch) -> None:
+    # --cache_prerun only ever short-circuited the run so that one rank wrote
+    # the __pycache__ files before the rest started. Nothing in this fork read
+    # it, so the documented `mpirun -n 1 ... -c` line reached prepare_molecules
+    # with no source and died there. The warm-up now lives in the MPI job
+    # script itself (see tests/files/Pitt_CRC/mpi_gypsum_dl.sh), so the flag is
+    # gone rather than reimplemented.
+    monkeypatch.setattr(sys, "argv", ["gypsum-dl", "-c"])
+    with pytest.raises(SystemExit):
+        run.main()
+
+
 def test_cli_accepts_random_seed(monkeypatch) -> None:
     # Regression: set_parameters and seed_random_number_generators both
     # understood random_seed, but argparse did not, so the only way to reach it

@@ -282,10 +282,6 @@ def test_standardize_smiles_is_cached() -> None:
     assert first == mol.standardize_smiles()
 
 
-def test_count_hyd_bnd_to_carb() -> None:
-    assert MyMol.MyMol("CCO").count_hyd_bnd_to_carb() == 5
-
-
 def test_get_idxs_of_nonaro_rng_atms_is_cached() -> None:
     mol = MyMol.MyMol("C1CCCCC1")
     rings = mol.get_idxs_of_nonaro_rng_atms()

@@ -723,22 +723,6 @@ class MyMol:
 
         # Those that remains are only the distinct conformers.
 
-    def count_hyd_bnd_to_carb(self):
-        """Count the number of Hydrogens bound to carbons."""
-
-        if self.rdkit_mol is None:
-            # Doesn't have any atoms at all.
-            return 0
-
-        total_hydrogens_counted = 0
-        for atom in self.rdkit_mol.GetAtoms():
-            if atom.GetSymbol() == "C":
-                total_hydrogens_counted = total_hydrogens_counted + atom.GetTotalNumHs(
-                    includeNeighbors=True
-                )
-
-        return total_hydrogens_counted
-
     def load_conformers_into_rdkit_mol(self):
         """Load the conformers stored as MyConformers objects (in
         self.conformers) into the rdkit Mol object."""

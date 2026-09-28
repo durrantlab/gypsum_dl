@@ -155,20 +155,6 @@ def test_enumerate_double_bonds_finds_failed_container_by_index(monkeypatch) -> 
     assert contnr.mols == [original_mol]
 
 
-def test_tauts_no_change_hs_to_cs_finds_container_by_index() -> None:
-    # This filter paired each tautomer with contnrs[taut.contnr_idx]. Its call
-    # site in make_tauts is currently commented out, so it is exercised
-    # directly here.
-    contnr = _container_at_idx("CC(=O)CC", "butanone", 3)
-    taut = contnr.mols[0]
-
-    kept = MakeTautomers.tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-        [contnr], [taut], 1, "serial", None
-    )
-
-    assert kept == [taut]
-
-
 def test_minimize_3d_populates_container_by_index() -> None:
     # Regression: minimize_3d emptied and repopulated containers with
     # contnrs[mol.contnr_idx], which is only the right container while every

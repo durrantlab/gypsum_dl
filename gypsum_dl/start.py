@@ -424,7 +424,6 @@ def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
             "let_tautomers_change_chirality": False,
             "use_durrant_lab_filters": False,
             "job_manager": "multiprocessing",
-            "cache_prerun": False,
             "test": False,
             # Gates the diagnostic container dumps in prepare_smiles and
             # execute_gypsum_dl. It has to be listed here, because

@@ -121,9 +121,11 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     grouped = {}  # Index will be container index. Value is list of
     # (energy, mol) pairs.
     for mol in results:
-        # Save the energy as a prop while you're here.
+        # Save the energy as a prop while you're here. The raw value, sentinel
+        # included, is what the sort below needs; only the published property
+        # drops it.
         energy = mol.conformers[0].energy
-        mol.mol_props["Energy"] = energy
+        mol.mol_props["Energy"] = utils.energy_for_output(energy)
 
         # Add the mol with it's energy to the appropriate entry in grouped.
         # Make that entry if needed.
@@ -305,8 +307,8 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
             new_mol.genealogy.append(
                 new_mol.smiles(True)
                 + " (nonaromatic ring conformer: "
-                + str(energy)
-                + " kcal/mol)"
+                + utils.describe_energy(energy)
+                + ")"
             )
 
             results.append(new_mol)  # i is mol index

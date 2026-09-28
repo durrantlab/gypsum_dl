@@ -68,6 +68,76 @@ def test_parallel_minit_returns_lowest_energy_minimized_conformer(monkeypatch) -
     assert "1 kcal/mol" in result.genealogy[-1]
 
 
+def test_parallel_minit_genealogy_omits_the_failure_sentinel(monkeypatch) -> None:
+    # Regression: a conformer whose force field could not be set up carries an
+    # infinite energy, so the genealogy line read "optimized conformer: inf
+    # kcal/mol", which looks like a measurement.
+    conf = _FakeConf(pre=float("inf"), post=float("inf"))
+    mol = _FakeMol([conf])
+
+    class _FakeMyConformer:
+        def __init__(self, new_mol, conf, second_embed) -> None:
+            self.energy = conf.energy
+
+    monkeypatch.setattr(Minimize3D, "MyConformer", _FakeMyConformer)
+
+    result = Minimize3D.parallel_minit(
+        mol, max_variants_per_compound=1, thoroughness=1, second_embed=False
+    )
+
+    assert "inf" not in result.genealogy[-1]
+    assert "force field failed" in result.genealogy[-1]
+
+
+class _EnergyMol:
+    """Minimal MyMol stand-in carrying one conformer energy and a props dict."""
+
+    def __init__(self, energy: float) -> None:
+        self.conformers: list = [_FakeConf(pre=energy, post=energy)]
+        self.mol_props: dict = {}
+        self.genealogy: list = []
+        self.contnr_idx = 0
+        self.rdkit_mol = object()
+
+
+class _EnergyContnr:
+    def __init__(self, mols: list) -> None:
+        self.mols = mols
+        self.contnr_idx = 0
+        # Zero so minimize_3d handles these molecules rather than leaving them
+        # to the ring-conformer step.
+        self.num_nonaro_rngs = 0
+
+    def add_mol(self, mol) -> None:
+        self.mols.append(mol)
+
+
+def test_minimize_3d_leaves_out_the_energy_property_when_scoring_failed(
+    monkeypatch,
+) -> None:
+    # Regression: the infinite sentinel was written straight into the SDF
+    # Energy field. A None value is skipped by set_rdkit_mol_prop, so the field
+    # is absent instead of holding an unparseable number.
+    failed = _EnergyMol(float("inf"))
+    scored = _EnergyMol(-3.5)
+    contnr = _EnergyContnr([failed, scored])
+
+    monkeypatch.setattr(Minimize3D, "parallel_minit", lambda mol, *a, **k: mol)
+
+    Minimize3D.minimize_3d(
+        [contnr],
+        max_variants_per_compound=1,
+        thoroughness=1,
+        num_procs=1,
+        second_embed=False,
+        job_manager="serial",
+        parallelizer_obj=None,
+    )
+
+    assert failed.mol_props["Energy"] is None
+    assert scored.mol_props["Energy"] == -3.5
+
+
 class _RecordingMol(_FakeMol):
     """A _FakeMol that remembers how many conformers it was asked for.
 

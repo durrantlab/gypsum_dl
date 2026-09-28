@@ -12,7 +12,6 @@ def test_container_records_structural_counts() -> None:
     assert contnr.num_specif_chiral_cntrs == 1
     assert contnr.num_unspecif_chiral_cntrs == 1
     assert contnr.num_nonaro_rngs == 0
-    assert contnr.carbon_hydrogen_count == 4
 
 
 def test_container_counts_nonaromatic_rings() -> None:
@@ -104,21 +103,12 @@ def test_update_orig_smi_resets_state() -> None:
     assert len(contnr.get_frags_of_orig_smi()) == 1
 
 
-def test_update_orig_smi_refreshes_carbon_hydrogen_count() -> None:
-    # Regression: update_orig_smi refreshed the ring/chiral counts but left
-    # carbon_hydrogen_count describing the pre-desalt (salted) molecule.
-    contnr = MolContainer("CC(=O)C.CCO", "salt", 0, {})
-    contnr.update_orig_smi("CC(=O)C")
-    expected = contnr.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
-    assert contnr.carbon_hydrogen_count == expected
-
-
 def test_update_orig_smi_derives_the_same_fields_as_construction() -> None:
     # Regression: the constructor and update_orig_smi each carried their own
-    # copy of the same derivation, and they drifted (one refreshed the
-    # carbon-hydrogen footprint, the other did not). Both now run one
-    # derivation, so a desalted container has to match a container built from
-    # the desalted SMILES outright.
+    # copy of the same derivation, and they drifted (one refreshed a derived
+    # field that the other left describing the pre-desalt molecule). Both now
+    # run one derivation, so a desalted container has to match a container
+    # built from the desalted SMILES outright.
     built = MolContainer("CC(=O)C", "acetone", 0, {})
     desalted = MolContainer("CC(=O)C.CCO", "salt", 0, {})
     desalted.update_orig_smi("CC(=O)C")
@@ -130,7 +120,6 @@ def test_update_orig_smi_derives_the_same_fields_as_construction() -> None:
         "num_nonaro_rngs",
         "num_specif_chiral_cntrs",
         "num_unspecif_chiral_cntrs",
-        "carbon_hydrogen_count",
     ):
         assert getattr(desalted, field) == getattr(built, field), field
 

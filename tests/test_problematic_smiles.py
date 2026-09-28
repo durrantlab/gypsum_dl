@@ -2,6 +2,7 @@
 Tests that Gypsum-DL can gracefully handle SMILES strings that cause errors
 during 3D coordinate generation, without crashing.
 """
+
 import os
 import shutil
 
@@ -18,14 +19,14 @@ def test_problematic_smiles(test_dir):
     individual molecules succeed or fail.
     """
     output_folder = os.path.join(test_dir, "tmp/problematic_smiles_test")
-    
+
     # 1. Define problematic SMILES and set up input/output directories
     problematic_smiles_data = {
         "problematic_nitro": "O=C1CCCCC[N@@H+]1C(=O)Nc1cccc([N+](=O)[O-])c1",
         "problematic_zinc_complex": "CC(=O)[O-].CC(=O)[O-][Zn+2]1234S=C(N)N[N+]1=C(C)c1cccc(C(=[N+]2NC(=S3)N)C)[n+]41 601849",
         "invalid_smiles": "moosedogfacecat",
     }
-    
+
     # Delete test output directory if it exists, then create it.
     shutil.rmtree(output_folder, ignore_errors=True)
     os.makedirs(output_folder, exist_ok=True)

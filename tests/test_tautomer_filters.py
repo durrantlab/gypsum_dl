@@ -1,8 +1,4 @@
-"""Tests for the tautomer rejection filters.
-
-`tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl` is not wired into
-`prepare_smiles`, so it and its worker are only reachable from here.
-"""
+"""Tests for the tautomer rejection filters."""
 
 import pytest
 
@@ -10,12 +6,10 @@ from gypsum_dl import MyMol
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.steps.smiles import MakeTautomers
 from gypsum_dl.steps.smiles.MakeTautomers import (
-    parallel_check_carbon_hydrogens,
     parallel_check_chiral_centers,
     parallel_check_nonarom_rings,
     parallel_make_taut,
     tauts_no_break_arom_rngs,
-    tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl,
     tauts_no_elim_chiral,
 )
 
@@ -58,7 +52,9 @@ def test_parallel_check_nonarom_rings_keeps_matching_tautomer() -> None:
     assert parallel_check_nonarom_rings(taut, contnr) is taut
 
 
-def test_parallel_check_nonarom_rings_discards_broken_ring() -> None:
+def test_parallel_check_nonarom_rings_discards_changed_aromaticity() -> None:
+    # The criterion is symmetric: aromatizing a ring that was nonaromatic is
+    # rejected just as dearomatizing an aromatic one is.
     contnr = MolContainer("C1CCCCC1", "cyclohexane", 0, {})
     taut = _taut("c1ccccc1", "cyclohexane")
     assert parallel_check_nonarom_rings(taut, contnr) is None
@@ -74,18 +70,6 @@ def test_parallel_check_chiral_centers_discards_changed_count() -> None:
     contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
     taut = _taut("CCC(=O)O", "alanine")
     assert parallel_check_chiral_centers(taut, contnr) is None
-
-
-def test_parallel_check_carbon_hydrogens_keeps_matching_count() -> None:
-    contnr = MolContainer("CC(=O)C", "acetone", 0, {})
-    taut = _taut("CC(=O)C", "acetone")
-    assert parallel_check_carbon_hydrogens(taut, contnr) is taut
-
-
-def test_parallel_check_carbon_hydrogens_discards_changed_count() -> None:
-    contnr = MolContainer("CC(=O)C", "acetone", 0, {})
-    taut = _taut("CC(O)=C", "acetone")
-    assert parallel_check_carbon_hydrogens(taut, contnr) is None
 
 
 def test_tauts_no_break_arom_rngs_filters_in_process() -> None:
@@ -124,11 +108,16 @@ def test_tauts_no_elim_chiral_drops_orphan_taut() -> None:
     assert result == []
 
 
-def test_tauts_no_change_hs_to_cs_filters_in_process() -> None:
+def test_enol_tautomers_survive_the_filters() -> None:
+    # A retired filter compared the total count of hydrogens bound to carbon
+    # and rejected any change, which discards every keto-enol pair (acetone
+    # carries six such hydrogens, its enol five). Keto-enol tautomerism is
+    # documented behavior, so the surviving filters must let the enol through.
     contnr = MolContainer("CC(=O)C", "acetone", 0, {})
-    keep = _taut("CC(=O)C", "acetone")
-    drop = _taut("CC(O)=C", "acetone")
-    result = tauts_no_change_hs_to_cs_unless_alpha_to_carbnyl(
-        [contnr], [keep, drop], 1, "serial", None
-    )
-    assert result == [keep]
+    keto = _taut("CC(=O)C", "acetone")
+    enol = _taut("CC(O)=C", "acetone")
+
+    kept = tauts_no_break_arom_rngs([contnr], [keto, enol], 1, "serial", None)
+    kept = tauts_no_elim_chiral([contnr], kept, 1, "serial", None)
+
+    assert kept == [keto, enol]

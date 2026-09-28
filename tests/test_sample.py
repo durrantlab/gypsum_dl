@@ -179,6 +179,6 @@ def test_samples(test_dir):
         for s in all_smiles
     }
     assert len(all_smiles) == len(target_smiles)
-    assert len(all_smiles ^ target_smiles) == 0, (
-        f"Differences in smiles: {list(all_smiles ^ target_smiles)}"
-    )
+    assert (
+        len(all_smiles ^ target_smiles) == 0
+    ), f"Differences in smiles: {list(all_smiles ^ target_smiles)}"

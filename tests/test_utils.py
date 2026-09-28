@@ -29,6 +29,26 @@ def _mol(smiles: str, contnr_idx: int) -> MyMol.MyMol:
     return mol
 
 
+def test_energy_for_output_passes_through_a_real_energy() -> None:
+    assert utils.energy_for_output(-12.5) == -12.5
+
+
+def test_energy_for_output_drops_the_failure_sentinel() -> None:
+    # A failed force field leaves an infinite energy so the conformer loses
+    # every comparison. That value must not be published as a measurement.
+    assert utils.energy_for_output(float("inf")) is None
+
+
+def test_describe_energy_reports_a_real_energy_with_its_unit() -> None:
+    assert utils.describe_energy(1) == "1 kcal/mol"
+
+
+def test_describe_energy_reports_a_failed_force_field() -> None:
+    described = utils.describe_energy(float("inf"))
+    assert "inf" not in described
+    assert "force field failed" in described
+
+
 def test_slug_empty() -> None:
     assert utils.slug("") == "untitled"
 

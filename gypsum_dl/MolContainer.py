@@ -43,18 +43,18 @@ class MolContainer:
         self.properties = properties
 
         # Everything derived from orig_smi (the reference molecule, its
-        # canonical smiles, the ring/chiral counts, the carbon-hydrogen
-        # footprint, and the fragment cache) is built in one place.
+        # canonical smiles, the ring/chiral counts, and the fragment cache) is
+        # built in one place.
         self.derive_from_orig_smi()
 
     def derive_from_orig_smi(self) -> None:
         """Rebuild every field that is a function of self.orig_smi.
 
         The constructor and update_orig_smi both need this derivation, and
-        keeping two copies of it let them drift: update_orig_smi once refreshed
-        the ring and chiral counts but left the carbon-hydrogen footprint
-        describing the pre-desalt molecule. One copy means a derived field
-        cannot be added to one path and forgotten on the other.
+        keeping two copies of it let them drift: one path once refreshed a
+        derived field that the other left describing the pre-desalt molecule.
+        One copy means a derived field cannot be added to one path and
+        forgotten on the other.
 
         Returns:
             None. Sets the derived attributes on this container.
@@ -81,9 +81,6 @@ class MolContainer:
         self.num_unspecif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_w_unasignd()
         )
-
-        # Get the non-acidic carbon-hydrogen footprint.
-        self.carbon_hydrogen_count = self.mol_orig_frm_inp_smi.count_hyd_bnd_to_carb()
 
     def copy_of_orig_mol(self) -> "MyMol.MyMol":
         """Hand back an independent copy of this container's reference molecule.
@@ -219,9 +216,8 @@ class MolContainer:
         self.orig_smi = orig_smi
         self.orig_smi_deslt = orig_smi
 
-        # Refresh everything that describes orig_smi; otherwise the counts and
-        # the carbon-hydrogen footprint keep describing the pre-desalt (salted)
-        # molecule.
+        # Refresh everything that describes orig_smi; otherwise the derived
+        # counts keep describing the pre-desalt (salted) molecule.
         self.derive_from_orig_smi()
 
         # None of the mols derived to date, if present, are accurate.
