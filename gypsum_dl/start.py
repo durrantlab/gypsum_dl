@@ -36,21 +36,6 @@ from gypsum_dl.steps.smiles.PrepareSmiles import prepare_smiles
 # the first fan-out step with a message about development overrides.
 VALID_JOB_MANAGERS = ("mpi", "multiprocessing", "serial")
 
-# Command-line parameters that a json file overrides. Every entry has to be a
-# key of the set_parameters defaults: merge_parameters rejects anything else,
-# so a name listed here that is not a real parameter reads as documentation
-# for a flag that actually aborts the run.
-JSON_WARNING_LIST = (
-    "source",
-    "output_folder",
-    "num_processors",
-    "min_ph",
-    "max_ph",
-    "thoroughness",
-    "max_variants_per_compound",
-    "pka_precision",
-)
-
 
 # see http://www.rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
 def prepare_molecules(args: dict[str, Any]) -> None:
@@ -64,8 +49,8 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # Keep track of the tim the program starts.
     start_time = datetime.now()
 
-    # Whether to warn the user that the parameters in JSON_WARNING_LIST, if
-    # specified, will be ignored.
+    # Whether to warn the user that the other parameters they supplied, if
+    # any, will be ignored.
     need_to_print_override_warning = False
 
     if "json" in args:
@@ -77,7 +62,15 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             utils.exception("Is your input json file properly formed?")
 
         params = set_parameters(params)
-        if [i for i in JSON_WARNING_LIST if i in list(args.keys())]:
+
+        # The json path discards everything else the user supplied, so warn
+        # about whatever is left beside "json". run.py keeps unsupplied
+        # arguments out of this dictionary, so anything here was asked for:
+        # previously only a hand-maintained subset of names could raise the
+        # warning, and --job_manager (whose argparse default was never None)
+        # could not raise it at all, so an mpi run silently became 32
+        # independent multiprocessing runs writing to one output folder.
+        if [key for key in args if key != "json"]:
             need_to_print_override_warning = True
     else:
         # We're actually going to use all the command-line parameters. No

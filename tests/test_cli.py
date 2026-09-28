@@ -58,9 +58,9 @@ def test_cli_reads_parameters_from_json(
         )
     )
     # Pass an overridable flag alongside --json so the override warning fires.
-    # (The warning only makes sense when a JSON_WARNING_LIST flag is actually
-    # supplied on the command line; --num_processors no longer leaks in via a
-    # non-None argparse default.)
+    # (The warning only makes sense when some other flag is actually supplied
+    # on the command line; --num_processors no longer leaks in via a non-None
+    # argparse default.)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -70,6 +70,77 @@ def test_cli_reads_parameters_from_json(
     out = capsys.readouterr().out
     assert "overrides all other flags" in out
     assert os.path.exists(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+
+
+@pytest.mark.parametrize(
+    "extra_args",
+    [
+        ["--use_durrant_lab_filters"],
+        ["--job_manager", "mpi"],
+    ],
+    ids=["store_true_flag", "job_manager"],
+)
+def test_cli_warns_when_json_overrides_any_argument(
+    tmp_path,
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+    extra_args: list[str],
+) -> None:
+    # Regression (F1): the override warning fired only for eight named
+    # parameters, and --job_manager plus the fourteen store_true flags could
+    # never fire it at all because argparse always materialized them. So
+    # `--json p.json --job_manager mpi` ran one multiprocessing job per rank,
+    # all writing to the same output folder, with nothing said about it.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    output_folder = tmp_path / "json_out"
+    params_path = tmp_path / "params.json"
+    params_path.write_text(
+        json.dumps(
+            {
+                "source": str(src),
+                "output_folder": str(output_folder),
+                "job_manager": "serial",
+                "max_variants_per_compound": 1,
+                "thoroughness": 1,
+                "2d_output_only": True,
+            }
+        )
+    )
+    monkeypatch.setattr(
+        sys, "argv", ["gypsum-dl", "--json", str(params_path)] + extra_args
+    )
+    run.main()
+    out = capsys.readouterr().out
+    assert "overrides all other flags" in out
+    # The json file still wins: the run has to be the one it describes.
+    assert os.path.exists(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+
+
+def test_cli_records_only_the_arguments_the_user_supplied(monkeypatch) -> None:
+    # Regression (F1): --job_manager carried a non-None argparse default and
+    # the store_true flags defaulted to False, so both survived the
+    # None-stripping in main() and reached prepare_molecules as though the
+    # user had typed them. That is what made the discarded-argument warning
+    # impossible to compute, and it also let argparse, rather than
+    # set_parameters, own the defaults.
+    captured: dict = {}
+    monkeypatch.setattr(run, "prepare_molecules", lambda args: captured.update(args))
+    monkeypatch.setattr(sys, "argv", ["gypsum-dl", "--source", "x.smi"])
+    run.main()
+    assert captured == {"source": "x.smi"}
+
+
+def test_cli_passes_a_supplied_store_true_flag_through(monkeypatch) -> None:
+    captured: dict = {}
+    monkeypatch.setattr(run, "prepare_molecules", lambda args: captured.update(args))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["gypsum-dl", "--source", "x.smi", "--use_durrant_lab_filters"],
+    )
+    run.main()
+    assert captured == {"source": "x.smi", "use_durrant_lab_filters": True}
 
 
 def test_cli_num_processors_defaults_to_all_cores(monkeypatch) -> None:

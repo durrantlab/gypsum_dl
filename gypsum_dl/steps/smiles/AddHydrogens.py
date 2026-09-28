@@ -108,12 +108,13 @@ def add_hydrogens(
         amol = failed_contnr.copy_of_orig_mol()
         amol.contnr_idx = miss_indx
 
-        # Save this failure to the genealogy record.
-        amol.genealogy = [
-            f"{amol.orig_smi} (source)",
-            f"{amol.orig_smi_deslt} (desalted)",
-            "(WARNING: Gypsum-DL could not assign ionization states)",
-        ]
+        # Save this failure to the genealogy record. Append rather than
+        # rebuild: the desalter has already recorded the input SMILES (and a
+        # desalting entry, if one happened), and update_orig_smi has by now
+        # replaced orig_smi with the desalted SMILES, so a synthesized record
+        # would claim a desalting step that may never have run and would lose
+        # the salt form that was actually supplied.
+        amol.genealogy.append("(WARNING: Gypsum-DL could not assign ionization states)")
 
         # Save this one to the results too, even though not processed
         # properly.
@@ -154,6 +155,13 @@ def parallel_add_H(contnr, protonation_settings):
 
     # Protonate the SMILESstring. This is Dimorphite-DL.
     smis = protonate_smiles(**settings)
+
+    # A bare string is iterable, so a release that hands back one SMILES for
+    # one input rather than a one-element sequence would be walked character
+    # by character here, and the container would quietly fill with the
+    # single-atom fragments that happen to parse.
+    if isinstance(smis, str):
+        smis = [smis]
 
     # Convert the protonated SMILES strings into a list of rdkit molecule
     # objects.

@@ -369,8 +369,10 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
             )
             and not new_mol.remove_bizarre_substruc()
         ):
-            new_mol.contnr_idx = mol.contnr_idx
-            new_mol.name = mol.name
+            # MyMol.__init__ points orig_smi and orig_smi_deslt at the
+            # variant's own SMILES, so without this the field that traces a
+            # pose back to the library entry just repeats the variant.
+            new_mol.inherit_contnr_props(mol)
             new_mol.genealogy = mol.genealogy[:]
             new_mol.genealogy.append(
                 f"{new_mol.smiles(True)} (cis-trans isomerization)"

@@ -126,6 +126,83 @@ def test_parallel_add_h_does_not_mutate_shared_settings() -> None:
     assert settings == before
 
 
+def test_add_hydrogens_fallback_does_not_invent_a_desalting_step(monkeypatch) -> None:
+    # Regression (F3): the fallback replaced the genealogy with three lines it
+    # synthesized, one of them a "(desalted)" entry, so a molecule that was
+    # never desalted came out of the run asserting a step that never ran.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    desalt_orig_smi([contnr])
+    monkeypatch.setattr(AddHydrogens, "parallel_add_H", lambda *a: [])
+
+    add_hydrogens([contnr], 6.4, 8.4, 1.0, 5, 1, 1, "serial", None)
+
+    assert len(contnr.mols) == 1
+    assert contnr.mols[0].genealogy == [
+        "CCO (source)",
+        "(WARNING: Gypsum-DL could not assign ionization states)",
+    ]
+
+
+def test_add_hydrogens_fallback_keeps_the_input_smiles(monkeypatch) -> None:
+    # Regression (F3): update_orig_smi has by then replaced orig_smi with the
+    # desalted SMILES, so the synthesized "(source)" and "(desalted)" lines
+    # were the same string and the salt form the user supplied was gone from
+    # the record the README tells them to read.
+    contnr = MolContainer("CCCCCCO.C", "salt", 0, {})
+    desalt_orig_smi([contnr])
+    monkeypatch.setattr(AddHydrogens, "parallel_add_H", lambda *a: [])
+
+    add_hydrogens([contnr], 6.4, 8.4, 1.0, 5, 1, 1, "serial", None)
+
+    assert len(contnr.mols) == 1
+    genealogy = contnr.mols[0].genealogy
+    assert len(genealogy) == 3
+    assert genealogy[0] == "CCCCCCO.C (source)"
+    assert genealogy[1].endswith(" (desalted)")
+    assert genealogy[1] != genealogy[0]
+    assert genealogy[2] == "(WARNING: Gypsum-DL could not assign ionization states)"
+
+
+def test_parallel_add_h_accepts_a_single_smiles_string(monkeypatch) -> None:
+    # Regression (F4): the return of protonate_smiles was fed straight to a
+    # list comprehension, so a release that handed back one SMILES rather than
+    # a one-element sequence would be walked character by character. The
+    # single-atom fragments that happen to parse ("C", "O") survive
+    # remove_bizarre_substruc and the Durrant filters, so the run would
+    # quietly produce a library of methane.
+    contnr = _container("CC(=O)O", "acetic_acid")
+    monkeypatch.setattr(AddHydrogens, "protonate_smiles", lambda **kwargs: "CC(=O)[O-]")
+    settings = {
+        "ph_min": 6.4,
+        "ph_max": 8.4,
+        "precision": 1.0,
+        "max_variants": 5,
+    }
+
+    results = AddHydrogens.parallel_add_H(contnr, settings)
+
+    assert len(results) == 1
+    assert "[O-]" in results[0].smiles()
+
+
+def test_parallel_add_h_actually_ionizes() -> None:
+    # The existing coverage asserts only that a container ends up with at
+    # least one variant, which the F3 fallback satisfies too, so it cannot
+    # tell working ionization apart from none at all. A carboxylic acid well
+    # above its pKa has to come back deprotonated.
+    contnr = _container("CC(=O)O", "acetic_acid")
+    settings = {
+        "ph_min": 12.0,
+        "ph_max": 12.0,
+        "precision": 1.0,
+        "max_variants": 5,
+    }
+
+    results = AddHydrogens.parallel_add_H(contnr, settings)
+
+    assert any("[O-]" in mol.smiles() for mol in results)
+
+
 def test_enumerate_chiral_finds_failed_container_by_index(monkeypatch) -> None:
     # Same index-versus-position confusion in the enantiomer carry-over.
     contnr = _container_at_idx("CC(N)C(=O)O", "alanine", 3)

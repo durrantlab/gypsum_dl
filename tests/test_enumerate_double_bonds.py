@@ -35,6 +35,29 @@ def test_does_not_mutate_input_molecule() -> None:
     assert mol.rdkit_mol.GetNumAtoms() == n_atoms_before
 
 
+def test_preserves_the_input_smiles() -> None:
+    # Regression (F2): the step set only contnr_idx, name, and genealogy on
+    # each variant, so MyMol.__init__'s assumption that orig_smi is the
+    # molecule's own SMILES stood. The PDB header's "Original SMILES string"
+    # then repeated the variant instead of naming the library entry, and the
+    # metal check in DurrantLabFilter reads orig_smi_deslt.
+    mol = MyMol("CC=CC")
+    mol.orig_smi = "CC=CC.[Na+]"
+    mol.orig_smi_deslt = "CC=CC"
+    mol.contnr_idx = 3
+    mol.name = "butene"
+
+    results = parallel_get_double_bonded(mol, 1, 1)
+
+    assert len(results) == 2
+    for result in results:
+        assert result is not mol  # variants were actually built
+        assert result.orig_smi == "CC=CC.[Na+]"
+        assert result.orig_smi_deslt == "CC=CC"
+        assert result.contnr_idx == 3
+        assert result.name == "butene"
+
+
 def test_reproducible_when_seeded() -> None:
     # Regression (M10): selection of which double bonds to enumerate uses
     # random.shuffle, and the candidate SMILES were pulled from a set whose

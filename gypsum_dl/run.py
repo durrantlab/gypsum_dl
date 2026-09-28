@@ -8,6 +8,12 @@ from gypsum_dl.start import prepare_molecules
 def main():
     PARSER = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        # Omitted arguments are left out of the namespace entirely, rather
+        # than materialized as None or False. That is what lets the json path
+        # tell "the user typed this flag" apart from "argparse supplied a
+        # default", so every discarded flag can be reported, and it keeps
+        # set_parameters as the single source of the defaults.
+        argument_default=argparse.SUPPRESS,
         description="""
     Gypsum-DL 1.3.0, a free, open-source program for preparing 3D small-molecule
     models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
@@ -107,7 +113,6 @@ def main():
     PARSER.add_argument(
         "--job_manager",
         type=str,
-        default="multiprocessing",
         choices=["mpi", "multiprocessing", "serial"],
         help="Determine what style of multiprocessing to use: mpi, \
                             multiprocessing, or serial. Serial will override the \

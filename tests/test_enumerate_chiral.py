@@ -77,6 +77,29 @@ def test_parallel_get_chiral_completes_truncated_assignments(
     assert all(len(option) == num for option in captured[0])
 
 
+def test_parallel_get_chiral_preserves_the_input_smiles() -> None:
+    # Regression (F2): the step set only contnr_idx, name, and genealogy on
+    # each variant, so MyMol.__init__'s assumption that orig_smi is the
+    # molecule's own SMILES stood. The PDB header's "Original SMILES string"
+    # then repeated the variant instead of naming the library entry, and the
+    # metal check in DurrantLabFilter reads orig_smi_deslt.
+    mol = MyMol("CC(N)C(=O)O")
+    mol.orig_smi = "CC(N)C(=O)O.[Na+]"
+    mol.orig_smi_deslt = "CC(N)C(=O)O"
+    mol.contnr_idx = 3
+    mol.name = "alanine"
+
+    results = parallel_get_chiral(mol, 2, 1)
+
+    assert results
+    for result in results:
+        assert result is not mol  # variants were actually built
+        assert result.orig_smi == "CC(N)C(=O)O.[Na+]"
+        assert result.orig_smi_deslt == "CC(N)C(=O)O"
+        assert result.contnr_idx == 3
+        assert result.name == "alanine"
+
+
 def test_parallel_get_chiral_emits_fully_specified_variants() -> None:
     mol, num = _mol_with_many_unspecified_centers()
     assert num > 1
