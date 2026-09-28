@@ -331,6 +331,20 @@ def test_add_mol_id_props_ids_survive_mpi_renumbering() -> None:
     assert contnr.mols[0].rdkit_mol.GetProp("UniqueID") == "4_1"
 
 
+def test_add_mol_id_props_id_survives_the_container_property_merge() -> None:
+    # Regression: the id was written straight onto the rdkit mol, so it was not
+    # in mol_props when add_container_properties later merged the input file's
+    # tags in. An input SDF carrying its own UniqueID tag therefore replaced the
+    # id that the PDB and SDF filenames are built to match.
+    contnr = MolContainer("CCO", "ethanol", 0, {"UniqueID": "from_input"})
+    contnr.add_smiles("CCO")
+
+    start.add_mol_id_props([contnr])
+    contnr.add_container_properties()
+
+    assert contnr.mols[0].rdkit_mol.GetProp("UniqueID") == "1_1"
+
+
 def test_deal_with_failed_molecules_writes_failure_file(tmp_path) -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     start.deal_with_failed_molecules([contnr], {"output_folder": str(tmp_path)})

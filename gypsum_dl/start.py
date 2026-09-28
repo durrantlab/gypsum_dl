@@ -657,11 +657,13 @@ def add_mol_id_props(contnrs: list[MolContainer]) -> None:
     # many records the same id. Qualifying the per-container variant number
     # with the container's original input index makes the id unique across the
     # whole run, and matches how the separate output files are named.
+    # The id goes into mol_props rather than straight onto the rdkit mol so
+    # that add_container_properties, which fills gaps in mol_props from the
+    # input file, cannot substitute an input UniqueID tag for the id the PDB
+    # and SDF filenames are built to match.
     for contnr in contnrs:
         for variant_id, mol in enumerate(contnr.mols, start=1):
-            mol.set_rdkit_mol_prop(
-                "UniqueID", f"{contnr.contnr_idx_orig + 1}_{variant_id}"
-            )
+            mol.mol_props["UniqueID"] = f"{contnr.contnr_idx_orig + 1}_{variant_id}"
             mol.set_all_rdkit_mol_props()
 
 

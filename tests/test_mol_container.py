@@ -72,6 +72,24 @@ def test_add_container_properties_copies_properties() -> None:
     assert contnr.mols[0].rdkit_mol.GetProp("activity") == "1.0"
 
 
+def test_add_container_properties_do_not_overwrite_computed_values() -> None:
+    # Regression: the merge was mol_props.update(self.properties), which runs
+    # at save time, after every step has computed its own values. An input SDF
+    # tag named Energy (docking output, a scored ChEMBL export) therefore
+    # replaced the UFF energy minimize_3d had computed, and the delivered
+    # gypsum_dl_success.sdf reported the input's number as Gypsum-DL's.
+    contnr = MolContainer("CCO", "ethanol", 0, {"Energy": -9.5, "activity": "1.0"})
+    contnr.add_smiles("CCO")
+    contnr.mols[0].mol_props["Energy"] = -34.2
+
+    contnr.add_container_properties()
+
+    assert contnr.mols[0].mol_props["Energy"] == -34.2
+    assert contnr.mols[0].rdkit_mol.GetProp("Energy") == "-34.2"
+    # An input property that collides with nothing is still copied through.
+    assert contnr.mols[0].rdkit_mol.GetProp("activity") == "1.0"
+
+
 def test_remove_identical_mols_from_contnr() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     contnr.add_mol(MyMol.MyMol("CCO"))

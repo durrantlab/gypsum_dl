@@ -421,6 +421,20 @@ def test_set_all_rdkit_mol_props_omits_an_unknown_smiles() -> None:
     assert mol.rdkit_mol.GetProp("_Name") == "ethanol"
 
 
+def test_set_all_rdkit_mol_props_prefers_the_computed_smiles() -> None:
+    # Regression: SMILES was written before mol_props was iterated, and
+    # mol_props carries the input file's tags, so an input SDF tag named SMILES
+    # replaced the prepared variant's own SMILES. Every variant of that input
+    # then advertised the same (possibly salted, possibly mis-protonated) input
+    # string, which collapses the variants for anyone keying off the field.
+    mol = MyMol.MyMol("CCO", "ethanol")
+    mol.mol_props["SMILES"] = "CCO.[Na+]"
+
+    mol.set_all_rdkit_mol_props()
+
+    assert mol.rdkit_mol.GetProp("SMILES") == "CCO"
+
+
 def test_set_rdkit_mol_prop_writes_once_and_tolerates_none() -> None:
     # Regression (B14): set_rdkit_mol_prop used to SetProp three times, the
     # first two unguarded against rdkit_mol being None. Collapsed to a single

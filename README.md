@@ -185,7 +185,14 @@ gypsum-dl --source ./examples/sample_molecules.smi \
     --job_manager multiprocessing --num_processors 4
 ```
 
-Run Gypsum-DL in mpi mode using all available processors:
+Run Gypsum-DL in mpi mode using all available processors.
+This mode requires `mpi4py`, which is not installed by default because
+building it needs an MPI toolchain (`mpicc` and the MPI headers).
+Install it with the `mpi` extra:
+
+```bash
+pip install "gypsum-dl[mpi]"
+```
 
 ```bash
 mpirun -n $NTASKS python -m mpi4py  run_gypsum_dl.py --source ./examples/sample_molecules.smi \

@@ -641,10 +641,15 @@ class MyMol:
         """Set all the stored molecular properties. Copies ones from the
         MyMol.MyMol object to the MyMol.rdkit_mol object."""
 
-        self.set_rdkit_mol_prop("SMILES", self.smiles(True))
         # self.set_rdkit_mol_prop("SOURCE_SMILES", self.orig_smi)
         for prop in list(self.mol_props.keys()):
             self.set_rdkit_mol_prop(prop, self.mol_props[prop])
+
+        # SMILES, Genealogy, and _Name describe this variant, so they are
+        # written after mol_props. An input SDF can carry a tag named SMILES,
+        # and mol_props holds those input tags; writing SMILES first let the
+        # input value replace the prepared variant's own SMILES.
+        self.set_rdkit_mol_prop("SMILES", self.smiles(True))
         genealogy = "\n".join(self.genealogy)
         self.set_rdkit_mol_prop("Genealogy", genealogy)
         self.set_rdkit_mol_prop("_Name", self.name)

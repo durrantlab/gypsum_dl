@@ -229,8 +229,13 @@ class MolContainer:
         """Adds all properties from the container to the molecules. Used when
         saving final files, to keep a record in the file itself."""
 
+        # Input-file properties must not overwrite values Gypsum-DL computed
+        # itself (Energy, UniqueID, and so on), so they only fill gaps. An
+        # input SDF that had already been scored otherwise had its old Energy
+        # tag reported as though Gypsum-DL had produced it.
         for mol in self.mols:
-            mol.mol_props.update(self.properties)
+            for key, val in self.properties.items():
+                mol.mol_props.setdefault(key, val)
             mol.set_all_rdkit_mol_props()
 
     def remove_identical_mols_from_contnr(self):

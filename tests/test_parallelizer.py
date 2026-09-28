@@ -7,10 +7,13 @@ when MPI is requested but unavailable.
 
 import multiprocessing
 import os
+import queue
+import random
 import sys
 import time
 import types
 
+import numpy
 import pytest
 
 from gypsum_dl import parallelizer
@@ -86,6 +89,212 @@ def kill_worker_on_two(value: int) -> int:
     if value == 2:
         os._exit(1)
     return value + 1
+
+
+def draw(_ignored: int) -> tuple[float, float]:
+    """Draw one number from each generator the worker reseeds.
+
+    Both generators matter: numpy is the one a forked child inherits unchanged,
+    and the random module is seeded alongside it so a worker's two streams are
+    derived the same way the parent's are. Defined at module scope so worker
+    processes can unpickle it.
+
+    Args:
+        _ignored: Unused; present so the job takes one argument.
+
+    Returns:
+        The number drawn from the random module and the one drawn from numpy.
+    """
+    return random.random(), float(numpy.random.random())
+
+
+def numpy_draw_after_delay(_ignored: int) -> float:
+    """Draw from the process's numpy legacy global stream after a short pause.
+
+    numpy is the generator that a forked child actually inherits unchanged
+    (CPython reseeds the random module through os.register_at_fork, numpy
+    installs no such hook), so numpy is what an independence check has to
+    sample. The pause keeps each worker busy long enough that the remaining
+    tasks go to idle workers rather than piling onto whichever one drained the
+    queue first, which is what makes the per-worker streams observable.
+    Defined at module scope so worker processes can unpickle it.
+
+    Args:
+        _ignored: Unused; present so the job takes one argument.
+
+    Returns:
+        The drawn number.
+    """
+    time.sleep(0.2)
+    return float(numpy.random.random())
+
+
+class _RootComm:
+    """Single-rank stand-in for an mpi4py communicator, as the root sees it.
+
+    ParallelMPI.run cannot be exercised under a real launcher from a plain test
+    run, and the behavior under test (what happens to a job that raises) is
+    entirely on the root's own chunk.
+    """
+
+    def Get_rank(self) -> int:
+        """Report this rank's index.
+
+        Returns:
+            Zero; the stand-in is always the root.
+        """
+        return 0
+
+    def Get_size(self) -> int:
+        """Report the communicator size.
+
+        Returns:
+            One, so the root keeps every job.
+        """
+        return 1
+
+    def bcast(self, obj: object, root: int = 0) -> object:
+        """Hand the broadcast object straight back.
+
+        Args:
+            obj: The object being broadcast.
+            root: Ignored; present to match the mpi4py signature.
+
+        Returns:
+            The object unchanged.
+        """
+        return obj
+
+    def scatter(self, obj: list[object], root: int = 0) -> object:
+        """Return the chunk destined for rank zero.
+
+        Args:
+            obj: The per-rank chunks.
+            root: Ignored; present to match the mpi4py signature.
+
+        Returns:
+            The first chunk.
+        """
+        return obj[0]
+
+    def gather(self, obj: object, root: int = 0) -> list[object]:
+        """Collect this rank's results.
+
+        Args:
+            obj: This rank's result chunk.
+            root: Ignored; present to match the mpi4py signature.
+
+        Returns:
+            A one-element list of rank results.
+        """
+        return [obj]
+
+
+class _WorkerComm:
+    """Stand-in communicator that feeds one chunk to ParallelMPI._worker.
+
+    The worker loop is an infinite receive loop, so the stand-in also has to be
+    able to end it: the second broadcast is the kill signal.
+    """
+
+    def __init__(self, func: object, chunk: list[list[object]]) -> None:
+        """Record what the worker should receive.
+
+        Args:
+            func: The job function delivered by the first broadcast.
+            chunk: The argument chunk delivered by the scatter.
+        """
+        self._bcasts: list[object] = [func, None]
+        self._chunk = chunk
+        self.gathered: list[object] = []
+
+    def bcast(self, obj: object, root: int = 0) -> object:
+        """Deliver the next scripted broadcast.
+
+        Args:
+            obj: Ignored; the worker always passes None.
+            root: Ignored; present to match the mpi4py signature.
+
+        Returns:
+            The job function, then None to stop the loop.
+        """
+        return self._bcasts.pop(0)
+
+    def scatter(self, obj: object, root: int = 0) -> list[list[object]]:
+        """Deliver this worker's argument chunk.
+
+        Args:
+            obj: Ignored; the worker always passes an empty list.
+            root: Ignored; present to match the mpi4py signature.
+
+        Returns:
+            The recorded chunk.
+        """
+        return self._chunk
+
+    def gather(self, obj: object, root: int = 0) -> None:
+        """Record what the worker tried to send back.
+
+        Args:
+            obj: This worker's result chunk.
+            root: Ignored; present to match the mpi4py signature.
+
+        Returns:
+            None, as the non-root return value of an mpi4py gather.
+        """
+        self.gathered.append(obj)
+        return None
+
+
+def _make_parallel_mpi(
+    monkeypatch: pytest.MonkeyPatch, comm: object
+) -> parallelizer.ParallelMPI:
+    """Build a ParallelMPI whose communicator is a stand-in.
+
+    The constructor reads mpi4py.MPI.COMM_WORLD out of the module namespace,
+    and mpi4py is not importable in a plain test run, so the module reference
+    is what has to be replaced.
+
+    Args:
+        monkeypatch: Fixture used to install the stand-in module.
+        comm: The stand-in communicator.
+
+    Returns:
+        A ParallelMPI bound to `comm`.
+    """
+    stub = types.ModuleType("mpi4py")
+    stub_mpi = types.ModuleType("mpi4py.MPI")
+    stub_mpi.COMM_WORLD = comm
+    stub.MPI = stub_mpi
+    monkeypatch.setattr(parallelizer, "mpi4py", stub, raising=False)
+    return parallelizer.ParallelMPI()
+
+
+def _drain_worker(seed: int | None) -> list[tuple[float, float]]:
+    """Run parallelizer.worker in this process against a prefilled queue.
+
+    Running the worker body in-process is the only way to observe its reseed
+    deterministically: what a forked child's generator does is otherwise
+    visible only through the results of a race between workers. Plain
+    queue.Queue is enough, since the worker only ever calls get and put.
+
+    Args:
+        seed: Passed straight through to the worker.
+
+    Returns:
+        The (random, numpy) draw pairs, in job order.
+    """
+    task_queue: queue.Queue = queue.Queue()
+    done_queue: queue.Queue = queue.Queue()
+    for index in range(3):
+        task_queue.put((index, (draw, (index,))))
+    task_queue.put("STOP")
+
+    parallelizer.worker(task_queue, done_queue, seed)
+
+    results = [done_queue.get() for _ in range(3)]
+    results.sort(key=lambda pair: pair[0])
+    return [pair[1] for pair in results]
 
 
 def test_run_one_passes_arguments_through() -> None:
@@ -366,6 +575,91 @@ def test_check_mpi_available_follows_the_shared_version_gate(
     par = parallelizer.Parallelizer("serial", 1)
 
     assert par.check_mpi_available() is expected
+
+
+def test_parallel_mpi_run_drops_a_failed_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Regression: the root's own chunk called func(*arg) bare, so one raising
+    # molecule propagated out of run() before COMM.gather, leaving every other
+    # rank blocked in gather until the scheduler killed the job. This is the mpi
+    # twin of test_multithreading_serial_path_drops_failed_job.
+    par = _make_parallel_mpi(monkeypatch, _RootComm())
+
+    assert par.run(add_one_unless_two, [[1], [2], [3]]) == [2, None, 4]
+
+
+def test_parallel_mpi_worker_drops_a_failed_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: the worker's chunk had the same bare call, so a molecule that
+    # raised on a non-root rank skipped that rank's gather and hung the run.
+    comm = _WorkerComm(add_one_unless_two, [[1], [2], [3]])
+    par = _make_parallel_mpi(monkeypatch, comm)
+
+    # The worker loop only ends on the kill signal, which exits the process.
+    with pytest.raises(SystemExit):
+        par._worker()
+
+    assert comm.gathered == [[2, None, 4]]
+
+
+def test_parallel_mpi_failure_handling_matches_the_other_modes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inputs = [(1,), (2,), (3,)]
+    serial_par = parallelizer.Parallelizer("serial", 1)
+    serial = serial_par.run(inputs, add_one_unless_two)
+    serial_par.end()
+
+    mpi_par = _make_parallel_mpi(monkeypatch, _RootComm())
+
+    assert mpi_par.run(add_one_unless_two, [list(i) for i in inputs]) == serial
+
+
+def test_worker_seed_gives_a_reproducible_stream() -> None:
+    # The reseed has to be deterministic given its seed, or a seeded run stops
+    # being reproducible in exchange for the independence the next test checks.
+    random.seed(1)
+    numpy.random.seed(1)
+    first = _drain_worker(7)
+
+    random.seed(12345)
+    numpy.random.seed(12345)
+    again = _drain_worker(7)
+    other = _drain_worker(8)
+
+    assert first == again
+    assert first != other
+
+
+def test_worker_leaves_an_unseeded_stream_alone() -> None:
+    # MultiThreading is not the only caller shape, and passing no seed has to
+    # keep the previous behavior of drawing from the state already in place.
+    random.seed(3)
+    numpy.random.seed(3)
+    expected = [(random.random(), float(numpy.random.random())) for _ in range(3)]
+    random.seed(3)
+    numpy.random.seed(3)
+
+    assert _drain_worker(None) == expected
+
+
+def test_worker_processes_draw_independent_numpy_streams() -> None:
+    # Regression: start_processes forks the workers after the parent has seeded
+    # itself, and numpy installs no os.register_at_fork hook, so every child
+    # held a byte-identical copy of the numpy legacy global state and nothing
+    # reseeded it. The ring-conformation clustering picks its initial centroids
+    # from that generator (scipy's kmeans2 with minit="points"), so every
+    # worker clustered against the same draw. Nothing about the output looks
+    # wrong; the conformer selection is just correlated across workers.
+    #
+    # Note that the random module needs no such fix: CPython reseeds the global
+    # instance in the forked child, so a test written against random.random()
+    # passes either way and proves nothing.
+    draws = parallelizer.MultiThreading(
+        [(i,) for i in range(4)], 4, numpy_draw_after_delay
+    )
+
+    assert len(set(draws)) == 4
 
 
 def test_mpi4py_launch_flag_present_reads_sys_modules(

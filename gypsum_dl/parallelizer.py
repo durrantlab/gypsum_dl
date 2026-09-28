@@ -17,9 +17,12 @@ from typing import Any, TypeVar
 
 import multiprocessing
 import queue
+import random
 import sys
 import traceback
 from collections.abc import Callable, Sequence
+
+import numpy
 
 _JobResult = TypeVar("_JobResult")
 
@@ -536,9 +539,12 @@ class ParallelMPI(object):
                 result_chunk = self.COMM.gather(result_chunk, root=0)
 
             else:
-                # perform the calculation and send results
+                # perform the calculation and send results. run_one turns a
+                # raised exception into None, matching every other dispatch
+                # path; calling func bare here let one bad job skip the gather
+                # below, which blocks every other rank forever.
                 result_chunk = [
-                    func(*arg)
+                    run_one(func, arg)
                     for arg in args_chunk
                     if type(arg[0]) != type(self.Empty_object)
                 ]
@@ -662,7 +668,7 @@ class ParallelMPI(object):
             raise Exception("args_chunk needs to be a list")
 
         # perform the calculation and get results
-        result_chunk = [func(*arg) for arg in args_chunk]
+        result_chunk = [run_one(func, arg) for arg in args_chunk]
         sys.stdout.flush()
 
         result_chunk = self.COMM.gather(result_chunk, root=0)
@@ -776,7 +782,37 @@ def MultiThreading(inputs, num_procs, task_name):
 ###
 
 
-def worker(input, output):
+def worker(
+    input: "multiprocessing.Queue[object]",
+    output: "multiprocessing.Queue[object]",
+    seed: int | None = None,
+) -> None:
+    """Consume jobs from a queue and report their results.
+
+    Under the fork start method a child inherits a byte-identical copy of the
+    parent's numpy legacy global state, and nothing reseeds it: unlike the
+    random module, which CPython reseeds in the child through
+    os.register_at_fork, numpy installs no such hook. The ring-conformation
+    clustering picks its initial centroids from that generator (scipy's kmeans2
+    with minit="points"), so without a reseed here every worker clusters
+    against the same draw. Both generators are seeded from one value so a
+    worker's streams are derived the same way start.seed_random_number_generators
+    derives the parent's.
+
+    Args:
+        input: Queue of (index, (function, arguments)) jobs, terminated by the
+            string "STOP".
+        output: Queue the (index, result) pairs are reported on.
+        seed: Seed for this worker's random and numpy generators. None leaves
+            the inherited state alone.
+    """
+
+    if seed is not None:
+        random.seed(seed)
+        # numpy rejects a seed that does not fit in 32 bits, the way
+        # start.seed_random_number_generators handles it.
+        numpy.random.seed(seed % 2**32)
+
     for seq, job in iter(input.get, "STOP"):
         func, args = job
         # A dead worker would leave the parent blocked on done_queue.get()
@@ -874,10 +910,13 @@ def start_processes(
     for _ in range(num_procs):
         task_queue.put("STOP")
 
-    # Start worker processes
+    # Start worker processes. Children inherit the parent's numpy generator
+    # state on fork, so hand each one a distinct seed. Drawing the seeds from
+    # the parent's generator keeps a seeded parent's worker seeds reproducible.
+    seeds = [random.getrandbits(32) for _ in range(num_procs)]
     procs = [
-        multiprocessing.Process(target=worker, args=(task_queue, done_queue))
-        for _ in range(num_procs)
+        multiprocessing.Process(target=worker, args=(task_queue, done_queue, seed))
+        for seed in seeds
     ]
     for proc in procs:
         proc.start()

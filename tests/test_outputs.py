@@ -232,6 +232,44 @@ def test_genealogy_records_the_input_smiles(tmp_path) -> None:
         assert mol.GetProp("Genealogy").startswith("CCO (source)")
 
 
+def test_input_sdf_tags_do_not_replace_computed_output_fields(tmp_path) -> None:
+    # Regression: add_container_properties merged the input record's tags over
+    # mol_props at save time, after every step had already computed its own
+    # values, and set_all_rdkit_mol_props wrote SMILES before iterating
+    # mol_props. Feeding in an SDF that had been scored before (docking output,
+    # a ChEMBL-style export) therefore reported the input's Energy and its
+    # salted input SMILES as though Gypsum-DL had produced them.
+    mol = Chem.MolFromSmiles("CCO.[Na+]")
+    mol.SetProp("_Name", "lig")
+    mol.SetDoubleProp("Energy", -9.5)
+    mol.SetProp("SMILES", "CCO.[Na+]")
+    mol.SetProp("UniqueID", "from_input")
+    src = tmp_path / "input.sdf"
+    writer = Chem.SDWriter(str(src))
+    writer.write(mol)
+    writer.close()
+
+    output_folder = tmp_path / "out_input_props"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+
+    mols = _molecules_in(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+    assert mols
+    for out in mols:
+        # The variant is desalted, so its own SMILES carries no sodium.
+        assert "Na" not in out.GetProp("SMILES")
+        assert Chem.CanonSmiles(out.GetProp("SMILES")) == Chem.CanonSmiles("CCO")
+        assert float(out.GetProp("Energy")) != pytest.approx(-9.5)
+        assert out.GetProp("UniqueID") == "1_1"
+
+
 def test_web_2d_output_declares_utf8_and_round_trips(tmp_path) -> None:
     # Regression (bug 17): the HTML was written with the platform default
     # encoding and carried no charset declaration, so a non-ASCII ligand name
