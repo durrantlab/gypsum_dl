@@ -151,9 +151,9 @@ def main():
         "--random_seed",
         type=int,
         metavar="S",
-        help="Seed for the random number generators. Makes serial runs \
-                        reproducible; multiprocessing and mpi runs remain \
-                        nondeterministic.",
+        help="Seed for the random number generators. Makes a run \
+                        reproducible regardless of the job_manager and the \
+                        number of processors.",
     )
     PARSER.add_argument(
         "--separate_output_files",

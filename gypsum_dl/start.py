@@ -7,12 +7,10 @@ from typing import Any
 
 import json
 import os
-import random
 import sys
 from collections import OrderedDict
 from datetime import datetime
 
-import numpy
 from rdkit import Chem
 
 from gypsum_dl import utils
@@ -24,6 +22,7 @@ from gypsum_dl.parallelizer import (
     Parallelizer,
     mpi4py_launch_flag_present,
     mpi4py_version_supported,
+    seed_generators,
 )
 from gypsum_dl.steps.conf.PrepareThreeD import prepare_3d
 from gypsum_dl.steps.io.LoadFiles import load_sdf_file, load_smiles_file
@@ -305,13 +304,10 @@ def prepare_molecules(args: dict[str, Any]) -> None:
 def seed_random_number_generators(params: dict[str, Any]) -> None:
     """Seed both of the global random number generators Gypsum-DL draws from.
 
-    Variant selection samples with the random module, and the ring-conformation
-    clustering samples with numpy (by way of scipy's kmeans2), so seeding one
-    without the other still leaves a seeded run varying between invocations.
-    Seeding reaches only the calling process, which makes serial runs
-    reproducible; multiprocessing and mpi runs also depend on how tasks land on
-    workers and on each worker's own generator state, so they remain
-    nondeterministic.
+    Seeding reaches only this process, but every fanned-out step draws a seed
+    per job from this generator and hands it to the job (see
+    parallelizer.draw_job_seeds), so seeding here is what makes a run
+    reproducible under any job manager.
 
     Args:
         params: The parameters, which may carry a non-negative random_seed. A
@@ -322,18 +318,13 @@ def seed_random_number_generators(params: dict[str, Any]) -> None:
     if seed < 0:
         return
 
-    random.seed(seed)
-
-    # numpy rejects seeds that do not fit in 32 bits, while the random module
-    # accepts an integer of any size. Fold larger values in rather than
-    # failing the run over the choice of seed.
-    numpy.random.seed(seed % 2**32)
+    seed_generators(seed)
 
     utils.log(
         "Using random_seed = "
         + str(seed)
-        + ". Note that this makes serial runs reproducible; multiprocessing "
-        + "and mpi runs remain nondeterministic."
+        + ". Note that this makes a run reproducible regardless of the "
+        + "job_manager and the number of processors."
     )
 
 
@@ -434,8 +425,8 @@ def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
             # merge_parameters rejects any key missing from the defaults.
             "debug": False,
             # Seed for the global random and numpy generators. A value >= 0
-            # makes serial runs reproducible; multiprocessing and mpi runs
-            # remain nondeterministic. A negative value leaves both
+            # makes a run reproducible under any job manager, since each job
+            # gets its seed from this generator. A negative value leaves both
             # generators unseeded (previous behavior).
             "random_seed": -1,
         }

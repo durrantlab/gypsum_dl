@@ -529,8 +529,12 @@ class ParallelMPI(object):
             if func is None:
                 exit(0)
 
-            # receive arguments
+            # receive arguments, then the seeds the root drew for them. Both
+            # scatters run on every rank in the same order, whether or not
+            # this rank got real work; otherwise the collectives fall out of
+            # step.
             args_chunk = self.COMM.scatter([], root=0)
+            seed_chunk = self.COMM.scatter([], root=0)
 
             if type(args_chunk[0]) == type(
                 self.Empty_object
@@ -544,8 +548,8 @@ class ParallelMPI(object):
                 # path; calling func bare here let one bad job skip the gather
                 # below, which blocks every other rank forever.
                 result_chunk = [
-                    run_one(func, arg)
-                    for arg in args_chunk
+                    run_one(func, arg, seed[0])
+                    for arg, seed in zip(args_chunk, seed_chunk)
                     if type(arg[0]) != type(self.Empty_object)
                 ]
                 result_chunk = self.COMM.gather(result_chunk, root=0)
@@ -655,20 +659,29 @@ class ParallelMPI(object):
 
         size = self.COMM.Get_size()
 
+        # One seed per job, drawn here in job order. _split depends only on the
+        # list length and the rank count, so chunking the seeds the same way
+        # lands each job's seed on the rank that got the job.
+        seeds = [[seed] for seed in draw_job_seeds(len(args))]
+
         # broadcast function to worker processors
         self.COMM.bcast(func, root=0)
 
         # chunkify the argument list
         args_chunk = self._split(args, size)
+        seed_chunks = self._split(seeds, size)
 
         # scatter argument chunks to workers
         args_chunk = self.COMM.scatter(args_chunk, root=0)
+        seed_chunk = self.COMM.scatter(seed_chunks, root=0)
 
         if type(args_chunk) != list:
             raise Exception("args_chunk needs to be a list")
 
         # perform the calculation and get results
-        result_chunk = [run_one(func, arg) for arg in args_chunk]
+        result_chunk = [
+            run_one(func, arg, seed[0]) for arg, seed in zip(args_chunk, seed_chunk)
+        ]
         sys.stdout.flush()
 
         result_chunk = self.COMM.gather(result_chunk, root=0)
@@ -712,8 +725,51 @@ Adapted from examples on https://docs.python.org/2/library/multiprocessing.html
 """
 
 
+def seed_generators(seed: int) -> None:
+    """Seed both global generators Gypsum-DL samples from, from one value.
+
+    Variant selection samples with the random module and the ring-conformation
+    clustering samples with numpy (by way of scipy's kmeans2), so seeding one
+    without the other still leaves the caller drawing from an unseeded stream.
+    Both are derived from a single value so that every seeded context in the
+    program (the parent process at startup, each individual job) sets up its
+    streams the same way.
+
+    Args:
+        seed: The seed. numpy rejects seeds that do not fit in 32 bits, while
+            the random module accepts an integer of any size, so larger values
+            are folded in rather than failing the run over the choice of seed.
+    """
+
+    random.seed(seed)
+    numpy.random.seed(seed % 2**32)
+
+
+def draw_job_seeds(num_jobs: int) -> list[int]:
+    """Draw one seed per job from the caller's generator, in job order.
+
+    Seeding per worker rather than per job cannot make a run reproducible: the
+    task queue is drained by whichever worker is free, so a job's stream would
+    depend on who picked it up. Drawing here instead, in the dispatching
+    process before any job runs, ties a job's stream to its position in the
+    input alone, which makes a seeded run reproducible whatever the job manager
+    and worker count. An unseeded parent still yields distinct per-job seeds,
+    which is what keeps forked workers off a shared numpy stream.
+
+    Args:
+        num_jobs: How many seeds to draw.
+
+    Returns:
+        One 32-bit seed per job, positionally matching the job list.
+    """
+
+    return [random.getrandbits(32) for _ in range(num_jobs)]
+
+
 def run_one(
-    func: Callable[..., _JobResult], args: Sequence[object]
+    func: Callable[..., _JobResult],
+    args: Sequence[object],
+    seed: int | None = None,
 ) -> _JobResult | None:
     """Run a single job, turning a raised exception into a None result.
 
@@ -726,16 +782,30 @@ def run_one(
     Args:
         func: The job function to call.
         args: Positional arguments to unpack into `func`.
+        seed: Seed for this job's generators, or None to draw from the state
+            already in place. The caller's own generator state is restored
+            afterwards, so a job run in-process (serial mode, the mpi root's
+            chunk) leaves the dispatching stream exactly where a job run in a
+            child process would.
 
     Returns:
         Whatever `func` returns, or None if `func` raised.
     """
+    if seed is not None:
+        saved_random_state = random.getstate()
+        saved_numpy_state = numpy.random.get_state()
+        seed_generators(seed)
+
     try:
         return func(*args)
     except Exception:
         name = getattr(func, "__name__", repr(func))
         print(f"ERROR in {name}: {traceback.format_exc()}")
         return None
+    finally:
+        if seed is not None:
+            random.setstate(saved_random_state)
+            numpy.random.set_state(saved_numpy_state)
 
 
 def MultiThreading(inputs, num_procs, task_name):
@@ -761,16 +831,21 @@ def MultiThreading(inputs, num_procs, task_name):
 
     tasks = []
 
+    # Every seed is drawn here, before any job runs, so that job k gets the
+    # same stream whether it runs in this process or in whichever worker
+    # happens to pull it off the queue.
+    seeds = draw_job_seeds(len(inputs))
+
     for index, item in enumerate(inputs):
         if not isinstance(item, tuple):
             item = (item,)
-        task = (index, (task_name, item))
+        task = (index, (task_name, item, seeds[index]))
         tasks.append(task)
 
     if num_procs == 1:
         for item in tasks:
-            job, args = item[1]
-            results.append(run_one(job, args))
+            job, args, seed = item[1]
+            results.append(run_one(job, args, seed))
     else:
         results = start_processes(tasks, num_procs)
 
@@ -785,39 +860,30 @@ def MultiThreading(inputs, num_procs, task_name):
 def worker(
     input: "multiprocessing.Queue[object]",
     output: "multiprocessing.Queue[object]",
-    seed: int | None = None,
 ) -> None:
     """Consume jobs from a queue and report their results.
 
+    Each job carries the seed drawn for it by the dispatching process, and
+    run_one installs that seed before calling the job. That matters twice over.
     Under the fork start method a child inherits a byte-identical copy of the
-    parent's numpy legacy global state, and nothing reseeds it: unlike the
+    parent's numpy legacy global state and nothing reseeds it (unlike the
     random module, which CPython reseeds in the child through
-    os.register_at_fork, numpy installs no such hook. The ring-conformation
-    clustering picks its initial centroids from that generator (scipy's kmeans2
-    with minit="points"), so without a reseed here every worker clusters
-    against the same draw. Both generators are seeded from one value so a
-    worker's streams are derived the same way start.seed_random_number_generators
-    derives the parent's.
+    os.register_at_fork, numpy installs no such hook), so without a reseed
+    every worker would cluster ring conformations against the same draw. And
+    because the seed travels with the job rather than with the worker, the
+    result does not depend on which worker drained which task.
 
     Args:
-        input: Queue of (index, (function, arguments)) jobs, terminated by the
-            string "STOP".
+        input: Queue of (index, (function, arguments, seed)) jobs, terminated
+            by the string "STOP".
         output: Queue the (index, result) pairs are reported on.
-        seed: Seed for this worker's random and numpy generators. None leaves
-            the inherited state alone.
     """
 
-    if seed is not None:
-        random.seed(seed)
-        # numpy rejects a seed that does not fit in 32 bits, the way
-        # start.seed_random_number_generators handles it.
-        numpy.random.seed(seed % 2**32)
-
     for seq, job in iter(input.get, "STOP"):
-        func, args = job
+        func, args, seed = job
         # A dead worker would leave the parent blocked on done_queue.get()
         # forever, so failures must be reported as results.
-        output.put((seq, run_one(func, args)))
+        output.put((seq, run_one(func, args, seed)))
 
 
 def check_and_format_inputs_to_list_of_tuples(args):
@@ -869,7 +935,9 @@ def count_processors(num_inputs, num_procs):
 
 
 def start_processes(
-    inputs: Sequence[tuple[int, tuple[Callable[..., _JobResult], Sequence[object]]]],
+    inputs: Sequence[
+        tuple[int, tuple[Callable[..., _JobResult], Sequence[object], int]]
+    ],
     num_procs: int,
 ) -> list[_JobResult | None]:
     """Run the given jobs across worker processes and collect their results.
@@ -882,8 +950,9 @@ def start_processes(
     which keeps finished runs from leaving non-daemon children behind.
 
     Args:
-        inputs: Jobs as (index, (function, arguments)) pairs, where the index
-            determines the position of the job's result in the returned list.
+        inputs: Jobs as (index, (function, arguments, seed)) pairs, where the
+            index determines the position of the job's result in the returned
+            list and the seed is installed by the worker before the job runs.
         num_procs: How many worker processes to start.
 
     Returns:
@@ -911,12 +980,11 @@ def start_processes(
         task_queue.put("STOP")
 
     # Start worker processes. Children inherit the parent's numpy generator
-    # state on fork, so hand each one a distinct seed. Drawing the seeds from
-    # the parent's generator keeps a seeded parent's worker seeds reproducible.
-    seeds = [random.getrandbits(32) for _ in range(num_procs)]
+    # state on fork; the per-job seed each task carries is what keeps them off
+    # that shared stream.
     procs = [
-        multiprocessing.Process(target=worker, args=(task_queue, done_queue, seed))
-        for seed in seeds
+        multiprocessing.Process(target=worker, args=(task_queue, done_queue))
+        for _ in range(num_procs)
     ]
     for proc in procs:
         proc.start()

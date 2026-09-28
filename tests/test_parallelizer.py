@@ -197,15 +197,21 @@ class _WorkerComm:
     able to end it: the second broadcast is the kill signal.
     """
 
-    def __init__(self, func: object, chunk: list[list[object]]) -> None:
+    def __init__(
+        self,
+        func: object,
+        chunk: list[list[object]],
+        seed_chunk: list[list[int]],
+    ) -> None:
         """Record what the worker should receive.
 
         Args:
             func: The job function delivered by the first broadcast.
-            chunk: The argument chunk delivered by the scatter.
+            chunk: The argument chunk delivered by the first scatter.
+            seed_chunk: The per-job seeds delivered by the second scatter.
         """
         self._bcasts: list[object] = [func, None]
-        self._chunk = chunk
+        self._scatters: list[object] = [chunk, seed_chunk]
         self.gathered: list[object] = []
 
     def bcast(self, obj: object, root: int = 0) -> object:
@@ -220,17 +226,17 @@ class _WorkerComm:
         """
         return self._bcasts.pop(0)
 
-    def scatter(self, obj: object, root: int = 0) -> list[list[object]]:
-        """Deliver this worker's argument chunk.
+    def scatter(self, obj: object, root: int = 0) -> object:
+        """Deliver this worker's next scattered chunk.
 
         Args:
             obj: Ignored; the worker always passes an empty list.
             root: Ignored; present to match the mpi4py signature.
 
         Returns:
-            The recorded chunk.
+            The argument chunk, then the matching seed chunk.
         """
-        return self._chunk
+        return self._scatters.pop(0)
 
     def gather(self, obj: object, root: int = 0) -> None:
         """Record what the worker tried to send back.
@@ -270,29 +276,30 @@ def _make_parallel_mpi(
     return parallelizer.ParallelMPI()
 
 
-def _drain_worker(seed: int | None) -> list[tuple[float, float]]:
+def _drain_worker(seeds: list[int]) -> list[tuple[float, float]]:
     """Run parallelizer.worker in this process against a prefilled queue.
 
-    Running the worker body in-process is the only way to observe its reseed
+    Running the worker body in-process is the only way to observe its seeding
     deterministically: what a forked child's generator does is otherwise
     visible only through the results of a race between workers. Plain
     queue.Queue is enough, since the worker only ever calls get and put.
 
     Args:
-        seed: Passed straight through to the worker.
+        seeds: One seed per job, carried by the job the way MultiThreading
+            attaches them.
 
     Returns:
         The (random, numpy) draw pairs, in job order.
     """
     task_queue: queue.Queue = queue.Queue()
     done_queue: queue.Queue = queue.Queue()
-    for index in range(3):
-        task_queue.put((index, (draw, (index,))))
+    for index, seed in enumerate(seeds):
+        task_queue.put((index, (draw, (index,), seed)))
     task_queue.put("STOP")
 
-    parallelizer.worker(task_queue, done_queue, seed)
+    parallelizer.worker(task_queue, done_queue)
 
-    results = [done_queue.get() for _ in range(3)]
+    results = [done_queue.get() for _ in range(len(seeds))]
     results.sort(key=lambda pair: pair[0])
     return [pair[1] for pair in results]
 
@@ -592,7 +599,7 @@ def test_parallel_mpi_worker_drops_a_failed_job(
 ) -> None:
     # Regression: the worker's chunk had the same bare call, so a molecule that
     # raised on a non-root rank skipped that rank's gather and hung the run.
-    comm = _WorkerComm(add_one_unless_two, [[1], [2], [3]])
+    comm = _WorkerComm(add_one_unless_two, [[1], [2], [3]], [[11], [12], [13]])
     par = _make_parallel_mpi(monkeypatch, comm)
 
     # The worker loop only ends on the kill signal, which exits the process.
@@ -600,6 +607,42 @@ def test_parallel_mpi_worker_drops_a_failed_job(
         par._worker()
 
     assert comm.gathered == [[2, None, 4]]
+
+
+def test_parallel_mpi_run_seeds_jobs_like_the_other_modes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The root draws one seed per job and scatters the seeds alongside the
+    # arguments, so a seeded mpi run has to land on the same numbers a seeded
+    # serial run does.
+    inputs = [(i,) for i in range(4)]
+    parallelizer.seed_generators(99)
+    serial = parallelizer.MultiThreading(inputs, 1, draw)
+
+    par = _make_parallel_mpi(monkeypatch, _RootComm())
+    parallelizer.seed_generators(99)
+
+    assert par.run(draw, [list(item) for item in inputs]) == serial
+
+
+def test_parallel_mpi_worker_applies_the_scattered_seeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A non-root rank has no way to know a job's position in the input, so its
+    # seeds have to arrive with the work. Without them the rank would draw from
+    # whatever state it was left in when it parked in the worker loop.
+    parallelizer.seed_generators(99)
+    serial = parallelizer.MultiThreading([(i,) for i in range(3)], 1, draw)
+
+    parallelizer.seed_generators(99)
+    seed_chunk = [[seed] for seed in parallelizer.draw_job_seeds(3)]
+    comm = _WorkerComm(draw, [[0], [1], [2]], seed_chunk)
+    par = _make_parallel_mpi(monkeypatch, comm)
+
+    with pytest.raises(SystemExit):
+        par._worker()
+
+    assert comm.gathered == [serial]
 
 
 def test_parallel_mpi_failure_handling_matches_the_other_modes(
@@ -615,32 +658,94 @@ def test_parallel_mpi_failure_handling_matches_the_other_modes(
     assert mpi_par.run(add_one_unless_two, [list(i) for i in inputs]) == serial
 
 
-def test_worker_seed_gives_a_reproducible_stream() -> None:
-    # The reseed has to be deterministic given its seed, or a seeded run stops
-    # being reproducible in exchange for the independence the next test checks.
+def test_worker_applies_the_seed_carried_by_each_job() -> None:
+    # A job's stream has to follow from its own seed and nothing else: not from
+    # the state the worker started with, and not from how many jobs it ran
+    # before this one. Two jobs given the same seed therefore draw the same
+    # numbers, whatever state the process was in beforehand.
     random.seed(1)
     numpy.random.seed(1)
-    first = _drain_worker(7)
+    first = _drain_worker([7, 8, 7])
 
     random.seed(12345)
     numpy.random.seed(12345)
-    again = _drain_worker(7)
-    other = _drain_worker(8)
+    again = _drain_worker([7, 8, 7])
 
     assert first == again
-    assert first != other
+    assert first[0] == first[2]
+    assert first[0] != first[1]
 
 
-def test_worker_leaves_an_unseeded_stream_alone() -> None:
-    # MultiThreading is not the only caller shape, and passing no seed has to
-    # keep the previous behavior of drawing from the state already in place.
+def test_run_one_without_a_seed_draws_from_the_state_in_place() -> None:
+    # Each pipeline step calls run_one directly when it was handed no
+    # parallelizer object, and those calls have no seed of their own to
+    # install, so the unseeded path has to keep drawing from the state the
+    # caller set up.
     random.seed(3)
     numpy.random.seed(3)
-    expected = [(random.random(), float(numpy.random.random())) for _ in range(3)]
+    expected = draw(0)
+
     random.seed(3)
     numpy.random.seed(3)
 
-    assert _drain_worker(None) == expected
+    assert parallelizer.run_one(draw, (0,)) == expected
+
+
+def test_run_one_restores_the_callers_generator_state() -> None:
+    # A seeded job that runs in the dispatching process (serial mode, the mpi
+    # root's own chunk) has to leave the caller's streams where a job run in a
+    # child process would leave them. Otherwise the seeds drawn for the next
+    # step would depend on the job manager.
+    random.seed(3)
+    numpy.random.seed(3)
+    expected = draw(0)
+
+    random.seed(3)
+    numpy.random.seed(3)
+    parallelizer.run_one(draw, (0,), 424242)
+
+    assert draw(0) == expected
+
+
+def test_draw_job_seeds_is_reproducible_and_distinct() -> None:
+    parallelizer.seed_generators(5)
+    first = parallelizer.draw_job_seeds(6)
+
+    parallelizer.seed_generators(5)
+
+    assert parallelizer.draw_job_seeds(6) == first
+    assert len(set(first)) == 6
+
+
+def test_seeded_results_do_not_depend_on_the_number_of_workers() -> None:
+    # Regression: the seeds were drawn one per worker rather than one per job,
+    # which cannot make a run reproducible. The task queue is drained by
+    # whichever worker is free, so a molecule's stream depended on who picked
+    # it up, and the run varied between invocations while looking as though a
+    # seed had pinned it down.
+    inputs = [(i,) for i in range(8)]
+
+    runs = []
+    for num_procs in (1, 2, 3, 8):
+        parallelizer.seed_generators(1234)
+        runs.append(parallelizer.MultiThreading(inputs, num_procs, draw))
+
+    assert runs[0] == runs[1] == runs[2] == runs[3]
+
+    # Reproducible, but still a separate stream per job.
+    assert len(set(runs[0])) == len(inputs)
+
+
+def test_seeded_results_change_with_the_seed() -> None:
+    inputs = [(i,) for i in range(4)]
+
+    parallelizer.seed_generators(1234)
+    first = parallelizer.MultiThreading(inputs, 2, draw)
+
+    parallelizer.seed_generators(4321)
+    second = parallelizer.MultiThreading(inputs, 2, draw)
+
+    assert first != second
 
 
 def test_worker_processes_draw_independent_numpy_streams() -> None:
@@ -655,6 +760,10 @@ def test_worker_processes_draw_independent_numpy_streams() -> None:
     # Note that the random module needs no such fix: CPython reseeds the global
     # instance in the forked child, so a test written against random.random()
     # passes either way and proves nothing.
+    #
+    # The seed now travels with the job rather than with the worker, so the
+    # streams are distinct per job; the delay in the job is left in place so
+    # that the tasks really do spread across the workers.
     draws = parallelizer.MultiThreading(
         [(i,) for i in range(4)], 4, numpy_draw_after_delay
     )
