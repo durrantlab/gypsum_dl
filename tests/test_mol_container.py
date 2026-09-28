@@ -183,3 +183,31 @@ def test_update_idx_requires_int() -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     with pytest.raises(Exception):
         contnr.update_idx("5")
+
+
+def test_container_fragment_cache_reuses_a_stored_value() -> None:
+    # The container's fragment cache carries the same unfilled marker as the
+    # MyMol caches, so the stored value is returned even when it is a falsy
+    # one rather than being mistaken for an empty cache.
+    contnr = MolContainer("CCO.[Na+]", "ethanol salt", 0, {})
+    assert contnr.frgs is MyMol.UNSET
+
+    frags = contnr.get_frags_of_orig_smi()
+    assert len(frags) == 2
+    assert contnr.get_frags_of_orig_smi() is frags
+
+    contnr.frgs = []
+    assert contnr.get_frags_of_orig_smi() == []
+
+
+def test_container_fragment_cache_is_unfilled_after_a_desalt() -> None:
+    # update_orig_smi rebuilds the derived fields, and the fragment cache has
+    # to come back unfilled rather than holding the salted molecule's
+    # fragments.
+    contnr = MolContainer("CCO.[Na+]", "ethanol salt", 0, {})
+    assert len(contnr.get_frags_of_orig_smi()) == 2
+
+    contnr.update_orig_smi("CCO")
+
+    assert contnr.frgs is MyMol.UNSET
+    assert len(contnr.get_frags_of_orig_smi()) == 1

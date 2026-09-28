@@ -62,7 +62,7 @@ class MolContainer:
 
         self.mol_orig_frm_inp_smi = MyMol.MyMol(self.orig_smi, self.name)
         self.mol_orig_frm_inp_smi.contnr_idx = self.contnr_idx
-        self.frgs = ""  # For caching.
+        self.frgs = MyMol.UNSET  # For caching.
 
         # Save the original canonical smiles
         self.orig_smi_canonical = self.mol_orig_frm_inp_smi.smiles()
@@ -199,7 +199,7 @@ class MolContainer:
         :rtype: list
         """
 
-        if self.frgs != "":
+        if self.frgs is not MyMol.UNSET:
             return self.frgs
 
         frags = self.mol_orig_frm_inp_smi.get_frags_of_orig_smi()

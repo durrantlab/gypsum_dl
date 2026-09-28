@@ -27,6 +27,64 @@ from gypsum_dl import utils
 RDLogger.DisableLog("rdApp.*")
 
 
+class _Unset:
+    """Marker for a memoized field that has not been computed yet.
+
+    Several of the accessors below cache values that are themselves falsy or
+    None: remove_bizarre_substruc caches False, get_idxs_of_nonaro_rng_atms
+    caches an empty list, and smiles() caches None to record a failed
+    canonicalization. An empty string used to serve as "not computed yet",
+    which left every cached field with three states and made each read site
+    re-derive which falsy value meant what. A marker that is none of those
+    values reduces the question to `is UNSET`.
+    """
+
+    def __bool__(self) -> bool:
+        """Refuse to act as a truth value.
+
+        `if not self.frgs:` is the wrong question to ask of one of these
+        fields, since a legitimately cached False or empty list answers it the
+        same way an unfilled cache does. Raising turns that mistake into an
+        immediate error rather than a cache that is silently recomputed or
+        silently returned as a result.
+
+        Raises:
+            TypeError: Always.
+        """
+
+        raise TypeError(
+            "An unfilled Gypsum-DL cache has no truth value; compare it with "
+            "`is UNSET` instead."
+        )
+
+    def __repr__(self) -> str:
+        """Name the marker in tracebacks and log output.
+
+        Returns:
+            The name this module exports the marker under.
+        """
+
+        return "UNSET"
+
+    def __reduce__(self) -> str:
+        """Stay a singleton across pickling and copying.
+
+        MyMol objects are pickled to and from worker processes at every stage
+        of the pipeline, and deep-copied besides. Reconstructing this marker as
+        a separate instance would make `is UNSET` report every unfilled cache
+        as filled on the far side of the parallelizer. Returning the global
+        name has pickle and copy resolve back to this instance.
+
+        Returns:
+            The module-level name bound to this instance.
+        """
+
+        return "UNSET"
+
+
+UNSET = _Unset()
+
+
 class MyMol:
     """
     A class that wraps around a rdkit.Mol object. Includes additional data and
@@ -46,7 +104,7 @@ class MyMol:
         if isinstance(starter, str):
             # It's a SMILES string.
             self.rdkit_mol = ""
-            self.can_smi = ""
+            self.can_smi = UNSET
             smiles = starter
         else:
             # So it's an rdkit mol object. No need to regenerate it, but do
@@ -86,22 +144,22 @@ class MyMol:
                     + ")."
                 )
 
-        self.can_smi_noh = ""
+        self.can_smi_noh = UNSET
         self.orig_smi = smiles
 
         # Default assumption is that they are the same.
         self.orig_smi_deslt = smiles
         self.name = name
         self.conformers = []
-        self.nonaro_ring_atom_idx = ""
-        self.chiral_cntrs_only_assigned = ""
-        self.chiral_cntrs_include_unasignd = ""
-        self.bizarre_substruct = ""
+        self.nonaro_ring_atom_idx = UNSET
+        self.chiral_cntrs_only_assigned = UNSET
+        self.chiral_cntrs_include_unasignd = UNSET
+        self.bizarre_substruct = UNSET
         self.enrgy = {}  # different energies for different conformers.
         self.minimized_enrgy = {}
         self.contnr_idx = ""
-        self.frgs = ""
-        self.stdrd_smiles = ""
+        self.frgs = UNSET
+        self.stdrd_smiles = UNSET
         self.mol_props = {}
         self.idxs_low_energy_confs_no_opt = {}
         self.idxs_of_confs_to_min = set([])
@@ -111,7 +169,7 @@ class MyMol:
         # regardless.
         sanitized = self.make_mol_frm_smiles_sanitze()
 
-        if isinstance(self.can_smi, str) and self.can_smi != "":
+        if isinstance(self.can_smi, str):
             # check_sanitization can hand back a modified copy of the molecule
             # (the four-bond nitrogen fix), and sanitizing in place can change
             # how a molecule is written, so any SMILES canonicalized above may
@@ -123,12 +181,12 @@ class MyMol:
             # that guard on a non-string SMILES (uniq_mols_in_list,
             # contains_canonical_smiles, remove_highly_charged_molecules) would
             # otherwise treat this object as a usable molecule.
-            self.can_smi = "" if sanitized is not None else None
+            self.can_smi = UNSET if sanitized is not None else None
 
     def standardize_smiles(self):
         """Standardize the smiles string if you can."""
 
-        if self.stdrd_smiles != "":
+        if self.stdrd_smiles is not UNSET:
             return self.stdrd_smiles
 
         try:
@@ -347,6 +405,19 @@ class MyMol:
         reprotanated = MOH.try_reprotanation(self.rdkit_mol)
         if reprotanated is None:
             return
+
+        # Fill the canonical-SMILES cache before swapping in the reprotonated
+        # molecule. AddHs puts the hydrogens into the graph, so canonicalizing
+        # afterwards writes them out explicitly ("[H]O[H]" rather than "O"),
+        # and whether that happened depended on whether anything had called
+        # smiles() earlier: add_conformers below reaches MyConformer, which
+        # reads smiles() and so fills an empty cache from the hydrogen-added
+        # molecule. The cached value is this molecule's identity key
+        # (deduplication, the SMILES recorded in the output), and adding
+        # explicit hydrogens does not change its identity, so pin it to the
+        # form the rest of the pipeline already uses.
+        self.smiles()
+
         self.rdkit_mol = reprotanated
 
         # Add a single conformer. RMSD cutoff very small so all conformers
@@ -367,7 +438,7 @@ class MyMol:
 
         # See if it's already been calculated. They want the hydrogen atoms.
         if noh == False:
-            if self.can_smi != "":
+            if self.can_smi is not UNSET:
                 # Return previously determined canonical SMILES.
                 return self.can_smi
 
@@ -387,7 +458,7 @@ class MyMol:
             return can_smi
         else:
             # They don't want the hydrogen atoms.
-            if self.can_smi_noh != "":
+            if self.can_smi_noh is not UNSET:
                 # Return previously determined string.
                 return self.can_smi_noh
 
@@ -422,7 +493,7 @@ class MyMol:
         :rtype: list
         """
 
-        if self.nonaro_ring_atom_idx != "":
+        if self.nonaro_ring_atom_idx is not UNSET:
             # Already determined...
             return self.nonaro_ring_atom_idx
 
@@ -467,7 +538,7 @@ class MyMol:
         if self.rdkit_mol is None:
             return []
 
-        if self.chiral_cntrs_include_unasignd != "":
+        if self.chiral_cntrs_include_unasignd is not UNSET:
             # Already been determined...
             return self.chiral_cntrs_include_unasignd
 
@@ -483,7 +554,7 @@ class MyMol:
         :rtype: list
         """
 
-        if self.chiral_cntrs_only_assigned != "":
+        if self.chiral_cntrs_only_assigned is not UNSET:
             return self.chiral_cntrs_only_assigned
 
         if self.rdkit_mol is None:
@@ -519,7 +590,7 @@ class MyMol:
         :rtype: bool
         """
 
-        if self.bizarre_substruct != "":
+        if self.bizarre_substruct is not UNSET:
             # Already been determined.
             return self.bizarre_substruct
 
@@ -588,7 +659,7 @@ class MyMol:
         :rtype: list
         """
 
-        if self.frgs != "":
+        if self.frgs is not UNSET:
             # Already been determined...
             return self.frgs
 

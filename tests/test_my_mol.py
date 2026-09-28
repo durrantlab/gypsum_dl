@@ -1,5 +1,7 @@
 """Unit tests for MyMol and MyConformer."""
 
+import copy
+import pickle
 import random
 
 import numpy
@@ -734,3 +736,107 @@ def test_conformer_energy_is_infinite_when_the_force_field_fails(
     conf.minimized = False
     conf.minimize()
     assert conf.energy == float("inf")
+
+
+def test_unfilled_cache_marker_refuses_truthiness() -> None:
+    # Regression: the "not computed yet" state used to be an empty string, so
+    # the read sites had to distinguish it from a legitimately falsy cached
+    # value (remove_bizarre_substruc caches False,
+    # get_idxs_of_nonaro_rng_atms caches an empty list, smiles() caches None).
+    # A truthiness test against the marker is always the wrong question, so it
+    # must fail loudly rather than pick a branch.
+    with pytest.raises(TypeError):
+        bool(MyMol.UNSET)
+
+    with pytest.raises(TypeError):
+        if MyMol.UNSET:
+            pass
+
+
+def test_unfilled_cache_marker_survives_pickling_and_copying() -> None:
+    # The parallelizer pickles MyMol objects out to workers and back at every
+    # stage, and several steps deep-copy them. If the marker were rebuilt as a
+    # separate instance, `is UNSET` would report every unfilled cache as
+    # filled on the far side of the round trip, and the accessors would hand
+    # back the marker itself as a result.
+    assert pickle.loads(pickle.dumps(MyMol.UNSET)) is MyMol.UNSET
+    assert copy.deepcopy(MyMol.UNSET) is MyMol.UNSET
+    assert copy.copy(MyMol.UNSET) is MyMol.UNSET
+
+    mol = MyMol.MyMol("CCO")
+    revived = pickle.loads(pickle.dumps(mol))
+
+    assert revived.can_smi is MyMol.UNSET
+    assert revived.bizarre_substruct is MyMol.UNSET
+    assert revived.smiles() == "CCO"
+
+
+def test_cached_false_substructure_verdict_is_reused() -> None:
+    # A cached False is a real answer, not an empty cache. This molecule does
+    # contain a prohibited substructure, so a cache that was not consulted
+    # would return True.
+    mol = MyMol.MyMol("C=C(O)O")
+    assert mol.remove_bizarre_substruc() is True
+
+    mol.bizarre_substruct = False
+    assert mol.remove_bizarre_substruc() is False
+
+
+def test_cached_empty_ring_list_is_reused() -> None:
+    # Same shape as the verdict cache: an empty list is the correct answer for
+    # a molecule with no nonaromatic rings, so it has to be distinguishable
+    # from a cache that has not been filled. Cyclohexane has one such ring.
+    mol = MyMol.MyMol("C1CCCCC1")
+    assert len(mol.get_idxs_of_nonaro_rng_atms()) == 1
+
+    mol.nonaro_ring_atom_idx = []
+    assert mol.get_idxs_of_nonaro_rng_atms() == []
+
+
+def test_smiles_does_not_change_when_3d_coordinates_are_added() -> None:
+    # Regression: make_first_3d_conf_no_min replaces rdkit_mol with the
+    # AddHs version, and add_conformers then reaches MyConformer, which reads
+    # smiles(). An unfilled cache was therefore filled from the
+    # hydrogen-added molecule, so the canonical SMILES came out with explicit
+    # hydrogens. Whether that happened depended only on whether something
+    # earlier in the run had happened to call smiles() first.
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+
+    assert mol.conformers
+    assert mol.smiles() == "CCO"
+    assert "[H]" not in mol.smiles()
+
+
+def test_smiles_is_the_same_whether_or_not_it_was_read_before_3d() -> None:
+    # The two orderings have to agree: a variant that was deduplicated (which
+    # calls smiles() through __hash__) before the 3D step must end up with the
+    # same identity key, and the same reported SMILES, as one that was not.
+    read_first = MyMol.MyMol("CC(=O)O")
+    before = read_first.smiles()
+    read_first.make_first_3d_conf_no_min()
+
+    read_later = MyMol.MyMol("CC(=O)O")
+    read_later.make_first_3d_conf_no_min()
+
+    assert read_first.smiles() == before
+    assert read_later.smiles() == before
+    assert read_first.conformers[0].smiles == before
+    assert read_later.conformers[0].smiles == before
+
+
+def test_failed_reprotanation_leaves_the_smiles_cache_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The cache is pinned only on the path that actually swaps rdkit_mol, so a
+    # molecule that bails out early is left to canonicalize on demand as
+    # before, and no canonicalization warning is emitted on its behalf.
+    monkeypatch.setattr(MyMol.MOH, "try_reprotanation", lambda mol: None)
+
+    mol = MyMol.MyMol("CCO")
+    assert mol.can_smi is MyMol.UNSET
+
+    mol.make_first_3d_conf_no_min()
+
+    assert mol.conformers == []
+    assert mol.can_smi is MyMol.UNSET

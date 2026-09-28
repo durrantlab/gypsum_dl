@@ -359,7 +359,7 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
         # Sometimes you get an error if there's a bad structure otherwise. Add
         # the new molecule to the list of results, if it does not have a bizarre
         # substructure. Ask through the accessor: for a MyMol built from a
-        # SMILES string, can_smi is still "" at this point, so reading the
+        # SMILES string, can_smi is still unset at this point, so reading the
         # cached attribute directly can never detect a failed canonicalization.
         if (
             new_mol.smiles()
