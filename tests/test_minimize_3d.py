@@ -251,7 +251,9 @@ _PrepareThreeDParams = TypedDict(
 )
 
 
-def _prepare_3d_params(skip_ring_confs: bool) -> _PrepareThreeDParams:
+def _prepare_3d_params(
+    skip_ring_confs: bool, skip_optimize: bool = False
+) -> _PrepareThreeDParams:
     """Build the parameter dict prepare_3d reads, for one ring-conf setting.
 
     Only the keys prepare_3d touches are included, so the test fails loudly if
@@ -259,6 +261,7 @@ def _prepare_3d_params(skip_ring_confs: bool) -> _PrepareThreeDParams:
 
     Args:
         skip_ring_confs: Value for skip_alternate_ring_conformations.
+        skip_optimize: Value for skip_optimize_geometry.
 
     Returns:
         A parameter dict suitable for prepare_3d.
@@ -272,7 +275,7 @@ def _prepare_3d_params(skip_ring_confs: bool) -> _PrepareThreeDParams:
         "Parallelizer": None,
         "second_embed": False,
         "skip_alternate_ring_conformations": skip_ring_confs,
-        "skip_optimize_geometry": False,
+        "skip_optimize_geometry": skip_optimize,
     }
 
 
@@ -286,16 +289,22 @@ def _stub_prepare_3d_steps(monkeypatch) -> dict[str, object]:
         monkeypatch: The pytest monkeypatch fixture.
 
     Returns:
-        A dict recording whether the ring-conformer step ran and what
-        include_nonaro_rings value reached minimize_3d.
+        A dict recording whether the ring-conformer step ran, the minimize
+        value it received, and what include_nonaro_rings value reached
+        minimize_3d.
     """
     captured: dict[str, object] = {
         "ring_confs_ran": False,
+        "ring_confs_minimize": None,
         "include_nonaro_rings": None,
     }
 
     def fake_ring_confs(*args: object, **kwargs: object) -> None:
         captured["ring_confs_ran"] = True
+        # Accepted either way round, so the test does not break if prepare_3d
+        # starts passing the flag positionally.
+        positional = args[7] if len(args) > 7 else None
+        captured["ring_confs_minimize"] = kwargs.get("minimize", positional)
 
     def fake_minimize_3d(*args: object, **kwargs: object) -> None:
         # The flag is accepted either way round, so the test does not break if
@@ -311,6 +320,36 @@ def _stub_prepare_3d_steps(monkeypatch) -> dict[str, object]:
     )
     monkeypatch.setattr(PrepareThreeD, "minimize_3d", fake_minimize_3d)
     return captured
+
+
+def test_prepare_3d_does_not_minimize_ring_confs_when_optimization_is_skipped(
+    monkeypatch,
+) -> None:
+    # Regression: the ring-conformer step calls add_conformers(..., minimize)
+    # with a hardcoded True, so --skip_optimize_geometry skipped minimize_3d
+    # but still returned UFF-minimized geometries for every molecule with a
+    # non-aromatic ring, which is most drug-like input. prepare_3d has to pass
+    # the flag along.
+    captured = _stub_prepare_3d_steps(monkeypatch)
+
+    PrepareThreeD.prepare_3d(
+        [], _prepare_3d_params(skip_ring_confs=False, skip_optimize=True)
+    )
+
+    assert captured["ring_confs_ran"] is True
+    assert captured["ring_confs_minimize"] is False
+    # The separate minimization step is skipped outright, as before.
+    assert captured["include_nonaro_rings"] is None
+
+
+def test_prepare_3d_minimizes_ring_confs_by_default(monkeypatch) -> None:
+    # The complement: without the flag, the ring conformers are still
+    # minimized, so existing output does not change.
+    captured = _stub_prepare_3d_steps(monkeypatch)
+
+    PrepareThreeD.prepare_3d([], _prepare_3d_params(skip_ring_confs=False))
+
+    assert captured["ring_confs_minimize"] is True
 
 
 def test_prepare_3d_minimizes_ring_mols_when_ring_conf_step_is_skipped(

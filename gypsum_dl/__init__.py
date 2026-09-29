@@ -4,7 +4,6 @@ from typing import Any
 
 import os
 import sys
-from ast import literal_eval
 
 from loguru import logger
 
@@ -18,7 +17,7 @@ LOG_FORMAT = (
 
 
 def enable_logging(
-    level_set: int,
+    level_set: int | str,
     stdout_set: bool = True,
     file_path: str | None = None,
     log_format: str = LOG_FORMAT,
@@ -54,8 +53,59 @@ def enable_logging(
     logger.enable("gypsum_dl")
 
 
-if literal_eval(os.environ.get("GYPSUM_DL_LOG", "False")):
-    level = int(os.environ.get("GYPSUM_DL_LOG_LEVEL", 20))
-    stdout = literal_eval(os.environ.get("GYPSUM_DL_STDOUT", "True"))
-    log_file_path = os.environ.get("GYPSUM_DL_LOG_FILE_PATH", None)
-    enable_logging(level, stdout, log_file_path)
+_TRUE_STRINGS = frozenset({"1", "true", "yes", "on"})
+_FALSE_STRINGS = frozenset({"0", "false", "no", "off", ""})
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    """Read a boolean environment variable without failing the package import.
+
+    `ast.literal_eval` accepts only Python literals, so the ordinary spellings a
+    user reaches for raised `ValueError` while `gypsum_dl` was still importing.
+
+    Args:
+        name: Environment variable to read.
+        default: Value to use when the variable is unset or unrecognized.
+
+    Returns:
+        The parsed flag.
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    normalized = raw.strip().lower()
+    if normalized in _TRUE_STRINGS:
+        return True
+    if normalized in _FALSE_STRINGS:
+        return False
+    return default
+
+
+def _env_log_level(default: int) -> int | str:
+    """Read a loguru level from the environment, accepting names or numbers.
+
+    Loguru takes either form, so rejecting `DEBUG` with a bare `int()` call
+    turned a reasonable setting into an import-time crash.
+
+    Args:
+        default: Numeric level to use when the variable is unset.
+
+    Returns:
+        A numeric level, or an uppercased loguru level name.
+    """
+    raw = os.environ.get("GYPSUM_DL_LOG_LEVEL")
+    if raw is None:
+        return default
+    raw = raw.strip()
+    try:
+        return int(raw)
+    except ValueError:
+        return raw.upper()
+
+
+if _env_flag("GYPSUM_DL_LOG", False):
+    enable_logging(
+        _env_log_level(20),
+        _env_flag("GYPSUM_DL_STDOUT", True),
+        os.environ.get("GYPSUM_DL_LOG_FILE_PATH", None),
+    )

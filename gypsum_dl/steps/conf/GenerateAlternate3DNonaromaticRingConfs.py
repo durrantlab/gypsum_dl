@@ -38,6 +38,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     second_embed,
     job_manager,
     parallelizer_obj,
+    minimize: bool = True,
 ):
     """Docking programs like Vina rotate chemical moieties around their
        rotatable bonds, so it's not necessary to generate a larger rotomer
@@ -71,6 +72,9 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
+    :param minimize: Whether to minimize the geometries of the ring conformers
+        that are generated. Defaults to True.
+    :type minimize: bool
     :return: Returns None if no ring conformers are generated
     :rtype: None
     """
@@ -96,7 +100,8 @@ def generate_alternate_3d_nonaromatic_ring_confs(
             # against the keys of grouped, which come from mol.contnr_idx.
             ones_with_nonaro_rngs.add(contnr.contnr_idx)
             params.extend(
-                (mol, variant_cap, thoroughness, second_embed) for mol in contnr.mols
+                (mol, variant_cap, thoroughness, second_embed, minimize)
+                for mol in contnr.mols
             )
     params = tuple(params)
 
@@ -167,7 +172,9 @@ def generate_alternate_3d_nonaromatic_ring_confs(
             )
 
 
-def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second_embed):
+def parallel_get_ring_confs(
+    mol, max_variants_per_compound, thoroughness, second_embed, minimize: bool = True
+):
     """Gets alternate ring conformations. Meant to run with the parallelizer class.
 
     :param mol: The molecule to process (with non-aromatic ring(s)).
@@ -189,6 +196,9 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         run time, but sometimes converts certain molecules that would
         otherwise fail.
     :type second_embed: bool
+    :param minimize: Whether to minimize the geometries of the generated
+        conformers. Defaults to True.
+    :type minimize: bool
     :return: A list of MyMol.MyMol objects, with alternate ring conformations.
     :rtype: list
     """
@@ -229,8 +239,9 @@ def parallel_get_ring_confs(mol, max_variants_per_compound, thoroughness, second
         rings_by_bond_indexes.append(bond_indexes)
 
     # Generate a bunch of conformations, ordered from best energy to worst.
-    # Note that this is cached. Minimizing too.
-    mol.add_conformers(thoroughness * max_variants_per_compound, 0.1, True)
+    # Note that this is cached. Minimizing too, unless the caller asked for the
+    # optimization step to be skipped.
+    mol.add_conformers(thoroughness * max_variants_per_compound, 0.1, minimize)
 
     if len(mol.conformers) > 0:
         # Sometimes there are no conformers if it's an impossible structure.

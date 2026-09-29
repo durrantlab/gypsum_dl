@@ -783,6 +783,44 @@ def test_parallel_get_ring_confs_keeps_a_lone_conformer() -> None:
     assert len(results[0].conformers) == 1
 
 
+def test_generate_alternate_ring_confs_honors_the_minimize_flag(monkeypatch) -> None:
+    # Regression: this step minimizes every conformer it generates, with a
+    # hardcoded True, so --skip_optimize_geometry silently did not apply to any
+    # molecule with a non-aromatic ring. The flag has to reach add_conformers,
+    # which means travelling through the parallelizer params tuple as well.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+
+    captured: list[bool] = []
+    original_add_conformers = MyMol.add_conformers
+
+    def spy(
+        self: MyMol, num: int, rmsd_cutoff: float = 0.1, minimize: bool = True
+    ) -> None:
+        """Record the minimize argument, then do the real work.
+
+        The generated conformers are rebuilt into fresh MyConformer objects
+        before the step returns, and those always report minimized == False, so
+        the output cannot show whether minimization happened.
+
+        Args:
+            self: The molecule gaining conformers.
+            num: Number of conformers requested.
+            rmsd_cutoff: Redundancy cutoff, as in MyMol.add_conformers.
+            minimize: Whether to minimize the conformers.
+        """
+        captured.append(minimize)
+        original_add_conformers(self, num, rmsd_cutoff, minimize)
+
+    monkeypatch.setattr(MyMol, "add_conformers", spy)
+
+    generate_alternate_3d_nonaromatic_ring_confs(
+        [contnr], 1, 1, 1, False, "serial", None, minimize=False
+    )
+
+    assert captured == [False]
+
+
 def test_generate_alternate_ring_confs_skips_molecules_without_rings() -> None:
     contnr = _container("CCO", "ethanol")
     convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)

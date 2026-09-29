@@ -43,8 +43,12 @@ def prepare_3d(contnrs, params):
 
     second_embed = params["second_embed"]
     skip_ring_confs = params["skip_alternate_ring_conformations"]
+    skip_optimize = params["skip_optimize_geometry"]
 
-    # Generate alternate non-aromatic ring conformations, if requested.
+    # Generate alternate non-aromatic ring conformations, if requested. That
+    # step minimizes every conformer it generates as a side effect, so the
+    # optimization flag has to reach it too or ring-bearing molecules come back
+    # minimized despite the flag.
     if not skip_ring_confs:
         generate_alternate_3d_nonaromatic_ring_confs(
             contnrs,
@@ -54,10 +58,11 @@ def prepare_3d(contnrs, params):
             second_embed,
             job_manager,
             parallelizer_obj,
+            minimize=not skip_optimize,
         )
 
     # Minimize the molecules, if requested.
-    if not params["skip_optimize_geometry"]:
+    if not skip_optimize:
         minimize_3d(
             contnrs,
             max_variants_per_compound,

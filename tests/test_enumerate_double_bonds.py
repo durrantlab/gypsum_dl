@@ -93,6 +93,34 @@ def test_output_does_not_carry_explicit_hydrogens() -> None:
         assert all(atom.GetAtomicNum() != 1 for atom in mol.rdkit_mol.GetAtoms())
 
 
+def test_carbonyls_do_not_crowd_out_a_stereogenic_bond() -> None:
+    # Regression: the candidate list came from GetStereo() is STEREONONE, which
+    # is also true of carbonyls, so four ketones competed with the one alkene
+    # for a budget of a single bond. Four times out of five the shuffle kept a
+    # carbonyl, no direction could be assigned, and the molecule came back with
+    # its alkene geometry unspecified instead of enumerated.
+    smi = "CC(=O)CC(=O)CC(=O)CC(=O)CC=CC"
+    for seed in range(10):
+        random.seed(seed)
+        results = parallel_get_double_bonded(MyMol(smi), 1, 1)
+        smis = [m.smiles(True) for m in results]
+        assert len(results) == 2, f"seed {seed} produced {smis}"
+        assert all("/" in s or "\\" in s for s in smis)
+
+
+def test_log_counts_only_bonds_that_can_be_enumerated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The same miscount reached the log: the reported number of double bonds
+    # "with unspecified stereochemistry" included the carbonyls, so a compound
+    # with one alkene and four ketones claimed five.
+    parallel_get_double_bonded(MyMol("CC(=O)CC(=O)CC(=O)CC(=O)CC=CC"), 1, 1)
+
+    out = " ".join(capsys.readouterr().out.split())
+    assert "has 1 double bond(s) with unspecified stereochemistry" in out
+    assert "left unspecified" not in out
+
+
 def test_sample_bond_dir_configs_enumerates_small_spaces() -> None:
     configs = sample_bond_dir_configs(4, 1024)
 

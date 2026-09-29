@@ -150,6 +150,29 @@ def sample_bond_dir_configs(num_bonds: int, cap: int) -> list[tuple[bool, ...]]:
     return [tuple(bool(mask >> i & 1) for i in range(num_bonds)) for mask in masks]
 
 
+def _could_carry_stereochemistry(mol_with_hs: "Chem.Mol", bond_idx: int) -> bool:
+    """Report whether a double bond has a substituent on each end.
+
+    The candidate list is built from `GetStereo() is STEREONONE`, which is also
+    true of bonds that can never be cis/trans (carbonyls, terminal alkenes).
+    Counting those toward the sampling budget let a genuinely stereogenic bond
+    be discarded before any isomer was generated.
+
+    Args:
+        mol_with_hs: Molecule with explicit hydrogens, so terminal heavy atoms
+            are distinguishable from substituted ones.
+        bond_idx: Index of the double bond to test.
+
+    Returns:
+        True when both bonded atoms carry at least one other bond.
+    """
+    bond = mol_with_hs.GetBondWithIdx(bond_idx)
+    return (
+        len(bond.GetBeginAtom().GetBonds()) > 1
+        and len(bond.GetEndAtom().GetBonds()) > 1
+    )
+
+
 def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     """A parallelizable function for enumerating double bonds.
 
@@ -211,6 +234,18 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
         for i in unasignd_dbl_bnd_idxs
         if not rdkit_mol_with_hs.GetBondWithIdx(i).IsInRingSize(7)
     ]
+
+    # Drop the bonds that cannot be cis/trans before the budget below is spent
+    # on them. The loop further down already skips them, but by then they have
+    # displaced stereogenic bonds from the random selection.
+    unasignd_dbl_bnd_idxs = [
+        i
+        for i in unasignd_dbl_bnd_idxs
+        if _could_carry_stereochemistry(rdkit_mol_with_hs, i)
+    ]
+
+    if len(unasignd_dbl_bnd_idxs) == 0:
+        return [mol]
 
     # Previously, I fully enumerated all double bonds. When there are many
     # such bonds, that leads to a combinatorial explosion that causes problems
