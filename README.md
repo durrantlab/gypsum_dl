@@ -75,8 +75,7 @@ Gypsum-DL accepts the following command-line parameters:
                         values increase run times but can produce better
                         results.
   --random_seed S       Seed for the random number generators. Makes a run
-                        reproducible regardless of the job_manager and the
-                        number of processors.
+                        reproducible regardless of the number of processors.
   --separate_output_files
                         Indicates that the outputs should be split between
                         files. If true, each output .sdf file will correspond

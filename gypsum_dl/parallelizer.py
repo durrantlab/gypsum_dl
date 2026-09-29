@@ -766,6 +766,52 @@ def draw_job_seeds(num_jobs: int) -> list[int]:
     return [random.getrandbits(32) for _ in range(num_jobs)]
 
 
+def describe_job_subject(args: Sequence[object]) -> str:
+    """Name the molecule a job was working on, for failure reporting.
+
+    A job that raises is dropped silently apart from run_one's log line, and
+    that line named only the function, so a production log recorded that a step
+    had failed without recording which compound it failed on. Every job's first
+    argument identifies the work: a MolContainer, a MyMol, or (in the tautomer
+    step) a mapping of container-level fields. All three carry an input SMILES
+    and a name.
+
+    Read defensively. A half-built object is a common reason for a job to have
+    raised in the first place, and this runs inside an exception handler, where
+    a second exception would replace the traceback the user actually needs.
+
+    Args:
+        args: The positional arguments the failed job was called with.
+
+    Returns:
+        A description of the subject in the "SMILES (name)" form the rest of
+            the logs use, or "" when the arguments carry nothing identifying.
+    """
+
+    if not args:
+        return ""
+
+    subject = args[0]
+    fields: dict[str, str] = {}
+    for attr in ("orig_smi", "name"):
+        try:
+            if isinstance(subject, dict):
+                value = subject.get(attr)
+            else:
+                value = getattr(subject, attr, None)
+        except Exception:
+            continue
+        if isinstance(value, str) and value != "":
+            fields[attr] = value
+
+    smi = fields.get("orig_smi")
+    name = fields.get("name")
+
+    if smi and name:
+        return f"{smi} ({name})"
+    return smi or name or ""
+
+
 def run_one(
     func: Callable[..., _JobResult],
     args: Sequence[object],
@@ -800,7 +846,9 @@ def run_one(
         return func(*args)
     except Exception:
         name = getattr(func, "__name__", repr(func))
-        print(f"ERROR in {name}: {traceback.format_exc()}")
+        subject = describe_job_subject(args)
+        where = f"{name} on {subject}" if subject else name
+        print(f"ERROR in {where}: {traceback.format_exc()}")
         return None
     finally:
         if seed is not None:

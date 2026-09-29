@@ -79,7 +79,11 @@ def add_hydrogens(
     # Run the parallelizer and collect the results.
     results = []
     if parallelizer_obj is None:
-        results.extend(Parallelizer.run_one(parallel_add_H, i) for i in inputs)
+        # MultiThreading with one processor is the same dispatch serial mode
+        # uses, and it draws a seed per job; calling run_one directly left
+        # this path drawing from whatever generator state happened to be in
+        # place, so --random_seed did not reach it.
+        results = Parallelizer.MultiThreading(inputs, 1, parallel_add_H)
     else:
         results = parallelizer_obj.run(inputs, parallel_add_H, num_procs, job_manager)
     results = Parallelizer.flatten_list(results)

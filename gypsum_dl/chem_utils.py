@@ -8,12 +8,14 @@ from rdkit import Chem
 from gypsum_dl import utils
 
 if TYPE_CHECKING:
-    # Importing MyMol at run time would close the chem_utils -> utils ->
-    # MolContainer -> chem_utils import cycle.
+    # Annotations only. MolContainer imports this module, so keeping the import
+    # out of the runtime graph leaves chem_utils importable on its own.
     from gypsum_dl.MyMol import MyMol
 
 
-def first_conf_energy(mol: "MyMol") -> float | None:
+def first_conf_energy(
+    mol: "MyMol", energy_cache: dict[str, float | None] | None = None
+) -> float | None:
     """Report a molecule's first-conformer energy without changing it.
 
     Ranking a candidate must not alter it. Generating the conformer on the
@@ -23,8 +25,21 @@ def first_conf_energy(mol: "MyMol") -> float | None:
     (visible, for instance, as real 3D coordinates in a 2d_output_only run).
     Measuring on a throwaway copy keeps the decision free of side effects.
 
+    Embedding that throwaway is the expensive part, and it runs in the
+    dispatching process rather than through the parallelizer, so it is the one
+    part of the SMILES pipeline that never spreads across cores. The optional
+    cache is what keeps it from being paid again for a structure that has
+    already been measured: a variant that survives one pruning step is a
+    candidate again at the next one. Caching also fixes a structure's ranking
+    energy for the life of the cache, so the same structure cannot be ranked
+    two different ways within one compound.
+
     Args:
         mol: The candidate molecule to measure.
+        energy_cache: Canonical SMILES to previously measured energy, or None
+            to measure without caching. Only the embedded probe energy is
+            cached; an energy read off coordinates the molecule already carries
+            describes that specific coordinate set, not the structure.
 
     Returns:
         The energy of the first conformer, or None if no conformer could be
@@ -36,13 +51,31 @@ def first_conf_energy(mol: "MyMol") -> float | None:
         # so there is nothing to generate and nothing to protect.
         return mol.conformers[0].energy
 
+    # smiles() reports a failed canonicalization as None, which is no kind of
+    # cache key: two unrelated molecules would share it.
+    key = mol.smiles()
+    cacheable = energy_cache is not None and isinstance(key, str)
+
+    if cacheable and key in energy_cache:
+        return energy_cache[key]
+
     probe = copy.deepcopy(mol)
     probe.make_first_3d_conf_no_min()
 
-    return probe.conformers[0].energy if probe.conformers else None
+    energy = probe.conformers[0].energy if probe.conformers else None
+
+    if cacheable:
+        energy_cache[key] = energy
+
+    return energy
 
 
-def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
+def pick_lowest_enrgy_mols(
+    mol_lst: list["MyMol"],
+    num: int,
+    thoroughness: int,
+    energy_cache: dict[str, float | None] | None = None,
+) -> list["MyMol"]:
     """Pick molecules with low energies. If necessary, the definition also
        makes a conformer without minimization (so not too computationally
        expensive).
@@ -59,6 +92,10 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
        computational expense, but it also increases the chances of finding good
        molecules.
     :type thoroughness: int
+    :param energy_cache: Ranking energies already measured for this compound,
+       keyed on canonical SMILES, or None to measure without caching. See
+       first_conf_energy. Defaults to None.
+    :type energy_cache: dict, optional
     :return: Returns a list of MyMol.MyMol, the best ones.
     :rtype: list
     """
@@ -78,7 +115,7 @@ def pick_lowest_enrgy_mols(mol_lst, num, thoroughness):
     # Now get the energies
     data = []
     for i, mol in enumerate(mols_3d):
-        energy = first_conf_energy(mol)
+        energy = first_conf_energy(mol, energy_cache)
 
         if energy is not None:
             data.append((energy, i))
@@ -183,8 +220,15 @@ def bst_for_each_contnr_no_opt(
 
             # Pick the lowest-energy molecules. Note that this ranks candidates
             # using a throwaway conformer, so the molecules themselves are
-            # returned in the state they arrived in.
-            mols = pick_lowest_enrgy_mols(mols, max_variants_per_compound, thoroughness)
+            # returned in the state they arrived in. The container carries the
+            # cache of those throwaway energies, so a variant that survives
+            # this step is not embedded again when the next step ranks it.
+            mols = pick_lowest_enrgy_mols(
+                mols,
+                max_variants_per_compound,
+                thoroughness,
+                contnr.probe_energies,
+            )
 
             if len(mols) > 0:
                 # Now remove all previously determined mols for this

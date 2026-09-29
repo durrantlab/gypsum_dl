@@ -5,8 +5,15 @@ import math
 import random
 import string
 import textwrap
+from typing import TYPE_CHECKING
 
-from gypsum_dl import MolContainer, MyMol
+if TYPE_CHECKING:
+    # Annotations only. Importing MolContainer at run time would make utils the
+    # head of a utils -> MolContainer -> MyMol -> MolObjectHandling -> utils
+    # cycle, which MolObjectHandling had to work around with a function-local
+    # import. With this module importing nothing from the package, no such
+    # workaround is needed anywhere.
+    from gypsum_dl.MolContainer import MolContainer
 
 
 def group_mols_by_container_index(mol_lst):
@@ -113,7 +120,7 @@ def log(txt: str, trailing_whitespace: str = "") -> None:
     print("\n".join(wrapped_lines) + trailing_whitespace)
 
 
-def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> list:
+def fnd_contnrs_not_represntd(contnrs: list["MolContainer"], results: list) -> list:
     """Identify containers that have no representative elements in results.
     Something likely failed for the containers with no results.
 
@@ -143,10 +150,8 @@ def fnd_contnrs_not_represntd(contnrs: list[MolContainer], results: list) -> lis
 
 
 def contnrs_by_idx(
-    # Quoted: utils is imported while gypsum_dl.MolContainer is still
-    # initializing, so evaluating the attribute here closes that cycle.
-    contnrs: list["MolContainer.MolContainer"],
-) -> dict[int, "MolContainer.MolContainer"]:
+    contnrs: list["MolContainer"],
+) -> dict[int, "MolContainer"]:
     """Index a container list by contnr_idx instead of by list position.
 
     Molecules carry contnr_idx, and so do the failure lists built from them
@@ -168,7 +173,7 @@ def contnrs_by_idx(
         Exception: If two containers share a contnr_idx.
     """
 
-    by_idx: dict[int, "MolContainer.MolContainer"] = {}
+    by_idx: dict[int, "MolContainer"] = {}
     for contnr in contnrs:
         if contnr.contnr_idx in by_idx:
             # Two containers sharing an index makes every regrouping step
@@ -185,7 +190,7 @@ def contnrs_by_idx(
     return by_idx
 
 
-def print_current_smiles(contnrs: list[MolContainer]) -> None:
+def print_current_smiles(contnrs: list["MolContainer"]) -> None:
     """Prints the smiles of the current containers. Helpful for debugging.
 
     Args:

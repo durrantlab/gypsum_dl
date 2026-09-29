@@ -118,7 +118,11 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # Run the tautomizer through the parallel object.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(Parallelizer.run_one(parallel_durrant_lab_filter, i) for i in params)
+        # MultiThreading with one processor is the same dispatch serial mode
+        # uses, and it draws a seed per job; calling run_one directly left
+        # this path drawing from whatever generator state happened to be in
+        # place, so --random_seed did not reach it.
+        tmp = Parallelizer.MultiThreading(params, 1, parallel_durrant_lab_filter)
     else:
         tmp = parallelizer_obj.run(
             params, parallel_durrant_lab_filter, num_procs, job_manager

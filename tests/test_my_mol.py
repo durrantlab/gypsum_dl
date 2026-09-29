@@ -8,6 +8,7 @@ import numpy
 import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Geometry import Point3D
 
 from gypsum_dl import MyMol
 
@@ -377,13 +378,26 @@ def test_remove_bizarre_substruc_matches_patterns_the_substring_pass_missed(
     assert mol.remove_bizarre_substruc() is True
 
 
-def test_get_frags_of_orig_smi_single_fragment_returns_self() -> None:
+def test_get_frags_of_orig_smi_single_fragment_returns_the_wrapped_mol() -> None:
+    # The single-fragment branch used to return [self], so the element type of
+    # the list depended on the fragment count. The desalter reads
+    # GetNumHeavyAtoms off these elements on its multi-fragment path, and was
+    # safe only because the single-fragment case returns before reaching it.
     mol = MyMol.MyMol("CCO")
-    assert mol.get_frags_of_orig_smi() == [mol]
+    frags = mol.get_frags_of_orig_smi()
+    assert frags == [mol.rdkit_mol]
+    assert frags[0].GetNumHeavyAtoms() == 3
 
 
 def test_get_frags_of_orig_smi_splits_salts() -> None:
-    assert len(MyMol.MyMol("CCO.CC").get_frags_of_orig_smi()) == 2
+    frags = MyMol.MyMol("CCO.CC").get_frags_of_orig_smi()
+    assert len(frags) == 2
+    assert all(hasattr(frag, "GetNumHeavyAtoms") for frag in frags)
+
+
+def test_get_frags_of_orig_smi_caches_the_list_it_returns() -> None:
+    mol = MyMol.MyMol("CCO")
+    assert mol.get_frags_of_orig_smi() is mol.get_frags_of_orig_smi()
 
 
 def test_inherit_contnr_props() -> None:
@@ -394,6 +408,33 @@ def test_inherit_contnr_props() -> None:
     assert target.contnr_idx == 3
     assert target.name == "ethanol"
     assert target.orig_smi == source.orig_smi
+
+
+def test_inherit_contnr_props_accepts_an_extracted_mapping() -> None:
+    # The tautomer step ships these fields to its workers in place of the
+    # container, so the same field list has to apply on the far side.
+    target = MyMol.MyMol("CCC")
+    target.inherit_contnr_props(
+        {
+            "contnr_idx": 4,
+            "name": "ethanol",
+            "orig_smi": "CCO",
+            "orig_smi_deslt": "CCO",
+            "orig_smi_canonical": "CCO",
+        }
+    )
+    assert target.contnr_idx == 4
+    assert target.name == "ethanol"
+    assert target.orig_smi == "CCO"
+    assert target.orig_smi_canonical == "CCO"
+
+
+def test_orig_smi_canonical_exists_on_every_molecule() -> None:
+    # It used to be set only by MolContainer.add_smiles, so which fields a
+    # MyMol carried depended on which code path built it, and a variant built
+    # by inherit_contnr_props (every tautomer, enantiomer, and cis/trans form)
+    # never acquired it at all.
+    assert MyMol.MyMol("CCO").orig_smi_canonical is None
 
 
 def test_set_all_rdkit_mol_props_records_genealogy() -> None:
@@ -506,13 +547,30 @@ def test_myconformer_has_an_energy_even_when_it_fails() -> None:
     assert conf.energy == float("inf")
 
 
+def test_failed_myconformer_is_fully_initialized() -> None:
+    # Regression: the rdkit_mol-is-None path returned before self.minimized
+    # and self.ids_hvy_atms were assigned, so minimize() and align_to_me()
+    # raised AttributeError on such an object. minimize() was worse than that:
+    # it handed False to the force field, and its own handler then raised
+    # again on Chem.MolToSmiles(False), so the exception escaped the except
+    # block meant to absorb it. Minimize3D.parallel_minit builds exactly this
+    # object and stores it as the molecule's only conformer.
+    mol = MyMol.MyMol("CCO")
+    mol.rdkit_mol = None
+    conf = MyMol.MyConformer(mol)
+
+    assert conf.mol is False
+    assert conf.minimized is True
+    assert conf.ids_hvy_atms == []
+    conf.minimize()
+    assert conf.energy == float("inf")
+
+
 def test_add_conformers_sorts_by_energy() -> None:
     mol = MyMol.MyMol("CCCCCC")
-    # `MyConformer.rmsd_to_me` rebuilds the molecule from SMILES and
-    # reprotonates it, so it only matches conformers whose parent already
-    # carries explicit hydrogens. The pipeline guarantees this by calling
-    # `make_first_3d_conf_no_min` before any RMSD-based pruning; do the same
-    # here rather than embedding an implicit-hydrogen molecule.
+    # The pipeline always calls `make_first_3d_conf_no_min` before any
+    # RMSD-based pruning, which is what puts explicit hydrogens on the parent;
+    # do the same here rather than embedding an implicit-hydrogen molecule.
     mol.make_first_3d_conf_no_min()
     mol.add_conformers(3, 0.1, True)
     energies = [conf.energy for conf in mol.conformers]
@@ -578,24 +636,79 @@ def test_conformer_rmsd_between_identical_conformers_is_zero() -> None:
     assert conf.rmsd_to_me(duplicate) == pytest.approx(0.0, abs=1e-6)
 
 
-def test_conformer_rmsd_is_infinite_when_the_smiles_is_unavailable() -> None:
-    # Regression: rmsd_to_me handed self.smiles straight to MolFromSmiles, but
-    # MyMol.smiles() reports failure as None, and MolFromSmiles(None) raises.
+def test_conformer_rmsd_is_infinite_when_the_molecule_is_unavailable() -> None:
+    # A conformer that failed to embed carries mol is False, so there is no
+    # graph to compare coordinates in. Infinity is the conservative answer:
+    # eliminate_structurally_similar_conformers deduplicates on
+    # rmsd <= cutoff, so nothing is discarded on an uncomputable RMSD.
     mol = MyMol.MyMol("CCO")
     mol.make_first_3d_conf_no_min()
     conf = mol.conformers[0]
     duplicate = MyMol.MyConformer(mol, conf.conformer())
-    conf.smiles = None
+    conf.mol = False
 
     assert conf.rmsd_to_me(duplicate) == float("inf")
+    assert duplicate.rmsd_to_me(conf) == float("inf")
+
+
+def _hydrogens_first(conf: "MyMol.MyConformer") -> None:
+    """Renumber a conformer's molecule so its hydrogens come first.
+
+    rmsd_to_me used to rebuild the molecule from the canonical SMILES, whose
+    atom order puts heavy atoms first, and then index the conformer's
+    coordinates by that rebuilt order. Any molecule whose own order already
+    happens to be heavy-atoms-first hides the mismatch, so the test has to
+    supply one that is not (an SDF input, for instance, can carry hydrogens
+    anywhere in the block).
+
+    Args:
+        conf: The conformer to renumber, modified in place along with the
+            heavy-atom index list align_to_me reads.
+    """
+    order = sorted(
+        range(conf.mol.GetNumAtoms()),
+        key=lambda idx: conf.mol.GetAtomWithIdx(idx).GetAtomicNum(),
+    )
+    conf.mol = Chem.RenumberAtoms(conf.mol, order)
+    conf.ids_hvy_atms = [
+        a.GetIdx() for a in conf.mol.GetAtoms() if a.GetAtomicNum() != 1
+    ]
+
+
+def test_conformer_rmsd_uses_the_coordinates_own_atom_ordering() -> None:
+    # Regression: rmsd_to_me built its comparison molecule from
+    # self.smiles (the canonical SMILES), whose atom order is unrelated to
+    # that of the molecule the coordinates came from. Deprotonating that
+    # rebuilt molecule then dropped whichever atoms were hydrogens in the
+    # rebuilt ordering, so the reported number was an RMSD over a mixed subset
+    # of heavy atoms and hydrogens instead of a heavy-atom RMSD. Here the
+    # heavy atoms are displaced and the hydrogens are not, so the two answers
+    # are far apart: 5 A over the heavy atoms, or 0 A over the hydrogens the
+    # old code compared in their place.
+    mol = MyMol.MyMol("CCO")
+    mol.make_first_3d_conf_no_min()
+    conf = mol.conformers[0]
+    _hydrogens_first(conf)
+
+    shifted = Chem.Conformer(conf.conformer())
+    for atom in conf.mol.GetAtoms():
+        if atom.GetAtomicNum() == 1:
+            continue
+        pos = shifted.GetAtomPosition(atom.GetIdx())
+        shifted.SetAtomPosition(atom.GetIdx(), Point3D(pos.x + 5.0, pos.y, pos.z))
+
+    other = copy.deepcopy(conf)
+    other.conformer(shifted)
+
+    assert conf.rmsd_to_me(other) == pytest.approx(5.0, abs=1e-6)
 
 
 def test_eliminate_similar_conformers_keeps_both_when_rmsd_cannot_be_computed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Regression: rmsd_to_me chained check_sanitization and try_reprotanation
-    # and then called AddConformer on the result without a None check, unlike
-    # every other consumer of those helpers. The AttributeError escaped
+    # Regression: rmsd_to_me called AddConformer and GetConformerRMS on the
+    # result of a MolObjectHandling helper without a None check, unlike every
+    # other consumer of those helpers. The AttributeError escaped
     # add_conformers and the ring-conformer and minimization steps, reaching
     # parallelizer.run_one, which printed the traceback and dropped the whole
     # molecule. Keeping both conformers is the conservative outcome: nothing is
@@ -603,7 +716,7 @@ def test_eliminate_similar_conformers_keeps_both_when_rmsd_cannot_be_computed(
     mol = MyMol.MyMol("CCO")
     mol.make_first_3d_conf_no_min()
     mol.conformers.append(MyMol.MyConformer(mol, mol.conformers[0].conformer()))
-    monkeypatch.setattr(MyMol.MOH, "try_reprotanation", lambda amol: None)
+    monkeypatch.setattr(MyMol.MOH, "try_deprotanation", lambda amol: None)
 
     mol.eliminate_structurally_similar_conformers(0.1)
 

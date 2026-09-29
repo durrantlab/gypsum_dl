@@ -6,9 +6,11 @@ from gypsum_dl import MyMol
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.steps.smiles import MakeTautomers
 from gypsum_dl.steps.smiles.MakeTautomers import (
+    chirality_facts,
     parallel_check_chiral_centers,
     parallel_check_nonarom_rings,
     parallel_make_taut,
+    ring_facts,
     tauts_no_break_arom_rngs,
     tauts_no_elim_chiral,
 )
@@ -43,13 +45,13 @@ def test_parallel_make_taut_returns_none_when_rdkit_mol_unsanitizable(
         rdkit_mol = None
 
     monkeypatch.setattr(MakeTautomers.MyMol, "MyMol", lambda *a, **k: _NoneMol())
-    assert parallel_make_taut(contnr, 0, 1) is None
+    assert parallel_make_taut(contnr.mols[0], contnr.contnr_props(), 1) is None
 
 
 def test_parallel_check_nonarom_rings_keeps_matching_tautomer() -> None:
     contnr = MolContainer("C1CCCCC1", "cyclohexane", 0, {})
     taut = _taut("C1CCCCC1", "cyclohexane")
-    assert parallel_check_nonarom_rings(taut, contnr) is taut
+    assert parallel_check_nonarom_rings(taut, ring_facts(contnr)) is taut
 
 
 def test_parallel_check_nonarom_rings_discards_changed_aromaticity() -> None:
@@ -57,19 +59,19 @@ def test_parallel_check_nonarom_rings_discards_changed_aromaticity() -> None:
     # rejected just as dearomatizing an aromatic one is.
     contnr = MolContainer("C1CCCCC1", "cyclohexane", 0, {})
     taut = _taut("c1ccccc1", "cyclohexane")
-    assert parallel_check_nonarom_rings(taut, contnr) is None
+    assert parallel_check_nonarom_rings(taut, ring_facts(contnr)) is None
 
 
 def test_parallel_check_chiral_centers_keeps_matching_count() -> None:
     contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
     taut = _taut("C[C@H](N)C(=O)O", "alanine")
-    assert parallel_check_chiral_centers(taut, contnr) is taut
+    assert parallel_check_chiral_centers(taut, chirality_facts(contnr)) is taut
 
 
 def test_parallel_check_chiral_centers_discards_changed_count() -> None:
     contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
     taut = _taut("CCC(=O)O", "alanine")
-    assert parallel_check_chiral_centers(taut, contnr) is None
+    assert parallel_check_chiral_centers(taut, chirality_facts(contnr)) is None
 
 
 def test_tauts_no_break_arom_rngs_filters_in_process() -> None:
@@ -147,7 +149,7 @@ def test_nonarom_ring_rejection_names_non_aromatic_rings(
     contnr = MolContainer("C1CCCCC1", "cyclohexane", 0, {})
     taut = _taut("c1ccccc1", "cyclohexane")
 
-    assert parallel_check_nonarom_rings(taut, contnr) is None
+    assert parallel_check_nonarom_rings(taut, ring_facts(contnr)) is None
 
     message = _logged_message(capsys.readouterr().out)
     assert "changed the number of non-aromatic rings" in message
@@ -165,7 +167,7 @@ def test_chiral_rejection_does_not_call_the_count_specified(
     contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
     taut = _taut("CCC(=O)O", "alanine")
 
-    assert parallel_check_chiral_centers(taut, contnr) is None
+    assert parallel_check_chiral_centers(taut, chirality_facts(contnr)) is None
 
     message = _logged_message(capsys.readouterr().out)
     assert "total number of chiral centers from 1 to 0" in message
@@ -184,7 +186,7 @@ def test_chiral_filter_rejects_tautomer_that_drops_a_stereo_assignment() -> None
     taut = _taut("CC(N)C(=O)O", "alanine")
 
     assert len(taut.chiral_cntrs_w_unasignd()) == contnr.num_unspecif_chiral_cntrs
-    assert parallel_check_chiral_centers(taut, contnr) is None
+    assert parallel_check_chiral_centers(taut, chirality_facts(contnr)) is None
 
 
 def test_chiral_rejection_names_the_assignment_change(
@@ -195,7 +197,7 @@ def test_chiral_rejection_names_the_assignment_change(
     contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
     taut = _taut("CC(N)C(=O)O", "alanine")
 
-    assert parallel_check_chiral_centers(taut, contnr) is None
+    assert parallel_check_chiral_centers(taut, chirality_facts(contnr)) is None
 
     message = _logged_message(capsys.readouterr().out)
     assert "assigned stereochemistry, from 1 to 0" in message
@@ -208,3 +210,73 @@ def test_tauts_no_elim_chiral_drops_taut_with_dropped_stereo_assignment() -> Non
     drop = _taut("CC(N)C(=O)O", "alanine")
     result = tauts_no_elim_chiral([contnr], [keep, drop], 1, "serial", None)
     assert result == [keep]
+
+
+def test_filters_do_not_ship_the_container_to_each_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: both filters run once per candidate tautomer and used to pass
+    # the whole MolContainer to each job, so every variant of a compound was
+    # pickled once per tautomer of it. The comparison needs only a few counts
+    # and the SMILES the rejection message quotes.
+    payloads: list[tuple[object, ...]] = []
+
+    def capture(params: tuple, num_procs: int, func) -> list:
+        """Record the job payloads, then dispatch them as the real path does.
+
+        Args:
+            params: The per-job argument tuples the step built.
+            num_procs: Processor count, ignored here.
+            func: The worker function the step wants applied.
+
+        Returns:
+            One result per job, in job order.
+        """
+        payloads.extend(params)
+        return [func(*job) for job in params]
+
+    monkeypatch.setattr(MakeTautomers.Parallelizer, "MultiThreading", capture)
+
+    contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
+    taut = _taut("C[C@H](N)C(=O)O", "alanine")
+
+    assert tauts_no_break_arom_rngs([contnr], [taut], 1, "serial", None) == [taut]
+    assert tauts_no_elim_chiral([contnr], [taut], 1, "serial", None) == [taut]
+
+    assert payloads
+    for job in payloads:
+        assert not any(isinstance(arg, MolContainer) for arg in job)
+
+
+def test_make_tauts_does_not_ship_the_container_to_each_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Same regression in the generation step, which sent the container plus an
+    # index into it rather than the molecule, as every other enumeration step
+    # does.
+    payloads: list[tuple[object, ...]] = []
+
+    def capture(params: tuple, num_procs: int, func) -> list:
+        """Record the job payloads, then dispatch them as the real path does.
+
+        Args:
+            params: The per-job argument tuples the step built.
+            num_procs: Processor count, ignored here.
+            func: The worker function the step wants applied.
+
+        Returns:
+            One result per job, in job order.
+        """
+        payloads.extend(params)
+        return [func(*job) for job in params]
+
+    monkeypatch.setattr(MakeTautomers.Parallelizer, "MultiThreading", capture)
+
+    contnr = MolContainer("CC(=O)CC", "butanone", 0, {})
+    contnr.add_smiles("CC(=O)CC")
+
+    MakeTautomers.make_tauts([contnr], 5, 1, 1, "serial", False, None)
+
+    assert payloads
+    for job in payloads:
+        assert not any(isinstance(arg, MolContainer) for arg in job)

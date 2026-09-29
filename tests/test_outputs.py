@@ -50,6 +50,29 @@ def test_pdb_and_html_outputs_are_written(tmp_path) -> None:
     assert glob.glob(os.path.join(str(output_folder), "*.sdf"))
 
 
+def test_pdb_header_reports_the_submitted_smiles(tmp_path) -> None:
+    # Regression: the header was built from the molecule's orig_smi, which the
+    # desalter replaces with the largest fragment, so a salted input was
+    # reported under a SMILES the user never submitted.
+    src = tmp_path / "salted.smi"
+    src.write_text("CCCCO.[Na+]\tsalt\n")
+    output_folder = tmp_path / "out_salt"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "add_pdb_output": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+    pdb_files = glob.glob(os.path.join(str(output_folder), "*.pdb"))
+    assert pdb_files
+    with open(pdb_files[0]) as f:
+        assert "REMARK Original SMILES string: CCCCO.[Na+]" in f.read()
+
+
 def test_skip_flags_produce_two_dimensional_output(tmp_path) -> None:
     src = tmp_path / "input.smi"
     src.write_text("CCO\tethanol\n")

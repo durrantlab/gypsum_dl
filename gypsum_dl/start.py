@@ -307,7 +307,10 @@ def seed_random_number_generators(params: dict[str, Any]) -> None:
     Seeding reaches only this process, but every fanned-out step draws a seed
     per job from this generator and hands it to the job (see
     parallelizer.draw_job_seeds), so seeding here is what makes a run
-    reproducible under any job manager.
+    reproducible whatever the number of processors. It does not make two runs
+    under different job managers agree: mpi mode seeds once per container and
+    runs that container's whole pipeline under the one seed, while the other
+    managers advance a single stream step by step.
 
     Args:
         params: The parameters, which may carry a non-negative random_seed. A
@@ -324,7 +327,7 @@ def seed_random_number_generators(params: dict[str, Any]) -> None:
         "Using random_seed = "
         + str(seed)
         + ". Note that this makes a run reproducible regardless of the "
-        + "job_manager and the number of processors."
+        + "number of processors."
     )
 
 
@@ -425,8 +428,10 @@ def set_parameters(params_unicode: dict[str, Any]) -> dict[str, Any]:
             # merge_parameters rejects any key missing from the defaults.
             "debug": False,
             # Seed for the global random and numpy generators. A value >= 0
-            # makes a run reproducible under any job manager, since each job
-            # gets its seed from this generator. A negative value leaves both
+            # makes a run reproducible for a given job manager whatever the
+            # processor count, since each job gets its seed from this generator
+            # by position rather than by worker. It does not make two runs
+            # under different job managers agree. A negative value leaves both
             # generators unseeded (previous behavior).
             "random_seed": -1,
         }
@@ -674,8 +679,11 @@ def deal_with_failed_molecules(
     if not failed:
         return
 
+    # orig_smi_input rather than orig_smi: the desalter overwrites orig_smi
+    # with the largest fragment, so resubmitting this file would otherwise
+    # silently change the chemistry of the retry.
     lines: dict[MolContainer, str] = {
-        contnr: f"{contnr.orig_smi}\t{contnr.name}" for contnr in failed
+        contnr: f"{contnr.orig_smi_input}\t{contnr.name}" for contnr in failed
     }
 
     # Let the user know if there's more than one failed molecule.

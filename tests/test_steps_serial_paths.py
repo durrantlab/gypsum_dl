@@ -9,8 +9,8 @@ import numpy
 
 from gypsum_dl import chem_utils
 from gypsum_dl.MolContainer import MolContainer
-from gypsum_dl.MyMol import MyMol
-from gypsum_dl.parallelizer import Parallelizer
+from gypsum_dl.MyMol import ContnrProps, MyMol
+from gypsum_dl.parallelizer import Parallelizer, seed_generators
 from gypsum_dl.steps.conf import Minimize3D
 from gypsum_dl.steps.smiles import (
     AddHydrogens,
@@ -371,9 +371,9 @@ _REAL_MAKE_TAUT = MakeTautomers.parallel_make_taut
 
 
 def _make_taut_failing_on_ethanol(
-    contnr: MolContainer, mol_index: int, max_tauts: int
+    mol: MyMol, props: ContnrProps, max_tauts: int
 ) -> list[MyMol] | None:
-    """Stand in for parallel_make_taut, raising for one chosen container.
+    """Stand in for parallel_make_taut, raising for one chosen compound.
 
     The failure has to originate inside the worker function itself so that it
     travels whichever dispatch path job_manager selects. The real function is
@@ -381,19 +381,19 @@ def _make_taut_failing_on_ethanol(
     and this lives at module scope so worker processes can unpickle it.
 
     Args:
-        contnr: The molecule container being tautomerized.
-        mol_index: Index of the molecule within the container.
+        mol: The variant being tautomerized.
+        props: The container-level fields describing the input compound.
         max_tauts: Size at which MolVS stops expanding the tautomer set.
 
     Returns:
-        Whatever the real function returns, for every container but ethanol.
+        Whatever the real function returns, for every compound but ethanol.
 
     Raises:
-        RuntimeError: For the container named "ethanol".
+        RuntimeError: For the compound named "ethanol".
     """
-    if contnr.name == "ethanol":
+    if props["name"] == "ethanol":
         raise RuntimeError("simulated tautomerization failure")
-    return _REAL_MAKE_TAUT(contnr, mol_index, max_tauts)
+    return _REAL_MAKE_TAUT(mol, props, max_tauts)
 
 
 def _taut_test_contnrs() -> list[MolContainer]:
@@ -585,7 +585,10 @@ def test_durrant_lab_filters_sizes_its_variant_cap_to_the_candidates(
     real_pick = chem_utils.pick_lowest_enrgy_mols
 
     def recording_pick(
-        mol_lst: list[MyMol], num: int, thoroughness: int
+        mol_lst: list[MyMol],
+        num: int,
+        thoroughness: int,
+        energy_cache: dict[str, float | None] | None = None,
     ) -> list[MyMol]:
         """Record the cap the filter asks for, then select as usual.
 
@@ -593,12 +596,14 @@ def test_durrant_lab_filters_sizes_its_variant_cap_to_the_candidates(
             mol_lst: The candidate variants for one container.
             num: The number of variants the caller is willing to keep.
             thoroughness: How many candidates to evaluate per kept variant.
+            energy_cache: The container's ranking-energy cache, passed through
+                untouched.
 
         Returns:
             The variants the real selector would keep.
         """
         caps.append(num)
-        return real_pick(mol_lst, num, thoroughness)
+        return real_pick(mol_lst, num, thoroughness, energy_cache)
 
     monkeypatch.setattr(chem_utils, "pick_lowest_enrgy_mols", recording_pick)
 
@@ -654,6 +659,49 @@ def test_convert_2d_to_3d_discards_bizarre_substructure() -> None:
     contnr = _container("CC[CH2-]", "carbanion")
     convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
     assert contnr.mols == []
+
+
+def _seeded_conversion_coords(parallelizer_obj: Parallelizer | None) -> list:
+    """Convert one molecule to 3D under a fixed seed and report the geometry.
+
+    The seed is installed immediately before the step so that both dispatch
+    paths start from the same generator state; anything that reached a
+    different state by the time the embedding drew its RDKit seed would show
+    up as different coordinates.
+
+    Args:
+        parallelizer_obj: The Parallelizer to dispatch through, or None to
+            exercise the in-process branch.
+
+    Returns:
+        The first conformer's coordinates, as nested lists so two runs can be
+            compared directly.
+    """
+    seed_generators(1234)
+    contnr = _container("CCCCO", "butanol")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", parallelizer_obj)
+    return contnr.mols[0].conformers[0].coords().tolist()
+
+
+def test_in_process_dispatch_is_seeded_like_serial_mode() -> None:
+    # Regression: the in-process branch of every step called run_one with no
+    # seed, so --random_seed did not reach it. That branch is what an mpi
+    # worker and any library caller passing parallelizer_obj=None run, which
+    # left those runs unseeded while serial and multiprocessing runs were
+    # reproducible.
+    in_process = _seeded_conversion_coords(None)
+
+    serial_par = Parallelizer("serial", 1)
+    serial = _seeded_conversion_coords(serial_par)
+    serial_par.end()
+
+    assert in_process == serial
+
+
+def test_in_process_dispatch_repeats_itself_under_one_seed() -> None:
+    # Control for the test above: the agreement is between two reproducible
+    # runs, not between two runs that both happen to be unseeded.
+    assert _seeded_conversion_coords(None) == _seeded_conversion_coords(None)
 
 
 def test_generate_alternate_ring_confs_keeps_variants() -> None:

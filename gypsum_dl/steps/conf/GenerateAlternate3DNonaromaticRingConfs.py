@@ -112,7 +112,11 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     # Run it through the parallelizer
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(Parallelizer.run_one(parallel_get_ring_confs, i) for i in params)
+        # MultiThreading with one processor is the same dispatch serial mode
+        # uses, and it draws a seed per job; calling run_one directly left
+        # this path drawing from whatever generator state happened to be in
+        # place, so --random_seed did not reach it.
+        tmp = Parallelizer.MultiThreading(params, 1, parallel_get_ring_confs)
     else:
         tmp = parallelizer_obj.run(
             params, parallel_get_ring_confs, num_procs, job_manager

@@ -319,6 +319,50 @@ def test_run_one_names_the_failed_function(capsys: pytest.CaptureFixture[str]) -
     assert "simulated job failure" in captured
 
 
+def test_run_one_names_the_molecule_that_failed(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: the report named the function and nothing else, so a
+    # production log recorded that a step had failed without recording which
+    # compound it failed on.
+    class _Subject:
+        orig_smi = "CC(=O)C"
+        name = "acetone"
+
+    def raiser(subject: object) -> None:
+        """Fail the way a real job does, with the subject as its argument.
+
+        Args:
+            subject: The molecule the job was working on.
+
+        Raises:
+            RuntimeError: Always.
+        """
+        raise RuntimeError("simulated job failure")
+
+    assert parallelizer.run_one(raiser, (_Subject(),)) is None
+
+    captured = capsys.readouterr().out
+    assert "CC(=O)C (acetone)" in captured
+    assert "raiser" in captured
+
+
+def test_describe_job_subject_reads_a_mapping() -> None:
+    # The tautomer step passes its container-level fields as a mapping rather
+    # than shipping the container to every job.
+    props = {"orig_smi": "CCO", "name": "ethanol"}
+    assert parallelizer.describe_job_subject((props,)) == "CCO (ethanol)"
+
+
+def test_describe_job_subject_tolerates_unidentifiable_arguments() -> None:
+    # This runs inside an exception handler, and a half-built object is a
+    # common reason for a job to have raised, so it must not raise itself and
+    # replace the traceback the user needs.
+    assert parallelizer.describe_job_subject(()) == ""
+    assert parallelizer.describe_job_subject((7,)) == ""
+    assert parallelizer.describe_job_subject(({"name": "ethanol"},)) == "ethanol"
+
+
 def test_flatten_list_handles_none() -> None:
     assert parallelizer.flatten_list(None) == []
 

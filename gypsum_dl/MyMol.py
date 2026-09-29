@@ -13,6 +13,7 @@ import copy
 import operator
 import random
 import sys
+from typing import TYPE_CHECKING, TypedDict
 
 from molvs import standardize_smiles as ssmiles
 
@@ -25,6 +26,32 @@ import gypsum_dl.MolObjectHandling as MOH
 from gypsum_dl import utils
 
 RDLogger.DisableLog("rdApp.*")
+
+if TYPE_CHECKING:
+    # Annotations only; MolContainer imports this module.
+    from gypsum_dl.MolContainer import MolContainer
+
+
+class ContnrProps(TypedDict):
+    """The container-level fields every variant of a compound shares.
+
+    These fields describe the input compound, not the individual variant, so a
+    step that needs them does not need the container itself. Naming them in one
+    place is what lets a job carry them: the tautomer step used to ship a whole
+    MolContainer (and so every variant in it) as an argument to each per-variant
+    job, which made its pickling cost grow with the square of the variant count.
+    Having a single definition also keeps the two ways a variant acquires these
+    fields, MolContainer.add_smiles and inherit_contnr_props, from drifting
+    apart on which fields they set.
+    """
+
+    # A MyMol that no container has claimed yet carries "" here, so the union
+    # describes what the field actually holds rather than what it ought to.
+    contnr_idx: int | str
+    name: str
+    orig_smi: str
+    orig_smi_deslt: str
+    orig_smi_canonical: str | None
 
 
 class _Unset:
@@ -149,6 +176,13 @@ class MyMol:
 
         # Default assumption is that they are the same.
         self.orig_smi_deslt = smiles
+
+        # A container-level field, so it is None until a container claims this
+        # molecule (MolContainer.add_smiles and inherit_contnr_props both fill
+        # it). Declared here because it was previously set only by add_smiles,
+        # which left which fields exist on a MyMol depending on which code path
+        # built it.
+        self.orig_smi_canonical: str | None = None
         self.name = name
         self.conformers = []
         self.nonaro_ring_atom_idx = UNSET
@@ -652,11 +686,18 @@ class MyMol:
         self.bizarre_substruct = False
         return False
 
-    def get_frags_of_orig_smi(self):
+    def get_frags_of_orig_smi(self) -> list[Chem.Mol]:
         """Divide the current molecule into fragments.
 
-        :return: A list of the fragments, as rdkit.Mol objects.
-        :rtype: list
+        The single-fragment branch used to return [self], so the element type
+        depended on the fragment count and the only caller (the desalter) was
+        safe only because that branch returns before anything reads an rdkit
+        method off the elements. Returning the wrapped molecule keeps the list
+        homogeneous, and both the fragment count and GetNumHeavyAtoms work on
+        it either way.
+
+        Returns:
+            The fragments as rdkit mols. Also caches them on self.frgs.
         """
 
         if self.frgs is not UNSET:
@@ -664,30 +705,53 @@ class MyMol:
             return self.frgs
 
         if "." not in self.orig_smi:
-            # There are no fragments. Just return this object.
-            self.frgs = [self]
-            return [self]
+            # There are no fragments. Just return this molecule.
+            self.frgs = [self.rdkit_mol]
+            return self.frgs
 
         # Get the fragments.
-        frags = Chem.GetMolFrags(self.rdkit_mol, asMols=True)
-        self.frgs = frags
-        return frags
+        self.frgs = list(Chem.GetMolFrags(self.rdkit_mol, asMols=True))
+        return self.frgs
 
-    def inherit_contnr_props(self, other):
+    def contnr_props(self) -> ContnrProps:
+        """Collect the container-level fields this molecule carries.
+
+        Lets a step hand a job the few fields that describe the input compound
+        instead of the MolContainer holding every variant of it. See
+        ContnrProps.
+
+        Returns:
+            This molecule's copy of the container-level fields.
+        """
+
+        return {
+            "contnr_idx": self.contnr_idx,
+            "name": self.name,
+            "orig_smi": self.orig_smi,
+            "orig_smi_deslt": self.orig_smi_deslt,
+            "orig_smi_canonical": self.orig_smi_canonical,
+        }
+
+    def inherit_contnr_props(self, other: "MolContainer | MyMol | ContnrProps") -> None:
         """Copies a few key properties from a different MyMol.MyMol object to
            this one.
 
-        :param other: The other MyMol.MyMol object to copy these properties to.
-        :type other: MyMol.MyMol
+        :param other: The container, molecule, or already-extracted mapping of
+           container-level fields to copy from.
+        :type other: MolContainer.MolContainer | MyMol.MyMol | ContnrProps
         """
 
-        # other can be a contnr or MyMol.MyMol object. These are properties
-        # that should be the same for every MyMol.MyMol object in this
-        # MolContainer.
-        self.contnr_idx = other.contnr_idx
-        self.orig_smi = other.orig_smi
-        self.orig_smi_deslt = other.orig_smi_deslt  # initial assumption
-        self.name = other.name
+        # These are properties that should be the same for every MyMol.MyMol
+        # object in this MolContainer. A mapping is accepted so a step that
+        # ships these fields to a worker in place of the container can still
+        # apply them on the far side, without a second copy of the field list.
+        props = other if isinstance(other, dict) else other.contnr_props()
+
+        self.contnr_idx = props["contnr_idx"]
+        self.orig_smi = props["orig_smi"]
+        self.orig_smi_deslt = props["orig_smi_deslt"]  # initial assumption
+        self.orig_smi_canonical = props["orig_smi_canonical"]
+        self.name = props["name"]
 
     def set_rdkit_mol_prop(self, key: str, val: object) -> None:
         """Set a molecular property.
@@ -867,6 +931,14 @@ class MyConformer:
         # placeholder used when the force field cannot score a conformer, so a
         # failed one loses every comparison.
         self.energy = float("inf")
+
+        # Set for the same reason as energy, and with the values that make a
+        # failed conformer inert: minimize() returns immediately rather than
+        # handing False to the force field (whose own error handler would then
+        # raise on Chem.MolToSmiles(False)), and no atom is offered for
+        # alignment.
+        self.minimized = True
+        self.ids_hvy_atms: list[int] = []
 
         # A caller can hand us a MyMol whose rdkit_mol is None (e.g. failed
         # reprotonation). deepcopy(None) is None, and the subsequent
@@ -1083,7 +1155,7 @@ class MyConformer:
         mol_copy.AddConformer(self.conformer())
         utils.log(Chem.MolToMolBlock(mol_copy)[:500])
 
-    def rmsd_to_me(self, other_conf):
+    def rmsd_to_me(self, other_conf: "MyConformer") -> float:
         """Calculate the rms distance between this conformer and another one.
 
         :param other_conf: The other conformer to align.
@@ -1092,37 +1164,29 @@ class MyConformer:
         :rtype: float
         """
 
-        # Make a new molecule. self.smiles can be None (MyMol.smiles() returns
-        # None when canonicalization fails), and either MolObjectHandling
-        # helper can return None on the round trip through the canonical
-        # SMILES. Infinity is the conservative answer for an RMSD that could
-        # not be computed: the caller deduplicates on rmsd <= cutoff, so both
-        # conformers are kept rather than one being silently discarded. Left
-        # unguarded, the AttributeError escaped all the way to
-        # parallelizer.run_one, which dropped the whole molecule.
-        amol = (
-            Chem.MolFromSmiles(self.smiles, sanitize=False)
-            if isinstance(self.smiles, str)
-            else None
-        )
-        amol = MOH.check_sanitization(amol)
-        amol = MOH.try_reprotanation(amol)
-        if amol is None:
+        # Compare inside the molecule the coordinates actually belong to. A
+        # molecule rebuilt from the canonical SMILES is a differently ordered
+        # graph, so atom i of it would receive the position of some other
+        # source atom, and the deprotonation below would then drop whichever
+        # atoms are hydrogens in that rebuilt ordering rather than the
+        # hydrogens of the coordinate data.
+        if self.mol is False or other_conf.mol is False:
             return float("inf")
 
-        # Add the conformer of the other MyConformer object.
-        amol.AddConformer(self.conformer(), assignId=True)
-        amol.AddConformer(other_conf.conformer(), assignId=True)
+        probe = copy.deepcopy(self.mol)
+        probe.RemoveAllConformers()
+        probe.AddConformer(self.conformer(), assignId=True)
+        probe.AddConformer(other_conf.conformer(), assignId=True)
 
-        # Get the two confs.
-        # first_conf = amol.GetConformers()[0]
-        # last_conf = amol.GetConformers()[-1]
-
-        # Return the RMSD.
-        amol = MOH.try_deprotanation(amol)
-        if amol is None:
+        # Deprotonate so the comparison is over heavy atoms only. This can
+        # fail and return None; infinity is the conservative answer for an
+        # RMSD that could not be computed, because the caller deduplicates on
+        # rmsd <= cutoff, so both conformers are kept rather than one being
+        # silently discarded.
+        probe = MOH.try_deprotanation(probe)
+        if probe is None:
             return float("inf")
-        return AllChem.GetConformerRMS(amol, 0, 1, prealigned=True)
+        return AllChem.GetConformerRMS(probe, 0, 1, prealigned=True)
 
     def coords(self):
         """Get the coordinates of this conformer. For debugging.

@@ -186,3 +186,79 @@ def test_pick_lowest_enrgy_mols_ranks_a_failed_energy_last() -> None:
         kept = chem_utils.pick_lowest_enrgy_mols([strained, unscored], 1, 2)
         assert len(kept) == 1
         assert kept[0].smiles() == strained.smiles()
+
+
+def test_first_conf_energy_reuses_a_cached_probe_energy() -> None:
+    # The ranking embedding runs in the dispatching process, not through the
+    # parallelizer, and a variant that survives one pruning step is a candidate
+    # again at the next one. Without the cache the same structure is embedded
+    # once per SMILES step.
+    mol = MyMol.MyMol("CCO")
+    cache: dict[str, float | None] = {}
+
+    first = chem_utils.first_conf_energy(mol, cache)
+
+    assert cache == {mol.smiles(): first}
+
+    embedded = False
+
+    def refuse() -> None:
+        """Fail the test if a second embedding is attempted.
+
+        Raises:
+            AssertionError: Always, since a cache hit must not embed.
+        """
+        nonlocal embedded
+        embedded = True
+        raise AssertionError("embedded again despite a cache hit")
+
+    probe = MyMol.MyMol("CCO")
+    probe.make_first_3d_conf_no_min = refuse
+
+    assert chem_utils.first_conf_energy(probe, cache) == first
+    assert not embedded
+
+
+def test_first_conf_energy_does_not_cache_an_existing_conformer_energy() -> None:
+    # An energy read off coordinates the molecule already carries describes
+    # that coordinate set, not the structure, so it must not stand in for the
+    # ranking energy of another copy of the same structure.
+    class _FakeConf:
+        def __init__(self, energy: float) -> None:
+            self.energy = energy
+
+    mol = MyMol.MyMol("CCO")
+    mol.conformers = [_FakeConf(42.0)]
+    cache: dict[str, float | None] = {}
+
+    assert chem_utils.first_conf_energy(mol, cache) == 42.0
+    assert cache == {}
+
+
+def test_first_conf_energy_skips_the_cache_for_an_unknown_smiles() -> None:
+    # smiles() reports a failed canonicalization as None, which is no kind of
+    # cache key: two unrelated molecules would share it.
+    mol = MyMol.MyMol("CCO")
+    mol.can_smi = None
+    cache: dict[str, float | None] = {}
+
+    chem_utils.first_conf_energy(mol, cache)
+
+    assert cache == {}
+
+
+def test_bst_for_each_contnr_no_opt_records_ranking_energies_on_the_container() -> None:
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    mols = []
+    for smi in ["CCO", "CCCO", "CCCCO"]:
+        mol = MyMol.MyMol(smi)
+        mol.contnr_idx = 0
+        mols.append(mol)
+
+    assert contnr.probe_energies == {}
+
+    chem_utils.bst_for_each_contnr_no_opt([contnr], mols, 1, 1)
+
+    # num=1 and thoroughness=1 means random_sample draws one candidate, so
+    # exactly one structure is measured and recorded.
+    assert len(contnr.probe_energies) == 1

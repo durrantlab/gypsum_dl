@@ -82,7 +82,11 @@ def minimize_3d(
     # Run the inputs through the parallelizer.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(Parallelizer.run_one(parallel_minit, i) for i in params)
+        # MultiThreading with one processor is the same dispatch serial mode
+        # uses, and it draws a seed per job; calling run_one directly left
+        # this path drawing from whatever generator state happened to be in
+        # place, so --random_seed did not reach it.
+        tmp = Parallelizer.MultiThreading(params, 1, parallel_minit)
     else:
         tmp = parallelizer_obj.run(params, parallel_minit, num_procs, job_manager)
 

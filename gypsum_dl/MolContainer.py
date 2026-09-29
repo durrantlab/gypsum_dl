@@ -37,10 +37,25 @@ class MolContainer:
         # might be reset. But good to have
         # original for filename output.
         self.orig_smi = smiles
+        # The string the user submitted. orig_smi and orig_smi_deslt are both
+        # overwritten with the largest fragment by update_orig_smi, so neither
+        # can serve as the record of the input once a salt has been stripped.
+        self.orig_smi_input = smiles
         self.orig_smi_deslt = smiles  # initial assumption
         self.mols = []
         self.name = name
         self.properties = properties
+
+        # Ranking energies for this compound's variants, keyed on canonical
+        # SMILES. Every SMILES step prunes its variants by embedding a
+        # throwaway conformer per candidate, and a variant that survives one
+        # step is a candidate again in the next, so without a cache the same
+        # structure is embedded once per step. Scoped to the container rather
+        # than the module because that is where the repeats are (all variants
+        # of one compound) and because it bounds the cache to a compound's
+        # variant count instead of the whole input library. See
+        # chem_utils.first_conf_energy.
+        self.probe_energies: dict[str, float | None] = {}
 
         # Everything derived from orig_smi (the reference molecule, its
         # canonical smiles, the ring/chiral counts, and the fragment cache) is
@@ -83,6 +98,25 @@ class MolContainer:
         self.num_unspecif_chiral_cntrs = len(
             self.mol_orig_frm_inp_smi.chiral_cntrs_w_unasignd()
         )
+
+    def contnr_props(self) -> "MyMol.ContnrProps":
+        """Collect the container-level fields every variant here shares.
+
+        Lets a step hand a job the few fields that describe the input compound
+        instead of this container, which holds every variant of it. See
+        MyMol.ContnrProps.
+
+        Returns:
+            This container's copy of the container-level fields.
+        """
+
+        return {
+            "contnr_idx": self.contnr_idx,
+            "name": self.name,
+            "orig_smi": self.orig_smi,
+            "orig_smi_deslt": self.orig_smi_deslt,
+            "orig_smi_canonical": self.orig_smi_canonical,
+        }
 
     def copy_of_orig_mol(self) -> "MyMol.MyMol":
         """Hand back an independent copy of this container's reference molecule.
@@ -162,12 +196,11 @@ class MolContainer:
                 continue
 
             # Much of the contnr info should be passed to each molecule,
-            # too, for convenience.
-            amol.name = self.name
-            amol.orig_smi = self.orig_smi
-            amol.orig_smi_canonical = self.orig_smi_canonical
-            amol.orig_smi_deslt = self.orig_smi_deslt
-            amol.contnr_idx = self.contnr_idx
+            # too, for convenience. Go through inherit_contnr_props rather than
+            # assigning the fields here: this path and that one used to carry
+            # separate copies of the list, so a molecule's fields depended on
+            # which one had built it.
+            amol.inherit_contnr_props(self)
 
             self.mols.append(amol)
 
@@ -214,7 +247,9 @@ class MolContainer:
         :type orig_smi: str
         """
 
-        # Update the MolContainer object
+        # Update the MolContainer object. orig_smi_input is deliberately left
+        # alone: it is what the user submitted, and reports that name the input
+        # (the PDB header, the failure file) read from it.
         self.orig_smi = orig_smi
         self.orig_smi_deslt = orig_smi
 

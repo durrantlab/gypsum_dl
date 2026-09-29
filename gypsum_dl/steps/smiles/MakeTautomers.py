@@ -3,15 +3,14 @@
 import __future__
 
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 import gypsum_dl.MolObjectHandling as MOH
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import MyMol, chem_utils, utils
 
 if TYPE_CHECKING:
-    # Importing MolContainer at run time would close the MolContainer ->
-    # chem_utils -> utils -> MolContainer import cycle.
+    # Annotations only, for the two facts builders below.
     from gypsum_dl.MolContainer import MolContainer
 
 try:
@@ -23,6 +22,65 @@ try:
     from molvs import tautomer
 except Exception:
     utils.exception("You need to install molvs and its dependencies.")
+
+
+class ContnrRingFacts(TypedDict):
+    """What the aromaticity filter needs to know about the input compound.
+
+    The filter runs once per candidate tautomer, and a compound produces many.
+    Shipping the MolContainer to each of those jobs meant pickling every
+    variant of the compound once per tautomer of it, when the comparison needs
+    one count and one SMILES for the rejection message.
+    """
+
+    orig_smi: str
+    num_nonaro_rngs: int
+
+
+class ContnrChiralityFacts(TypedDict):
+    """What the chirality filter needs to know about the input compound.
+
+    Separate from ContnrRingFacts for the same reason the two filters are
+    separate functions: each job should carry what its own comparison reads and
+    nothing else.
+    """
+
+    orig_smi: str
+    num_specif_chiral_cntrs: int
+    num_unspecif_chiral_cntrs: int
+
+
+def ring_facts(contnr: "MolContainer") -> ContnrRingFacts:
+    """Extract the aromaticity filter's reference counts from a container.
+
+    Args:
+        contnr: The container describing the input compound.
+
+    Returns:
+        The reference facts for that compound.
+    """
+
+    return {
+        "orig_smi": contnr.orig_smi,
+        "num_nonaro_rngs": contnr.num_nonaro_rngs,
+    }
+
+
+def chirality_facts(contnr: "MolContainer") -> ContnrChiralityFacts:
+    """Extract the chirality filter's reference counts from a container.
+
+    Args:
+        contnr: The container describing the input compound.
+
+    Returns:
+        The reference facts for that compound.
+    """
+
+    return {
+        "orig_smi": contnr.orig_smi,
+        "num_specif_chiral_cntrs": contnr.num_specif_chiral_cntrs,
+        "num_unspecif_chiral_cntrs": contnr.num_unspecif_chiral_cntrs,
+    }
 
 
 def make_tauts(
@@ -82,18 +140,26 @@ def make_tauts(
     # bst_for_each_contnr_no_opt below, so do the same here.
     max_tauts = thoroughness * max_variants_per_compound
 
-    # Create the parameters to feed into the parallelizer object.
+    # Create the parameters to feed into the parallelizer object. Pass the
+    # molecule itself, as every other enumeration step does, rather than the
+    # container plus an index into it: the container holds every variant of the
+    # compound, so sending it once per variant made the pickled payload grow
+    # with the square of the variant count. The shared props mapping is built
+    # once per container.
     params = []
     for contnr in contnrs:
-        params.extend(
-            (contnr, mol_index, max_tauts) for mol_index, mol in enumerate(contnr.mols)
-        )
+        props = contnr.contnr_props()
+        params.extend((mol, props, max_tauts) for mol in contnr.mols)
     params = tuple(params)
 
     # Run the tautomizer through the parallel object.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(Parallelizer.run_one(parallel_make_taut, i) for i in params)
+        # MultiThreading with one processor is the same dispatch serial mode
+        # uses, and it draws a seed per job; calling run_one directly left
+        # this path drawing from whatever generator state happened to be in
+        # place, so --random_seed did not reach it.
+        tmp = Parallelizer.MultiThreading(params, 1, parallel_make_taut)
     else:
         tmp = parallelizer_obj.run(params, parallel_make_taut, num_procs, job_manager)
 
@@ -119,15 +185,16 @@ def make_tauts(
 
 
 def parallel_make_taut(
-    contnr: "MolContainer", mol_index: int, max_tauts: int
+    mol: MyMol.MyMol, props: MyMol.ContnrProps, max_tauts: int
 ) -> list[MyMol.MyMol] | None:
-    """Makes alternate tautomers for a given molecule container. This is the
-       function that gets fed into the parallelizer.
+    """Makes alternate tautomers for a given molecule. This is the function
+       that gets fed into the parallelizer.
 
-    :param contnr: The molecule container.
-    :type contnr: MolContainer.MolContainer
-    :param mol_index: The molecule index.
-    :type mol_index: int
+    :param mol: The molecule (variant) to tautomerize.
+    :type mol: MyMol.MyMol
+    :param props: The container-level fields describing the input compound the
+       molecule is a variant of.
+    :type props: MyMol.ContnrProps
     :param max_tauts: The size at which MolVS stops expanding the tautomer
        set. It can return more than this many forms, since it does not discard
        any it has already built, and the caller trims to
@@ -138,10 +205,6 @@ def parallel_make_taut(
     :rtype: list
     """
 
-    # Get the MyMol.MyMol within the molecule container corresponding to the
-    # given molecule index.
-    mol = contnr.mols[mol_index]
-
     # Create a temporary RDKit mol object, since that's what MolVS works with.
     # TODO: There should be a copy function
     m = MyMol.MyMol(mol.smiles()).rdkit_mol
@@ -150,7 +213,7 @@ def parallel_make_taut(
     if m is None:
         utils.log(
             "\tCould not generate tautomers for "
-            + contnr.orig_smi
+            + props["orig_smi"]
             + ". I'm deleting it."
         )
         return
@@ -191,7 +254,7 @@ def parallel_make_taut(
     results = []
 
     for tm in tauts_mols:
-        tm.inherit_contnr_props(contnr)
+        tm.inherit_contnr_props(props)
         tm.genealogy = mol.genealogy[:]
         tm.name = mol.name
 
@@ -232,23 +295,26 @@ def tauts_no_break_arom_rngs(
 
     # You need to group the taut_data by container to pass it to the
     # paralleizer. Build an index map so a taut that matches no container is
-    # skipped rather than paired with a stale (or unbound) container.
-    by_idx = utils.contnrs_by_idx(contnrs)
+    # skipped rather than paired with a stale (or unbound) container. Each
+    # container's facts are extracted once and shared by all of its tautomers,
+    # so the job payload no longer carries the container itself.
+    facts_by_idx: dict[int, ContnrRingFacts] = {
+        contnr_idx: ring_facts(contnr)
+        for contnr_idx, contnr in utils.contnrs_by_idx(contnrs).items()
+    }
     params = []
     for taut_mol in taut_data:
-        container = by_idx.get(taut_mol.contnr_idx)
-        if container is None:
+        facts = facts_by_idx.get(taut_mol.contnr_idx)
+        if facts is None:
             continue
-        params.append((taut_mol, container))
+        params.append((taut_mol, facts))
     params = tuple(params)
 
     # Run it through the parallelizer to remove non-aromatic rings.
 
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(
-            Parallelizer.run_one(parallel_check_nonarom_rings, i) for i in params
-        )
+        tmp = Parallelizer.MultiThreading(params, 1, parallel_check_nonarom_rings)
     else:
         tmp = parallelizer_obj.run(
             params, parallel_check_nonarom_rings, num_procs, job_manager
@@ -284,22 +350,25 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
 
     # You need to group the taut_data by contnr to pass to paralleizer. Build
     # an index map so a taut that matches no container is skipped rather than
-    # paired with a stale (or unbound) container.
-    by_idx = utils.contnrs_by_idx(contnrs)
+    # paired with a stale (or unbound) container. Each container's facts are
+    # extracted once and shared by all of its tautomers, so the job payload no
+    # longer carries the container itself.
+    facts_by_idx: dict[int, ContnrChiralityFacts] = {
+        contnr_idx: chirality_facts(contnr)
+        for contnr_idx, contnr in utils.contnrs_by_idx(contnrs).items()
+    }
     params = []
     for taut_mol in taut_data:
-        container = by_idx.get(taut_mol.contnr_idx)
-        if container is None:
+        facts = facts_by_idx.get(taut_mol.contnr_idx)
+        if facts is None:
             continue
-        params.append((taut_mol, container))
+        params.append((taut_mol, facts))
     params = tuple(params)
 
     # Run it through the parallelizer.
     tmp = []
     if parallelizer_obj is None:
-        tmp.extend(
-            Parallelizer.run_one(parallel_check_chiral_centers, i) for i in params
-        )
+        tmp = Parallelizer.MultiThreading(params, 1, parallel_check_chiral_centers)
     else:
         tmp = parallelizer_obj.run(
             params, parallel_check_chiral_centers, num_procs, job_manager
@@ -309,7 +378,9 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
     return [x for x in tmp if x != None]
 
 
-def parallel_check_nonarom_rings(taut, contnr):
+def parallel_check_nonarom_rings(
+    taut: MyMol.MyMol, facts: ContnrRingFacts
+) -> MyMol.MyMol | None:
     """A parallelizable helper function that checks that tautomers have the
        same ring aromaticity as the original object. The test is symmetric: a
        tautomer that makes a nonaromatic ring aromatic is rejected alongside
@@ -317,14 +388,15 @@ def parallel_check_nonarom_rings(taut, contnr):
 
     :param taut: The tautomer to evaluate.
     :type taut: MyMol.MyMol
-    :param contnr: The original molecule container.
-    :type contnr: MolContainer.MolContainer
+    :param facts: The original compound's reference counts. See
+       ContnrRingFacts.
+    :type facts: ContnrRingFacts
     :return: Either the tautomer or a None object.
     :rtype: MyMol.MyMol | None
     """
 
     # How many nonaromatic rings in the original smiles?
-    num_nonaro_rngs_orig = contnr.num_nonaro_rngs
+    num_nonaro_rngs_orig = facts["num_nonaro_rngs"]
 
     # Note that a ring counts as nonaromatic here if any one of its atoms is
     # nonaromatic, applied the same way on both sides of the comparison.
@@ -339,7 +411,7 @@ def parallel_check_nonarom_rings(taut, contnr):
             + taut.smiles(True)
             + ", a tautomer generated "
             + "from "
-            + contnr.orig_smi
+            + facts["orig_smi"]
             + " ("
             + taut.name
             + "), changed the number of non-aromatic rings, so I'm discarding it."
@@ -347,7 +419,7 @@ def parallel_check_nonarom_rings(taut, contnr):
 
 
 def parallel_check_chiral_centers(
-    taut: MyMol.MyMol, contnr: "MolContainer"
+    taut: MyMol.MyMol, facts: ContnrChiralityFacts
 ) -> MyMol.MyMol | None:
     """A parallelizable helper function that checks that tautomers do not break
        any chiral centers in the original molecule.
@@ -365,8 +437,9 @@ def parallel_check_chiral_centers(
 
     :param taut: The tautomer to evaluate.
     :type taut: MyMol.MyMol
-    :param contnr: The original molecule container.
-    :type contnr: MolContainer.MolContainer
+    :param facts: The original compound's reference counts. See
+       ContnrChiralityFacts.
+    :type facts: ContnrChiralityFacts
     :return: Either the tautomer or a None object.
     :rtype: MyMol.MyMol | None
     """
@@ -375,8 +448,8 @@ def parallel_check_chiral_centers(
     # its length is the total; num_unspecif_chiral_cntrs holds that length
     # despite its name. Adding it to the assigned count would tally every
     # assigned center twice.
-    num_chiral_cntrs_orig = contnr.num_unspecif_chiral_cntrs
-    num_assignd_chiral_cntrs_orig = contnr.num_specif_chiral_cntrs
+    num_chiral_cntrs_orig = facts["num_unspecif_chiral_cntrs"]
+    num_assignd_chiral_cntrs_orig = facts["num_specif_chiral_cntrs"]
 
     num_chiral_cntrs_taut = len(taut.chiral_cntrs_w_unasignd())
     num_assignd_chiral_cntrs_taut = len(taut.chiral_cntrs_only_asignd())
@@ -390,7 +463,7 @@ def parallel_check_chiral_centers(
 
     rejection_prefix = (
         "\t"
-        + contnr.orig_smi
+        + facts["orig_smi"]
         + " ==> "
         + taut.smiles(True)
         + " (tautomer transformation on "

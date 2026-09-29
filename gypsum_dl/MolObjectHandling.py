@@ -3,6 +3,8 @@
 # Disable the unnecessary RDKit warnings
 from rdkit import Chem, RDLogger
 
+from gypsum_dl import utils
+
 RDLogger.DisableLog("rdApp.*")
 
 
@@ -68,12 +70,8 @@ def check_sanitization(mol):
     # has to be visible. This runs inside MyMol.__init__, before any genealogy
     # entry exists, which leaves the log as the only place to say so. The
     # comparison keeps the warning honest: the second sanitization pass can
-    # succeed on its own, without any charge having been changed. utils cannot
-    # be imported at module scope here, because that would close the
-    # utils -> MolContainer -> MyMol -> MolObjectHandling cycle.
+    # succeed on its own, without any charge having been changed.
     if [atom.GetFormalCharge() for atom in candidate.GetAtoms()] != charges_before:
-        from gypsum_dl import utils
-
         utils.log(
             "\tWARNING: Adjusted a nitrogen formal charge to sanitize "
             + Chem.MolToSmiles(candidate)

@@ -351,6 +351,20 @@ def test_deal_with_failed_molecules_writes_failure_file(tmp_path) -> None:
     assert "ethanol" in (tmp_path / "gypsum_dl_failed.smi").read_text()
 
 
+def test_deal_with_failed_molecules_reports_the_submitted_smiles(tmp_path) -> None:
+    # Regression: the line was built from contnr.orig_smi, which the desalter
+    # overwrites with the largest fragment. The failure file then named the
+    # desalted molecule, so resubmitting it silently changed the chemistry of
+    # the retry.
+    contnr = MolContainer("CCCCO.[Na+]", "salt", 0, {})
+    contnr.update_orig_smi("CCCCO")
+
+    start.deal_with_failed_molecules([contnr], {"output_folder": str(tmp_path)})
+
+    written = (tmp_path / "gypsum_dl_failed.smi").read_text()
+    assert written.startswith("CCCCO.[Na+]\tsalt")
+
+
 def test_deal_with_failed_molecules_skips_when_nothing_failed(tmp_path) -> None:
     contnr = MolContainer("CCO", "ethanol", 0, {})
     contnr.add_smiles("CCO")
