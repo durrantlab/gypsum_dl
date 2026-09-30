@@ -836,11 +836,43 @@ def test_worker_processes_draw_independent_numpy_streams() -> None:
     assert len(set(draws)) == 4
 
 
-def test_mpi4py_launch_flag_present_reads_sys_modules(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize(
+    "orig_argv",
+    [
+        ["python", "-m", "mpi4py", "-m", "gypsum_dl"],
+        ["python", "-m", "mpi4py", "/env/bin/gypsum-dl", "-j", "p.json"],
+        ["python", "-u", "-X", "dev", "-W", "ignore", "-m", "mpi4py", "-m", "x"],
+        ["python", "-um", "mpi4py", "-m", "gypsum_dl"],
+        ["python", "-mmpi4py", "-m", "gypsum_dl"],
+        ["python", "-Wignore", "-m", "mpi4py", "-m", "gypsum_dl"],
+    ],
+)
+def test_mpi4py_launch_flag_present_accepts_mpi4py_launches(
+    monkeypatch: pytest.MonkeyPatch, orig_argv: list[str]
 ) -> None:
-    monkeypatch.setitem(sys.modules, "runpy", types.ModuleType("runpy"))
+    monkeypatch.setattr(sys, "orig_argv", orig_argv)
     assert parallelizer.mpi4py_launch_flag_present() is True
 
-    monkeypatch.delitem(sys.modules, "runpy")
+
+@pytest.mark.parametrize(
+    "orig_argv",
+    [
+        ["python", "-m", "gypsum_dl", "--job_manager", "mpi"],
+        ["/env/bin/python", "/env/bin/gypsum-dl", "--job_manager", "mpi"],
+        ["python", "script.py", "-m", "mpi4py"],
+        ["python", "-c", "import x", "-m", "mpi4py"],
+        ["python", "-W", "-m", "mpi4py"],
+        ["python", "-m"],
+        [],
+    ],
+)
+def test_mpi4py_launch_flag_present_rejects_other_launches(
+    monkeypatch: pytest.MonkeyPatch, orig_argv: list[str]
+) -> None:
+    # Regression: the flag was inferred from runpy being in sys.modules, which
+    # any other route that loads runpy also satisfies. "python -m gypsum_dl"
+    # with --job_manager mpi passed the check without mpi4py's exception
+    # handling in place, so a failing rank hung the job instead of aborting it.
+    monkeypatch.setattr(sys, "orig_argv", orig_argv)
+    monkeypatch.setitem(sys.modules, "runpy", types.ModuleType("runpy"))
     assert parallelizer.mpi4py_launch_flag_present() is False

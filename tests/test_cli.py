@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import runpy
 import sys
 from pathlib import Path
 
@@ -333,3 +334,15 @@ def test_readme_documents_the_help_text_the_cli_prints(
     assert _parse_option_help(_readme_option_block()) == _parse_option_help(
         _cli_option_block(monkeypatch, capsys)
     )
+
+
+def test_package_runs_as_a_module(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Regression: the docs launched mpi mode through run_gypsum_dl.py, which a
+    # pip install does not provide, and the package had no __main__, so
+    # "python -m mpi4py -m gypsum_dl" had nothing to run.
+    monkeypatch.setattr(sys, "argv", ["gypsum_dl", "--help"])
+    with pytest.raises(SystemExit):
+        runpy.run_module("gypsum_dl", run_name="__main__")
+    assert "EXAMPLES OF USE" in capsys.readouterr().out

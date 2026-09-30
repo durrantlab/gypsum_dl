@@ -628,7 +628,7 @@ def _prepare_molecules_in_stubbed_mpi_mode(
     """Reach the mpi4py version check in prepare_molecules without mpi.
 
     That check sits behind two gates (the "python -m mpi4py" launch, detected
-    by looking for runpy in sys.modules, and a real mpi4py import) and is
+    from the interpreter's command line, and a real mpi4py import) and is
     followed immediately by the construction of a real Parallelizer. Standing
     in for all three is what lets an arbitrary version string be exercised in
     process.
@@ -641,7 +641,7 @@ def _prepare_molecules_in_stubbed_mpi_mode(
     stub_mpi4py = types.ModuleType("mpi4py")
     stub_mpi4py.__version__ = mpi4py_version
     monkeypatch.setitem(sys.modules, "mpi4py", stub_mpi4py)
-    monkeypatch.setitem(sys.modules, "runpy", types.ModuleType("runpy"))
+    monkeypatch.setattr(sys, "orig_argv", ["python", "-m", "mpi4py", "-m", "gypsum_dl"])
 
     class _StubParallelizer:
         """Stand in for Parallelizer, which would otherwise start real mpi."""

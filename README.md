@@ -62,8 +62,8 @@ Gypsum-DL accepts the following command-line parameters:
                         multiprocessing, or serial. Serial will override the
                         num_processors flag, forcing it to be one. MPI mode
                         requires mpi4py 4.0 or higher and should be executed
-                        as: mpirun -n $NTASKS python -m mpi4py
-                        run_gypsum_dl.py ...-settings...
+                        as: mpirun -n $NTASKS python -m mpi4py -m gypsum_dl
+                        ...-settings...
   --num_processors N, -p N
                         Number of processors to use for parallel calculations.
                         Defaults to -1 (use all available processors).
@@ -194,7 +194,7 @@ pip install "gypsum-dl[mpi]"
 ```
 
 ```bash
-mpirun -n $NTASKS python -m mpi4py  run_gypsum_dl.py --source ./examples/sample_molecules.smi \
+mpirun -n $NTASKS python -m mpi4py -m gypsum_dl --source ./examples/sample_molecules.smi \
     --job_manager mpi --num_processors -1
 ```
 

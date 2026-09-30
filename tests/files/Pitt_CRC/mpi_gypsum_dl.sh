@@ -19,4 +19,4 @@ module load python/anaconda3.7-2018.12_westpa
 srun -n 1 python -c "import gypsum_dl.run"
 
 ## Run the process
-mpirun -n $SLURM_NTASKS python -m mpi4py run_gypsum_dl.py -j mpi_sample_molecules.json > test_mpi_gypsum_dl_output.txt
+mpirun -n $SLURM_NTASKS python -m mpi4py -m gypsum_dl -j mpi_sample_molecules.json > test_mpi_gypsum_dl_output.txt

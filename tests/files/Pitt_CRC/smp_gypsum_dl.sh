@@ -13,4 +13,4 @@ module load gcc/8.2.0
 module load python/anaconda3.7-2018.12_westpa
 
 ## Run the process
-python run_gypsum_dl.py -j smp_sample_molecules.json > test_smp_gypsum_dl_output.txt
+gypsum-dl -j smp_sample_molecules.json > test_smp_gypsum_dl_output.txt

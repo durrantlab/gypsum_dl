@@ -50,7 +50,7 @@ feature floor could never fire and advertised support for releases nobody
 tests against. Keep this in step with those pins."""
 
 MPI_LAUNCH_FLAG_MSG: str = (
-    "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py run_gypsum_dl.py\n"
+    "\nTo run in mpi mode you must run with -m flag. ie) mpirun -n $NTASKS python -m mpi4py -m gypsum_dl\n"
 )
 
 MPI4PY_MISSING_MSG: str = (
@@ -64,6 +64,61 @@ MPI4PY_VERSION_MSG: str = (
 )
 
 
+_INTERPRETER_OPTIONS_WITH_VALUE: frozenset[str] = frozenset(
+    {"-W", "-X", "--check-hash-based-pycs"}
+)
+"""Interpreter options that consume the following argument, so the scan for
+"-m" does not mistake that argument for the end of the interpreter options."""
+
+
+def _main_module_from_argv(argv: Sequence[str]) -> str | None:
+    """Find the module named by the interpreter's own "-m" option, if any.
+
+    Only the interpreter options are scanned (they end at "-m", "-c", "-", or
+    a script path), so a "-m mpi4py" that appears later, among the arguments
+    passed to the program itself, is not mistaken for the launch flag. Short
+    options can be bundled ("-um mpi4py") and "-m" can carry its value
+    attached ("-mmpi4py"), as the interpreter allows.
+
+    Args:
+        argv: The interpreter's full command line, starting with the
+            executable (sys.orig_argv).
+
+    Returns:
+        The module name given to "-m", or None if the interpreter was started
+            some other way.
+    """
+
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg in _INTERPRETER_OPTIONS_WITH_VALUE:
+            i += 2
+            continue
+        if arg == "-" or arg == "--" or not arg.startswith("-"):
+            return None
+        if arg.startswith("--"):
+            i += 1
+            continue
+        for pos, flag in enumerate(arg[1:], start=1):
+            if flag == "c":
+                return None
+            if flag == "m":
+                rest = arg[pos + 1 :]
+                if rest:
+                    return rest
+                return argv[i + 1] if i + 1 < len(argv) else None
+            if flag in "WX":
+                # The option's value is the rest of this argument, or the
+                # next argument when nothing follows the letter.
+                if pos == len(arg) - 1:
+                    i += 1
+                break
+        i += 1
+
+    return None
+
+
 def mpi4py_launch_flag_present() -> bool:
     """Report whether python was started with the "-m mpi4py" runpy flag.
 
@@ -72,11 +127,16 @@ def mpi4py_launch_flag_present() -> bool:
     Parallelizer's own probe ask the question, and they have to agree on how it
     is detected.
 
+    The interpreter's command line is the only direct record of how it was
+    started. Looking for runpy in sys.modules instead was fooled by any other
+    route that loads runpy, including "python -m gypsum_dl" without mpi4py,
+    which let an mpi run start without mpi4py's exception handling and hang.
+
     Returns:
-        True if the flag appears to have been used.
+        True if the interpreter was started with "-m mpi4py".
     """
 
-    return "runpy" in sys.modules
+    return _main_module_from_argv(sys.orig_argv) == "mpi4py"
 
 
 def mpi4py_version_supported(version: str) -> bool:
