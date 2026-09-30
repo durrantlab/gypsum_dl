@@ -836,6 +836,85 @@ def test_generate_alternate_ring_confs_breaks_energy_ties_by_smiles(
     assert [mol.smiles() for mol in contnr.mols] == ["CCCCO", "CCCO"]
 
 
+def _ring_conf_variant(smiles: str, energy: float) -> MyMol:
+    """Build a ring-conformer result for one form at a given energy.
+
+    Args:
+        smiles: SMILES string of the form the conformer belongs to.
+        energy: The conformer's energy.
+
+    Returns:
+        A MyMol at container index zero carrying that energy.
+    """
+    mol = MyMol(smiles)
+    mol.contnr_idx = 0
+    mol.conformers = [_TiedConformer(energy)]
+    return mol
+
+
+def _run_ring_step_on_forms(
+    monkeypatch, conformers: list[MyMol], cap: int
+) -> list[MyMol]:
+    """Run the ring step on a container holding two forms, CCO then CCCO.
+
+    The stubbed worker returns each form's own conformers, as the real one
+    does, so the selection sees the grouping it would see in a real run.
+
+    Args:
+        monkeypatch: The pytest monkeypatch fixture.
+        conformers: Ring conformers of both forms.
+        cap: max_variants_per_compound.
+
+    Returns:
+        The container's molecules after the step.
+    """
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    contnr.mols = [MyMol("CCO"), MyMol("CCCO")]
+    for mol in contnr.mols:
+        mol.contnr_idx = 0
+    monkeypatch.setattr(
+        "gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs."
+        "parallel_get_ring_confs",
+        lambda mol, *a: [c for c in conformers if c.smiles() == mol.smiles()],
+    )
+
+    generate_alternate_3d_nonaromatic_ring_confs(
+        [contnr], cap, 1, 1, False, "serial", None
+    )
+    return contnr.mols
+
+
+def test_generate_alternate_ring_confs_keeps_a_high_energy_form(
+    monkeypatch,
+) -> None:
+    # Regression: conformers of every form were pooled and ranked by UFF
+    # energy, which is not comparable across protonation states or tautomers.
+    # One form's ring conformers could fill every slot and drop forms the
+    # SMILES steps had chosen to keep.
+    low = [_ring_conf_variant("CCO", energy) for energy in (1.0, 2.0, 3.0)]
+    high = _ring_conf_variant("CCCO", 50.0)
+
+    kept = _run_ring_step_on_forms(monkeypatch, low + [high], 2)
+
+    assert [id(mol) for mol in kept] == [id(low[0]), id(high)]
+
+
+def test_generate_alternate_ring_confs_takes_forms_in_turn(monkeypatch) -> None:
+    # Once every form has its best conformer, the remaining slots go round the
+    # forms again in the container's order, never to the lowest energy overall.
+    cco = [_ring_conf_variant("CCO", energy) for energy in (3.0, 1.0, 2.0)]
+    ccco = [_ring_conf_variant("CCCO", energy) for energy in (60.0, 50.0)]
+
+    kept = _run_ring_step_on_forms(monkeypatch, cco + ccco, 4)
+
+    assert [id(mol) for mol in kept] == [
+        id(cco[1]),
+        id(ccco[1]),
+        id(cco[2]),
+        id(ccco[0]),
+    ]
+
+
 def test_generate_alternate_ring_confs_tolerates_a_tie_with_no_smiles(
     monkeypatch,
 ) -> None:

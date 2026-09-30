@@ -8,10 +8,11 @@ import __future__
 
 import copy
 import warnings
+from collections.abc import Hashable
 
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
-from gypsum_dl.MyMol import MyConformer
+from gypsum_dl.MyMol import MyConformer, MyMol
 from gypsum_dl.steps.conf.Minimize3D import parallel_minit
 
 try:
@@ -150,22 +151,12 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     contnr_by_idx = utils.contnrs_by_idx(contnrs)
     for contnr_idx, lst_enrgy_mol_pairs in grouped.items():
         contnr = contnr_by_idx[contnr_idx]
+        prior_mols = contnr.mols
         contnr.mols = []  # Note that only affects ones that
         # had non-aromatic rings.
-        # Sort by energy, breaking ties on the canonical SMILES. A bare sort()
-        # falls through to comparing the MyMol objects themselves, which
-        # compare by hash(canonical_smiles); CPython salts string hashing per
-        # invocation, so tied conformers (both UFF setups failing gives each
-        # the same sentinel energy) were ordered differently on every run,
-        # including runs with random_seed set. smiles() reports failure as
-        # None.
-        lst_enrgy_mol_pairs.sort(key=lambda pair: (pair[0], pair[1].smiles() or ""))
-
-        # Keep only the top ones.
-        lst_enrgy_mol_pairs = lst_enrgy_mol_pairs[:variant_cap]
-
-        # Add the top ones to the container mol list.
-        for energy, mol in lst_enrgy_mol_pairs:
+        for mol in _select_ring_confs_by_form(
+            lst_enrgy_mol_pairs, prior_mols, variant_cap
+        ):
             contnr.add_mol(mol)
 
     # Any container that had non-aromatic rings but produced no results (all
@@ -180,6 +171,76 @@ def generate_alternate_3d_nonaromatic_ring_confs(
             )
 
     return failed_contnr_idxs
+
+
+def _form_key(mol: MyMol) -> Hashable:
+    """Identify which chemical form (protonation state, tautomer, isomer) a
+    ring conformer belongs to.
+
+    Args:
+        mol: A ring conformer or an input variant.
+
+    Returns:
+        The canonical SMILES, or the molecule itself when that could not be
+            computed, so such a molecule is a form of its own (matching the
+            identity fallback in MyMol.__eq__ and __hash__).
+    """
+    smi = mol.smiles()
+    return smi if isinstance(smi, str) else mol
+
+
+def _select_ring_confs_by_form(
+    pairs: list[tuple[float, MyMol]], prior_mols: list[MyMol], cap: int
+) -> list[MyMol]:
+    """Pick up to cap ring conformers for one container, spreading the picks
+    across chemical forms.
+
+    UFF energies are comparable only between conformers of the same form.
+    Protonation states and tautomers differ in atoms or bonding, so ranking
+    them against each other let an energy offset with no physical meaning
+    decide which forms survived, overriding the choices the SMILES steps had
+    made. Here each form's conformers are ranked by energy among themselves,
+    and the forms take turns: every form's best conformer first, then every
+    form's second best, and so on until the cap is reached.
+
+    Args:
+        pairs: (energy, molecule) for every ring conformer of the container.
+        prior_mols: The container's molecules as they entered this step. Forms
+            take their turns in this order, which is the order the earlier
+            steps left them in. Forms not found there follow, by SMILES, so
+            the result never depends on hash or parallelizer ordering.
+        cap: The largest number of conformers to keep.
+
+    Returns:
+        The selected molecules, in the order they were picked.
+    """
+    by_form: dict[Hashable, list[tuple[float, MyMol]]] = {}
+    for pair in pairs:
+        by_form.setdefault(_form_key(pair[1]), []).append(pair)
+
+    rank: dict[Hashable, int] = {}
+    for i, mol in enumerate(prior_mols):
+        rank.setdefault(_form_key(mol), i)
+    forms = sorted(
+        by_form,
+        key=lambda form: (
+            rank.get(form, len(prior_mols)),
+            by_form[form][0][1].smiles() or "",
+        ),
+    )
+
+    # Conformers of one form share a SMILES, so energy alone orders them;
+    # the stable sort leaves exact ties in the order the worker produced.
+    queues = [sorted(by_form[form], key=lambda pair: pair[0]) for form in forms]
+
+    selected: list[MyMol] = []
+    depth = 0
+    while len(selected) < cap and any(depth < len(queue) for queue in queues):
+        for queue in queues:
+            if depth < len(queue) and len(selected) < cap:
+                selected.append(queue[depth][1])
+        depth += 1
+    return selected
 
 
 def parallel_get_ring_confs(
@@ -313,10 +374,10 @@ def parallel_get_ring_confs(
             warnings.simplefilter("ignore")
             groups = kmeans2(pts, num_clusters, minit="points")[1]
 
-        # Note that you have some geometrically diverse conformations here, but
-        # there could be other versions (enantiomers, tautomers, etc.) that also
-        # contribute similar conformations. In the end, you'll be selecting from
-        # all these together, so similar ones could end up together.
+        # These are geometrically diverse conformations of this one form. The
+        # other forms in the container (enantiomers, tautomers, etc.) are
+        # clustered separately, and the final selection takes conformers from
+        # each form in turn.
 
         # Key is group id from kmeans (int). Values are the MyMol.MyConformers
         # objects.
