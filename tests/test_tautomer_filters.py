@@ -280,3 +280,37 @@ def test_make_tauts_does_not_ship_the_container_to_each_job(
     assert payloads
     for job in payloads:
         assert not any(isinstance(arg, MolContainer) for arg in job)
+
+
+def test_make_tauts_keeps_both_ionization_states_of_a_chiral_amine() -> None:
+    # Regression: the chirality filter compared every tautomer against the
+    # desalted input rather than the ionized variant it came from. Protonating
+    # a tertiary amine with three distinct substituents creates a stereocenter
+    # at [NH+], so every form of the protonated variant was charged with a
+    # chirality change and deleted, and the neutral form alone survived.
+    neutral = MyMol.MyMol("CN(CC)CCC")
+    protonated = MyMol.MyMol("C[NH+](CC)CCC")
+    assert len(neutral.chiral_cntrs_w_unasignd()) == 0
+    assert len(protonated.chiral_cntrs_w_unasignd()) == 1
+
+    contnr = MolContainer("CN(CC)CCC", "amine", 0, {})
+    contnr.add_smiles(["CN(CC)CCC", "C[NH+](CC)CCC"])
+
+    MakeTautomers.make_tauts([contnr], 5, 1, 1, "serial", False, None)
+
+    assert {neutral.smiles(), protonated.smiles()} <= {m.smiles() for m in contnr.mols}
+
+
+def test_parallel_make_taut_still_rejects_dropped_stereo_assignment() -> None:
+    # Moving the chirality filter into the worker must keep the protection it
+    # exists for: no tautomer of an assigned center may come back unassigned
+    # or with a different number of centers.
+    contnr = MolContainer("C[C@H](N)C(=O)O", "alanine", 0, {})
+    contnr.add_smiles("C[C@H](N)C(=O)O")
+
+    results = parallel_make_taut(contnr.mols[0], contnr.contnr_props(), 10, True)
+
+    assert results
+    for taut in results:
+        assert len(taut.chiral_cntrs_w_unasignd()) == 1
+        assert len(taut.chiral_cntrs_only_asignd()) == 1

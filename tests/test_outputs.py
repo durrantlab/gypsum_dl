@@ -457,6 +457,26 @@ def test_save_to_sdf_skips_molecules_with_no_rdkit_mol(tmp_path) -> None:
     assert Chem.MolToSmiles(mols[0]) == "CCCO"
 
 
+def test_save_to_sdf_separate_mode_skips_containers_with_nothing_to_write(
+    tmp_path,
+) -> None:
+    # Regression: separate-output mode opened name__inputN.sdf before checking
+    # whether the container had anything to write, so an input that lost every
+    # variant got an empty "success" file next to its gypsum_dl_failed entry.
+    empty = MolContainer("CCO", "ethanol", 0, {})
+    unwritable = MolContainer("CCCO", "propanol", 1, {})
+    unwritable.add_smiles("CCCO")
+    unwritable.mols[0].rdkit_mol = None
+    kept = MolContainer("CCCCO", "butanol", 2, {})
+    kept.add_smiles("CCCCO")
+
+    save_to_sdf([empty, unwritable, kept], {"thoroughness": 1}, True, str(tmp_path))
+
+    assert not os.path.exists(tmp_path / "ethanol__input1.sdf")
+    assert not os.path.exists(tmp_path / "propanol__input2.sdf")
+    assert len(_molecules_in(str(tmp_path / "butanol__input3.sdf"))) == 1
+
+
 def test_save_to_sdf_finishes_the_file_when_a_molecule_raises(tmp_path) -> None:
     # Regression: the writer was flushed and closed only on the success path, so
     # an exception part way through the molecules left a truncated or empty SDF

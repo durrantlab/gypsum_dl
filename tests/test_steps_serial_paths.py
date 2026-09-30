@@ -395,7 +395,10 @@ _REAL_MAKE_TAUT = MakeTautomers.parallel_make_taut
 
 
 def _make_taut_failing_on_ethanol(
-    mol: MyMol, props: ContnrProps, max_tauts: int
+    mol: MyMol,
+    props: ContnrProps,
+    max_tauts: int,
+    reject_chirality_changes: bool = False,
 ) -> list[MyMol] | None:
     """Stand in for parallel_make_taut, raising for one chosen compound.
 
@@ -408,6 +411,7 @@ def _make_taut_failing_on_ethanol(
         mol: The variant being tautomerized.
         props: The container-level fields describing the input compound.
         max_tauts: Size at which MolVS stops expanding the tautomer set.
+        reject_chirality_changes: Forwarded to the real function.
 
     Returns:
         Whatever the real function returns, for every compound but ethanol.
@@ -417,7 +421,7 @@ def _make_taut_failing_on_ethanol(
     """
     if props["name"] == "ethanol":
         raise RuntimeError("simulated tautomerization failure")
-    return _REAL_MAKE_TAUT(mol, props, max_tauts)
+    return _REAL_MAKE_TAUT(mol, props, max_tauts, reject_chirality_changes)
 
 
 def _taut_test_contnrs() -> list[MolContainer]:

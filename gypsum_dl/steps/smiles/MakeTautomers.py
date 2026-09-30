@@ -146,10 +146,13 @@ def make_tauts(
     # compound, so sending it once per variant made the pickled payload grow
     # with the square of the variant count. The shared props mapping is built
     # once per container.
+    reject_chirality_changes = not let_tautomers_change_chirality
     params = []
     for contnr in contnrs:
         props = contnr.contnr_props()
-        params.extend((mol, props, max_tauts) for mol in contnr.mols)
+        params.extend(
+            (mol, props, max_tauts, reject_chirality_changes) for mol in contnr.mols
+        )
     params = tuple(params)
 
     # Run the tautomizer through the parallel object.
@@ -167,15 +170,11 @@ def make_tauts(
     none_data = tmp
     taut_data = Parallelizer.flatten_list(none_data)
 
-    # Remove bad tautomers.
+    # Remove bad tautomers. The chirality filter already ran inside
+    # parallel_make_taut, the only place the parent variant is still at hand.
     taut_data = tauts_no_break_arom_rngs(
         contnrs, taut_data, num_procs, job_manager, parallelizer_obj
     )
-
-    if not let_tautomers_change_chirality:
-        taut_data = tauts_no_elim_chiral(
-            contnrs, taut_data, num_procs, job_manager, parallelizer_obj
-        )
 
     # Containers left with no tautomers (the worker failed, or the filters
     # above rejected every form) keep their existing structures. This runs
@@ -196,7 +195,10 @@ def make_tauts(
 
 
 def parallel_make_taut(
-    mol: MyMol.MyMol, props: MyMol.ContnrProps, max_tauts: int
+    mol: MyMol.MyMol,
+    props: MyMol.ContnrProps,
+    max_tauts: int,
+    reject_chirality_changes: bool = False,
 ) -> list[MyMol.MyMol] | None:
     """Makes alternate tautomers for a given molecule. This is the function
        that gets fed into the parallelizer.
@@ -211,6 +213,10 @@ def parallel_make_taut(
        any it has already built, and the caller trims to
        max_variants_per_compound afterwards regardless.
     :type max_tauts: int
+    :param reject_chirality_changes: Whether to drop tautomers whose chiral
+       center counts differ from those of mol. See
+       parallel_check_chiral_centers.
+    :type reject_chirality_changes: bool
     :return: A list of MyMol.MyMol objects, containing the alternate
         tautomeric forms.
     :rtype: list
@@ -261,6 +267,18 @@ def parallel_make_taut(
     if len(tauts_mols) > 1:
         utils.log("\t" + str(mol.smiles(True)) + " has tautomers.")
 
+    # The chirality reference is the variant being tautomerized, not the input
+    # compound the container describes. Ionization runs first and can
+    # legitimately add or remove a stereocenter (protonating a tertiary amine
+    # with three distinct substituents creates one at [NH+]), and charging that
+    # change to tautomerization rejected every form of the variant, the
+    # unchanged one included.
+    parent_facts: ContnrChiralityFacts = {
+        "orig_smi": props["orig_smi"],
+        "num_specif_chiral_cntrs": len(mol.chiral_cntrs_only_asignd()),
+        "num_unspecif_chiral_cntrs": len(mol.chiral_cntrs_w_unasignd()),
+    }
+
     # Now collect the final results.
     results = []
 
@@ -268,6 +286,12 @@ def parallel_make_taut(
         tm.inherit_contnr_props(props)
         tm.genealogy = mol.genealogy[:]
         tm.name = mol.name
+
+        if (
+            reject_chirality_changes
+            and parallel_check_chiral_centers(tm, parent_facts) is None
+        ):
+            continue
 
         if tm.smiles() != mol.smiles():
             tm.genealogy.append(f"{tm.smiles(True)} (tautomer)")
@@ -344,6 +368,11 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
        an assigned stereochemistry unchanged. The second count is what rejects
        the molvs artifact: dropping a specification leaves the center in place,
        so the total by itself does not move.
+
+       This compares each tautomer against the input compound, which is wrong
+       for tautomers of an ionized variant whose stereocenter count ionization
+       changed. make_tauts therefore applies the same check inside
+       parallel_make_taut, against the parent variant, and does not call this.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list

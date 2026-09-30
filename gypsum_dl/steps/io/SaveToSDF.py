@@ -72,6 +72,15 @@ def save_to_sdf(contnrs, params, separate_output_files, output_folder):
         # Also save the file or files containing the output molecules.
         utils.log("Saving molecules associated with...")
         for i, contnr in enumerate(contnrs):
+            # execute_gypsum_dl hands over every input, including those that
+            # lost all their variants along the way. Those are reported in
+            # gypsum_dl_failed; an empty per-input SDF beside that record would
+            # read as a success to anything that counts output files.
+            if separate_output_files == True and not any(
+                m.rdkit_mol is not None for m in contnr.mols
+            ):
+                continue
+
             # Add the container properties to the rdkit_mol object so they get
             # written to the SDF file.
             contnr.add_container_properties()
