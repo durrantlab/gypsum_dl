@@ -953,3 +953,39 @@ def test_failed_reprotanation_leaves_the_smiles_cache_alone(
 
     assert mol.conformers == []
     assert mol.can_smi is MyMol.UNSET
+
+
+def test_index_caches_survive_the_hydrogen_swap() -> None:
+    # AddHs appends the hydrogens, so the ring indices computed on the
+    # hydrogen-free molecule still name the same atoms and are kept as is.
+    mol = MyMol.MyMol("OC1CCCCC1")
+    rings = mol.get_idxs_of_nonaro_rng_atms()
+    mol.make_first_3d_conf_no_min()
+    assert mol.nonaro_ring_atom_idx is rings
+
+
+def test_index_caches_are_dropped_when_the_swap_renumbers_atoms(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: the ring and chiral-center caches survived the swap to the
+    # hydrogen-added molecule unconditionally, so they were right only because
+    # AddHs happens not to renumber. A renumbering swap left ring "members"
+    # pointing at hydrogens.
+    mol = MyMol.MyMol("OC1CCCCC1")
+    mol.get_idxs_of_nonaro_rng_atms()
+    mol.chiral_cntrs_w_unasignd()
+    mol.chiral_cntrs_only_asignd()
+
+    real_reprotanation = MyMol.MOH.try_reprotanation
+
+    def renumbered(rdkit_mol: Chem.Mol) -> Chem.Mol:
+        with_hs = real_reprotanation(rdkit_mol)
+        order = list(reversed(range(with_hs.GetNumAtoms())))
+        return Chem.RenumberAtoms(with_hs, order)
+
+    monkeypatch.setattr(MyMol.MOH, "try_reprotanation", renumbered)
+    mol.make_first_3d_conf_no_min()
+
+    rings = mol.get_idxs_of_nonaro_rng_atms()
+    assert len(rings) == 1
+    assert [mol.rdkit_mol.GetAtomWithIdx(i).GetSymbol() for i in rings[0]] == ["C"] * 6

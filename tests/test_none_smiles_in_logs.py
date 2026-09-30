@@ -54,7 +54,7 @@ def test_durrant_filter_keeps_good_variant_beside_one_without_smiles() -> None:
 
     result = parallel_durrant_lab_filter(contnr)
 
-    assert result is contnr
+    assert result is not None
     assert len(result.mols) == 1
     assert result.mols[0] is good
 

@@ -1,6 +1,7 @@
 """Regression tests for chiral enumeration."""
 
 import pytest
+from rdkit import Chem
 
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.MyMol import MyMol
@@ -110,3 +111,43 @@ def test_parallel_get_chiral_emits_fully_specified_variants() -> None:
     for result in results:
         unassigned = [p for p in result.chiral_cntrs_w_unasignd() if p[1] == "?"]
         assert unassigned == []
+
+
+_ChiralFacts = list[tuple[list[tuple[int, str]], list[tuple[int, str]]]]
+
+
+def _chiral_facts_under(use_legacy: bool) -> _ChiralFacts:
+    """Report the chiral centers of a few molecules under one perception mode.
+
+    Args:
+        use_legacy: The process-wide RDKit perception setting to run under.
+
+    Returns:
+        For each molecule, the centers with and without unassigned ones.
+    """
+    previous = Chem.GetUseLegacyStereoPerception()
+    Chem.SetUseLegacyStereoPerception(use_legacy)
+    try:
+        facts = []
+        # A plain stereocenter, a partly assigned pair, and ring pseudo-
+        # stereocenters, where the two perception modes are most likely to
+        # disagree.
+        for smi in ("CC(O)CC", "C[C@H](N)CC(C)O", "CC1CCC(C)CC1"):
+            mol = MyMol(smi)
+            facts.append(
+                (mol.chiral_cntrs_w_unasignd(), mol.chiral_cntrs_only_asignd())
+            )
+        # The pin is scoped to the lookup, so the caller's setting has to be
+        # back in place afterwards.
+        assert Chem.GetUseLegacyStereoPerception() is use_legacy
+    finally:
+        Chem.SetUseLegacyStereoPerception(previous)
+    return facts
+
+
+def test_chiral_centers_do_not_depend_on_the_stereo_perception_setting() -> None:
+    # Regression: FindMolChiralCenters ran under whatever perception mode was
+    # in effect, while double-bond enumeration pinned the legacy one. The
+    # chiral enumeration and the tautomer filter's stereocenter counts would
+    # have shifted with RDKit's planned default change.
+    assert _chiral_facts_under(False) == _chiral_facts_under(True)

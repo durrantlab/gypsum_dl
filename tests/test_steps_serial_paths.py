@@ -30,6 +30,7 @@ from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum_dl.steps.smiles.DurrantLabFilter import (
     durrant_lab_contains_metal,
     durrant_lab_filters,
+    parallel_durrant_lab_filter,
 )
 from gypsum_dl.steps.smiles.EnumerateChiralMols import enumerate_chiral_molecules
 from gypsum_dl.steps.smiles.EnumerateDoubleBonds import enumerate_double_bonds
@@ -1158,3 +1159,45 @@ def test_step_treats_containers_with_the_same_smiles_independently(step) -> None
     first, second = _contnr_smiles(contnrs)
     assert first
     assert first == second
+
+
+def test_convert_2d_to_3d_carry_over_is_the_untouched_input(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Regression: serial mode handed the container's own variant to
+    # parallel_make_3d, which swaps in the hydrogen-added molecule before
+    # embedding. When every embedding failed, the container kept that
+    # half-converted variant as its carry-over, whereas under multiprocessing
+    # only a pickled copy was ever touched.
+    contnr = _container("CCO", "ethanol")
+    variant = contnr.mols[0]
+    num_atoms = variant.rdkit_mol.GetNumAtoms()
+    genealogy = list(variant.genealogy)
+    monkeypatch.setattr(MyMol, "add_conformers", lambda self, *args: None)
+
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+
+    assert len(contnr.mols) == 1
+    assert contnr.mols[0] is variant
+    assert variant.rdkit_mol.GetNumAtoms() == num_atoms
+    assert variant.genealogy == genealogy
+
+
+def test_durrant_lab_filter_job_leaves_its_container_alone() -> None:
+    # Regression: the job pruned contnr.mols in place, so in serial mode it
+    # edited the caller's container while a worker only edited a copy.
+    contnr = _container("CCO", "ethanol")
+    # Boron trips the [#5] pattern.
+    bad = MyMol("CB(O)O", "ethanol")
+    bad.contnr_idx = 0
+    contnr.mols.append(bad)
+    originals = list(contnr.mols)
+
+    result = parallel_durrant_lab_filter(contnr)
+
+    assert len(contnr.mols) == len(originals)
+    assert all(a is b for a, b in zip(contnr.mols, originals))
+    assert result is not None
+    assert result is not contnr
+    assert len(result.mols) == 1
+    assert result.mols[0] is originals[0]

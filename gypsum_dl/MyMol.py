@@ -112,6 +112,35 @@ class _Unset:
 UNSET = _Unset()
 
 
+def _atom_order_preserved(before: Chem.Mol, after: Chem.Mol) -> bool:
+    """Report whether every atom of `before` keeps its index in `after`.
+
+    MyMol caches atom indices (ring members, chiral centers), which remain
+    meaningful across a molecule swap only if the old atoms are a prefix of
+    the new ones.
+
+    Args:
+        before: The molecule the caches were computed on.
+        after: The molecule replacing it.
+
+    Returns:
+        True if `after` starts with the atoms of `before`, in order, with the
+        same elements and with every bond of `before` joining the same indices.
+    """
+
+    if after.GetNumAtoms() < before.GetNumAtoms():
+        return False
+    same_elements = all(
+        after.GetAtomWithIdx(i).GetAtomicNum() == atom.GetAtomicNum()
+        for i, atom in enumerate(before.GetAtoms())
+    )
+    # Elements alone would miss a permutation among atoms of the same kind.
+    return same_elements and all(
+        after.GetBondBetweenAtoms(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) is not None
+        for b in before.GetBonds()
+    )
+
+
 class MyMol:
     """
     A class that wraps around a rdkit.Mol object. Includes additional data and
@@ -452,6 +481,17 @@ class MyMol:
         # form the rest of the pipeline already uses.
         self.smiles()
 
+        # The ring and chiral-center caches hold atom indices. AddHs appends
+        # the hydrogens after the existing atoms, so those indices stay valid
+        # and keeping the caches leaves results unchanged; anything that
+        # renumbers the heavy atoms would silently invalidate them. The
+        # bizarre-substructure verdict names no atoms, so like the SMILES
+        # above it stays pinned to the molecule as it was before the swap.
+        if not _atom_order_preserved(self.rdkit_mol, reprotanated):
+            self.nonaro_ring_atom_idx = UNSET
+            self.chiral_cntrs_only_assigned = UNSET
+            self.chiral_cntrs_include_unasignd = UNSET
+
         self.rdkit_mol = reprotanated
 
         # Add a single conformer. RMSD cutoff very small so all conformers
@@ -576,8 +616,11 @@ class MyMol:
             # Already been determined...
             return self.chiral_cntrs_include_unasignd
 
-        # Get the chiral centers that are not defined.
-        ccs = Chem.FindMolChiralCenters(self.rdkit_mol, includeUnassigned=True)
+        # Get the chiral centers that are not defined. The perception mode
+        # decides which atoms count, and the tautomer filter compares these
+        # counts across molecules, so it must not float with RDKit's default.
+        with MOH.legacy_stereo_perception():
+            ccs = Chem.FindMolChiralCenters(self.rdkit_mol, includeUnassigned=True)
         self.chiral_cntrs_include_unasignd = ccs
         return ccs
 
@@ -594,7 +637,8 @@ class MyMol:
         if self.rdkit_mol is None:
             return []
 
-        ccs = Chem.FindMolChiralCenters(self.rdkit_mol, includeUnassigned=False)
+        with MOH.legacy_stereo_perception():
+            ccs = Chem.FindMolChiralCenters(self.rdkit_mol, includeUnassigned=False)
         self.chiral_cntrs_only_assigned = ccs
         return ccs
 

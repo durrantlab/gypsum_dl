@@ -1,11 +1,38 @@
 ##### MolObjectHandling.py
 
+import contextlib
+from collections.abc import Iterator
+
 # Disable the unnecessary RDKit warnings
 from rdkit import Chem, RDLogger
 
 from gypsum_dl import utils
 
 RDLogger.DisableLog("rdApp.*")
+
+
+@contextlib.contextmanager
+def legacy_stereo_perception() -> Iterator[None]:
+    """Run the enclosed RDKit calls under the legacy stereo perception.
+
+    The perception mode is a process-wide RDKit setting whose default is
+    slated to change, and it decides both how marked single-bond directions
+    become double-bond stereo and which atoms FindMolChiralCenters reports.
+    Pin it for every stereo-sensitive step so the RDKit release (or anything
+    else that flips the setting) does not decide which isomers come out or
+    how many stereocenters the tautomer filter counts. Workers run in
+    separate processes, never threads, so the toggle cannot race.
+
+    Yields:
+        None, with the legacy perception in effect until the block exits.
+    """
+
+    previous = Chem.GetUseLegacyStereoPerception()
+    Chem.SetUseLegacyStereoPerception(True)
+    try:
+        yield
+    finally:
+        Chem.SetUseLegacyStereoPerception(previous)
 
 
 def check_sanitization(mol):

@@ -73,6 +73,40 @@ def test_pdb_header_reports_the_submitted_smiles(tmp_path) -> None:
         assert "REMARK Original SMILES string: CCCCO.[Na+]" in f.read()
 
 
+def test_pdb_header_final_smiles_matches_the_sdf_record(tmp_path) -> None:
+    # Regression: the header used MolVS standardize_smiles, which normalizes
+    # and reionizes as well as canonicalizing, so it could report a structure
+    # other than the atoms in the file (a sulfoxide rewritten in
+    # charge-separated form, for instance). It should agree with the SMILES
+    # the SDF records for the same variant.
+    src = tmp_path / "dmso.smi"
+    src.write_text("CS(C)=O\tdmso\n")
+    output_folder = tmp_path / "out_dmso"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "add_pdb_output": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+
+    sdf_path = os.path.join(str(output_folder), "gypsum_dl_success.sdf")
+    records = [
+        m for m in Chem.SDMolSupplier(sdf_path) if m is not None and m.HasProp("SMILES")
+    ]
+    assert len(records) == 1
+
+    pdb_files = glob.glob(os.path.join(str(output_folder), "*.pdb"))
+    assert len(pdb_files) == 1
+    with open(pdb_files[0]) as f:
+        remarks = [ln for ln in f if ln.startswith("REMARK Final SMILES string:")]
+    expected = f"REMARK Final SMILES string: {records[0].GetProp('SMILES')}\n"
+    assert remarks == [expected]
+
+
 def test_skip_flags_produce_two_dimensional_output(tmp_path) -> None:
     src = tmp_path / "input.smi"
     src.write_text("CCO\tethanol\n")

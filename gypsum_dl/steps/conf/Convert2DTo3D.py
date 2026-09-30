@@ -3,6 +3,8 @@ A module to so the 2D to 3D conversion, though the actual code for that
 conversion is in MyMol.MyMol.make_first_3d_conf_no_min()
 """
 
+import copy
+
 from gypsum_dl import chem_utils, utils
 
 from ... import parallelizer as Parallelizer
@@ -84,12 +86,19 @@ def convert_2d_to_3d(
 def parallel_make_3d(mol):
     """Does the 2D to 3D conversion. Meant to run within parallelizer.
 
-    :param mol: The molecule to be converted.
+    :param mol: The molecule to be converted. It is left untouched.
     :type mol: MyMol.MyMol
     :return: A MyMol.MyMol object with the 3D coordinates inside, or None if
        it fails.
     :rtype: MyMol.MyMol | None
     """
+
+    # The conversion swaps in a hydrogen-added molecule and extends the
+    # genealogy in place. A worker process only ever sees a pickled copy, but
+    # serial mode passes the container's own variant, and a container whose
+    # every embedding fails keeps those variants as its carry-over. Work on a
+    # copy so the carry-over is the same under every job manager.
+    mol = copy.deepcopy(mol)
 
     # Initially assume you won't show an error message.
     show_error_msg = False

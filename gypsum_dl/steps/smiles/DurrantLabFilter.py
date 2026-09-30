@@ -5,6 +5,7 @@ filters.
 
 import __future__
 
+import copy
 from functools import cache
 from typing import TYPE_CHECKING
 
@@ -183,17 +184,23 @@ def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None"
     """A parallelizable helper function that checks that tautomers do not
        break any nonaromatic rings present in the original object.
 
-    :param contnr: The molecule container.
+    :param contnr: The molecule container. It is left untouched.
     :type contnr: MolContainer.MolContainer
-    :return: Either the container with bad molecules removed, or a None
-      object.
+    :return: Either a copy of the container with bad molecules removed, or a
+      None object.
     :rtype: MolContainer.MolContainer | None
     """
 
     prohibited_substructs = get_prohibited_substructs()
 
+    # Serial mode passes the caller's own container rather than a pickled
+    # copy, so filter into a new list and hand back a shallow copy. Pruning
+    # contnr.mols in place made the caller's containers depend on the job
+    # manager.
+    survivors = list(contnr.mols)
+
     # Replace any molecules that have prohibited substructure with None.
-    for mi, m in enumerate(contnr.mols):
+    for mi, m in enumerate(survivors):
         # A variant whose RDKit mol failed to build can't be substructure
         # matched, and its canonical SMILES can't be generated either, so it
         # gets its own message rather than the one below.
@@ -205,7 +212,7 @@ def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None"
                 + m.name
                 + ") has no valid RDKit molecule, so I'm discarding it."
             )
-            contnr.mols[mi] = None
+            survivors[mi] = None
             continue
 
         # The metal test looks at the molecule alone, so it belongs outside the
@@ -229,10 +236,14 @@ def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None"
                 + "discarding it."
             )
 
-            contnr.mols[mi] = None
+            survivors[mi] = None
 
     # Now go back and remove those Nones
-    contnr.mols = Parallelizer.strip_none(contnr.mols)
+    survivors = Parallelizer.strip_none(survivors)
 
     # If there are no molecules, mark this container for deletion.
-    return None if len(contnr.mols) == 0 else contnr
+    if len(survivors) == 0:
+        return None
+    filtered = copy.copy(contnr)
+    filtered.mols = survivors
+    return filtered

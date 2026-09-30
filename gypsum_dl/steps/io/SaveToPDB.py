@@ -51,8 +51,14 @@ def convert_sdfs_to_PDBs(contnrs, output_folder):
             # Write conformers to a PDB file.
             Chem.MolToPDBFile(mol, pdb_file, flavor=32)
 
-            # Add header to PDB file with original SMILES and final SMILES
-            printout = f"REMARK Original SMILES string: {contnr.orig_smi_input}\nREMARK Final SMILES string: {m.standardize_smiles()}\n"
+            # Add header to PDB file with original SMILES and final SMILES.
+            # The final SMILES is the one the SDF and HTML outputs record. The
+            # MolVS-standardized form normalizes and reionizes, so it could
+            # describe a structure other than the atoms written below.
+            final_smi = m.smiles(True)
+            if not isinstance(final_smi, str):
+                final_smi = m.smiles()
+            printout = f"REMARK Original SMILES string: {contnr.orig_smi_input}\nREMARK Final SMILES string: {final_smi}\n"
             with open(pdb_file, encoding="utf-8") as f:
                 printout += f.read()
             with open(pdb_file, "w", encoding="utf-8") as f:

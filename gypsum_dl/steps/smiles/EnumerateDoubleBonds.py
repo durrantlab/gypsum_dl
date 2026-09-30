@@ -2,13 +2,12 @@
 
 import __future__
 
-import contextlib
 import copy
 import itertools
 import math
 import random
-from collections.abc import Iterator
 
+import gypsum_dl.MolObjectHandling as MOH
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import MyMol, chem_utils, utils
 
@@ -149,29 +148,6 @@ def sample_bond_dir_configs(num_bonds: int, cap: int) -> list[tuple[bool, ...]]:
                 masks.append(mask)
 
     return [tuple(bool(mask >> i & 1) for i in range(num_bonds)) for mask in masks]
-
-
-@contextlib.contextmanager
-def _legacy_stereo_perception() -> Iterator[None]:
-    """Run the enclosed RDKit calls under the legacy stereo perception.
-
-    The enumeration marks single-bond directions and depends on the legacy
-    AssignStereochemistry to turn those marks into double-bond stereo. The
-    perception mode is a process-wide RDKit setting whose default is slated
-    to change, so pin it here rather than let the RDKit release (or anything
-    else that flips the setting) decide which isomers come out. Workers run
-    in separate processes, never threads, so the toggle cannot race.
-
-    Yields:
-        None, with the legacy perception in effect until the block exits.
-    """
-
-    previous = Chem.GetUseLegacyStereoPerception()
-    Chem.SetUseLegacyStereoPerception(True)
-    try:
-        yield
-    finally:
-        Chem.SetUseLegacyStereoPerception(previous)
 
 
 def _could_carry_stereochemistry(mol_with_hs: "Chem.Mol", bond_idx: int) -> bool:
@@ -363,7 +339,9 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
 
     # Go through and consider each of the retained combinations.
     smiles_to_consider = set([])
-    with _legacy_stereo_perception():
+    # The bond directions set below only become cis/trans stereo through the
+    # legacy AssignStereochemistry.
+    with MOH.legacy_stereo_perception():
         for atom_config_options in all_atom_config_options:
             # Make a copy of the original RDKit molecule.
             a_rd_mol = copy.copy(rdkit_mol_with_hs)
