@@ -23,6 +23,7 @@ def minimize_3d(
     job_manager: str,
     parallelizer_obj: "Parallelizer.Parallelizer | None",
     include_nonaro_rings: bool = False,
+    ring_conf_failed_contnr_idxs: frozenset[int] = frozenset(),
 ) -> None:
     """This function minimizes a 3D molecular conformation. In an attempt to
        not get trapped in a local minimum, it actually generates a number of
@@ -59,6 +60,11 @@ def minimize_3d(
         generating alternate ring conformations, so they only need to be
         handled here when that step did not run. Defaults to False.
     :type include_nonaro_rings: bool
+    :param ring_conf_failed_contnr_idxs: Containers with non-aromatic rings
+        that the ring-conformer step could not process, so it never minimized
+        them. These are minimized here even when include_nonaro_rings is
+        False. Defaults to an empty set.
+    :type ring_conf_failed_contnr_idxs: frozenset[int]
     """
 
     # Let the user know you're on this step.
@@ -68,7 +74,11 @@ def minimize_3d(
     params = []
     ones_without_nonaro_rngs = set([])
     for contnr in contnrs:
-        if include_nonaro_rings or contnr.num_nonaro_rngs == 0:
+        if (
+            include_nonaro_rings
+            or contnr.num_nonaro_rngs == 0
+            or contnr.contnr_idx in ring_conf_failed_contnr_idxs
+        ):
             # Unless the caller asks for them, ones with nonaromatic rings are
             # skipped here because generating their alternate ring
             # conformations already minimized them.
@@ -156,6 +166,13 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
     :return: A molecule with the minimized conformers inside it.
     :rtype: MyMol.MyMol
     """
+
+    # Serial and in-process runs pass the container's own molecule, while
+    # multiprocessing passes a pickled copy. Work on a copy in every mode:
+    # when every variant of a container fails here, minimize_3d keeps the
+    # originals, and those must not have gained this attempt's conformers in
+    # some job managers only.
+    mol = copy.deepcopy(mol)
 
     # A cap of zero means "do not enumerate variants," not "emit no models,"
     # so one conformer is still needed here; a cap of zero would otherwise

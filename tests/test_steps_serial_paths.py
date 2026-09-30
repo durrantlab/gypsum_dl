@@ -283,6 +283,29 @@ def test_generate_alternate_ring_confs_flags_failure_by_index(monkeypatch) -> No
     )
 
 
+def test_generate_alternate_ring_confs_reports_failed_containers(
+    monkeypatch,
+) -> None:
+    # prepare_3d hands these containers to minimize_3d, which otherwise skips
+    # every ring-bearing container on the grounds that this step minimized it.
+    contnrs = [
+        _container_at_idx("C1CCCCC1", "cyclohexane", 3),
+        _container_at_idx("CC1CCCCC1", "methylcyclohexane", 5),
+    ]
+    convert_2d_to_3d(contnrs, 1, 1, 1, "serial", None)
+    monkeypatch.setattr(
+        "gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs."
+        "parallel_get_ring_confs",
+        lambda mol, *a: None if mol.contnr_idx == 3 else [mol],
+    )
+
+    failed = generate_alternate_3d_nonaromatic_ring_confs(
+        contnrs, 1, 1, 1, False, "serial", None
+    )
+
+    assert failed == frozenset({3})
+
+
 def test_desalt_orig_smi_keeps_largest_fragment() -> None:
     contnr = MolContainer("CCCCCCO.C", "salt", 0, {})
     desalt_orig_smi([contnr])
@@ -849,9 +872,11 @@ def test_parallel_get_ring_confs_clusters_several_ring_conformers() -> None:
 
     results = parallel_get_ring_confs(mol, 3, 2, False)
 
-    # Precondition: with only one surviving conformer a single variant would
-    # be the correct answer, and the assertion below would say nothing.
-    assert len(mol.conformers) > 1
+    # Regression: the worker used to add its conformers to the molecule it was
+    # handed, which in serial mode is the container's own, so a failure after
+    # that point carried a different molecule forward than multiprocessing
+    # did. More than one result also shows several conformers were searched.
+    assert len(mol.conformers) == 1
     assert len(results) > 1
     coords = {
         tuple(numpy.round(variant.conformers[0].coords().flatten(), 3))
@@ -874,6 +899,29 @@ def test_parallel_get_ring_confs_keeps_a_lone_conformer() -> None:
     assert len(mol.conformers) == 1
     assert len(results) == 1
     assert len(results[0].conformers) == 1
+
+
+def test_parallel_get_ring_confs_minimizes_a_ringless_variant() -> None:
+    # Regression: a variant can lose the container's non-aromatic ring (an
+    # aromatic tautomer, say). The worker returned it as it arrived, and
+    # minimize_3d skips ring-bearing containers, so it shipped unminimized.
+    contnr = _container("Oc1ccccc1", "phenol")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+
+    results = parallel_get_ring_confs(contnr.mols[0], 1, 1, False, True)
+
+    assert len(results) == 1
+    assert "(optimized conformer:" in results[0].genealogy[-1]
+
+
+def test_parallel_get_ring_confs_honors_minimize_for_a_ringless_variant() -> None:
+    contnr = _container("Oc1ccccc1", "phenol")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+
+    results = parallel_get_ring_confs(contnr.mols[0], 1, 1, False, False)
+
+    assert len(results) == 1
+    assert results[0].genealogy[-1].endswith("(3D coordinates assigned)")
 
 
 def test_generate_alternate_ring_confs_honors_the_minimize_flag(monkeypatch) -> None:

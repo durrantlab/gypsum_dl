@@ -64,7 +64,9 @@ def test_parallel_minit_returns_lowest_energy_minimized_conformer(monkeypatch) -
         mol, max_variants_per_compound=2, thoroughness=1, second_embed=False
     )
 
-    assert captured["conf"] is conf_b
+    # parallel_minit works on a copy of mol, so B is recognized by the energy
+    # only it reaches after minimization rather than by identity.
+    assert captured["conf"].energy == 1
     assert result.conformers[0].energy == 1
     assert "1 kcal/mol" in result.genealogy[-1]
 
@@ -177,8 +179,10 @@ def test_parallel_minit_keeps_one_conformer_with_a_zero_variant_cap(
         mol, max_variants_per_compound=0, thoroughness=1, second_embed=False
     )
 
-    assert mol.requested >= 1
+    # The request is recorded on the copy parallel_minit works on, which the
+    # returned molecule is deep-copied from.
     assert result is not None
+    assert result.requested >= 1
     assert len(result.conformers) == 1
 
 
@@ -201,6 +205,63 @@ class _AlertContnr:
         # Non-zero so minimize_3d skips these mols (already minimized elsewhere)
         # and only its final error-alert loop runs: no RDKit work needed.
         self.num_nonaro_rngs = 1
+
+
+def test_parallel_minit_leaves_its_input_untouched(monkeypatch) -> None:
+    # Regression: serial and in-process runs hand parallel_minit the
+    # container's own molecule. It sorted that molecule's conformers and
+    # minimized them in place, and when every variant of a container failed,
+    # minimize_3d kept those mutated originals, so the geometry written out
+    # depended on the job manager.
+    conf_a = _FakeConf(pre=10, post=5)
+    conf_b = _FakeConf(pre=20, post=1)
+    mol = _FakeMol([conf_b, conf_a])
+
+    class _FakeMyConformer:
+        def __init__(self, new_mol, conf, second_embed) -> None:
+            self.energy = conf.energy
+
+    monkeypatch.setattr(Minimize3D, "MyConformer", _FakeMyConformer)
+
+    Minimize3D.parallel_minit(
+        mol, max_variants_per_compound=2, thoroughness=1, second_embed=False
+    )
+
+    assert mol.conformers == [conf_b, conf_a]
+    assert not conf_a.minimized
+    assert not conf_b.minimized
+    assert mol.genealogy == []
+
+
+def test_minimize_3d_minimizes_containers_the_ring_step_could_not_process(
+    monkeypatch,
+) -> None:
+    # Regression: minimize_3d skips ring-bearing containers because the
+    # ring-conformer step minimizes them, but a container that step failed on
+    # was never minimized anywhere and shipped its raw embedded geometry.
+    contnr = _EnergyContnr([_EnergyMol(-3.5)])
+    contnr.num_nonaro_rngs = 1
+    minimized: list = []
+
+    def fake_parallel_minit(mol, *args: object) -> object:
+        minimized.append(mol)
+        return mol
+
+    monkeypatch.setattr(Minimize3D, "parallel_minit", fake_parallel_minit)
+
+    Minimize3D.minimize_3d(
+        [contnr],
+        max_variants_per_compound=1,
+        thoroughness=1,
+        num_procs=1,
+        second_embed=False,
+        job_manager="serial",
+        parallelizer_obj=None,
+        ring_conf_failed_contnr_idxs=frozenset({0}),
+    )
+
+    assert minimized == contnr.mols
+    assert contnr.mols[0].mol_props["Energy"] == -3.5
 
 
 def test_minimize_3d_flags_mols_that_failed_to_embed() -> None:
@@ -279,6 +340,9 @@ def _prepare_3d_params(
     }
 
 
+_STUB_RING_CONF_FAILURES: frozenset[int] = frozenset({7})
+
+
 def _stub_prepare_3d_steps(monkeypatch) -> dict[str, object]:
     """Replace the three steps prepare_3d calls with recording stubs.
 
@@ -290,21 +354,24 @@ def _stub_prepare_3d_steps(monkeypatch) -> dict[str, object]:
 
     Returns:
         A dict recording whether the ring-conformer step ran, the minimize
-        value it received, and what include_nonaro_rings value reached
-        minimize_3d.
+        value it received, and what include_nonaro_rings and
+        ring_conf_failed_contnr_idxs values reached minimize_3d. The stubbed
+        ring-conformer step reports _STUB_RING_CONF_FAILURES as its failures.
     """
     captured: dict[str, object] = {
         "ring_confs_ran": False,
         "ring_confs_minimize": None,
         "include_nonaro_rings": None,
+        "ring_conf_failed_contnr_idxs": None,
     }
 
-    def fake_ring_confs(*args: object, **kwargs: object) -> None:
+    def fake_ring_confs(*args: object, **kwargs: object) -> frozenset[int]:
         captured["ring_confs_ran"] = True
         # Accepted either way round, so the test does not break if prepare_3d
         # starts passing the flag positionally.
         positional = args[7] if len(args) > 7 else None
         captured["ring_confs_minimize"] = kwargs.get("minimize", positional)
+        return _STUB_RING_CONF_FAILURES
 
     def fake_minimize_3d(*args: object, **kwargs: object) -> None:
         # The flag is accepted either way round, so the test does not break if
@@ -312,6 +379,9 @@ def _stub_prepare_3d_steps(monkeypatch) -> dict[str, object]:
         positional = args[7] if len(args) > 7 else None
         captured["include_nonaro_rings"] = kwargs.get(
             "include_nonaro_rings", positional
+        )
+        captured["ring_conf_failed_contnr_idxs"] = kwargs.get(
+            "ring_conf_failed_contnr_idxs", args[8] if len(args) > 8 else None
         )
 
     monkeypatch.setattr(PrepareThreeD, "convert_2d_to_3d", lambda *a, **k: None)
@@ -379,6 +449,17 @@ def test_prepare_3d_leaves_ring_mols_to_the_ring_conf_step_by_default(
 
     assert captured["ring_confs_ran"] is True
     assert captured["include_nonaro_rings"] is False
+
+
+def test_prepare_3d_hands_ring_conf_failures_to_minimize_3d(monkeypatch) -> None:
+    # Regression: containers the ring-conformer step could not process were
+    # skipped by minimize_3d as well, so they were never minimized. prepare_3d
+    # has to pass that step's failures along.
+    captured = _stub_prepare_3d_steps(monkeypatch)
+
+    PrepareThreeD.prepare_3d([], _prepare_3d_params(skip_ring_confs=False))
+
+    assert captured["ring_conf_failed_contnr_idxs"] == _STUB_RING_CONF_FAILURES
 
 
 def test_parallel_minit_survives_a_mol_with_no_rdkit_mol() -> None:

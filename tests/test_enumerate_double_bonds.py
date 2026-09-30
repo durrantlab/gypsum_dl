@@ -276,3 +276,34 @@ def test_many_unspecified_double_bonds_stays_bounded() -> None:
 
     assert results
     assert elapsed < 30
+
+
+def _isomer_smiles_under(use_legacy: bool) -> set[str]:
+    """Enumerate 2-butene's isomers with the stereo perception set one way.
+
+    Args:
+        use_legacy: The process-wide RDKit perception setting to run under.
+
+    Returns:
+        The canonical SMILES of the isomers produced.
+    """
+    previous = Chem.GetUseLegacyStereoPerception()
+    Chem.SetUseLegacyStereoPerception(use_legacy)
+    try:
+        results = parallel_get_double_bonded(MyMol("CC=CC"), 2, 1)
+        # The pin is scoped to the enumeration, so the caller's setting has to
+        # be back in place once the call returns.
+        assert Chem.GetUseLegacyStereoPerception() is use_legacy
+    finally:
+        Chem.SetUseLegacyStereoPerception(previous)
+    return {m.smiles(True) for m in results}
+
+
+def test_isomers_do_not_depend_on_the_stereo_perception_setting() -> None:
+    # Regression: the bond directions set here only become cis/trans stereo
+    # through the legacy AssignStereochemistry. With the newer perception in
+    # effect (a planned RDKit default), the emitted isomers were free to
+    # change without any code change in Gypsum-DL.
+    legacy = _isomer_smiles_under(True)
+    assert len(legacy) == 2
+    assert _isomer_smiles_under(False) == legacy

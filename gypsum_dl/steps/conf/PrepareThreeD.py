@@ -48,9 +48,11 @@ def prepare_3d(contnrs, params):
     # Generate alternate non-aromatic ring conformations, if requested. That
     # step minimizes every conformer it generates as a side effect, so the
     # optimization flag has to reach it too or ring-bearing molecules come back
-    # minimized despite the flag.
+    # minimized despite the flag. The containers it could not process get no
+    # such side effect, so minimize_3d has to pick them up.
+    ring_conf_failed_contnr_idxs: frozenset[int] = frozenset()
     if not skip_ring_confs:
-        generate_alternate_3d_nonaromatic_ring_confs(
+        ring_conf_failed_contnr_idxs = generate_alternate_3d_nonaromatic_ring_confs(
             contnrs,
             max_variants_per_compound,
             thoroughness,
@@ -72,4 +74,5 @@ def prepare_3d(contnrs, params):
             job_manager,
             parallelizer_obj,
             include_nonaro_rings=skip_ring_confs,
+            ring_conf_failed_contnr_idxs=ring_conf_failed_contnr_idxs,
         )

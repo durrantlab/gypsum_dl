@@ -2,10 +2,12 @@
 
 import __future__
 
+import contextlib
 import copy
 import itertools
 import math
 import random
+from collections.abc import Iterator
 
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import MyMol, chem_utils, utils
@@ -147,6 +149,29 @@ def sample_bond_dir_configs(num_bonds: int, cap: int) -> list[tuple[bool, ...]]:
                 masks.append(mask)
 
     return [tuple(bool(mask >> i & 1) for i in range(num_bonds)) for mask in masks]
+
+
+@contextlib.contextmanager
+def _legacy_stereo_perception() -> Iterator[None]:
+    """Run the enclosed RDKit calls under the legacy stereo perception.
+
+    The enumeration marks single-bond directions and depends on the legacy
+    AssignStereochemistry to turn those marks into double-bond stereo. The
+    perception mode is a process-wide RDKit setting whose default is slated
+    to change, so pin it here rather than let the RDKit release (or anything
+    else that flips the setting) decide which isomers come out. Workers run
+    in separate processes, never threads, so the toggle cannot race.
+
+    Yields:
+        None, with the legacy perception in effect until the block exits.
+    """
+
+    previous = Chem.GetUseLegacyStereoPerception()
+    Chem.SetUseLegacyStereoPerception(True)
+    try:
+        yield
+    finally:
+        Chem.SetUseLegacyStereoPerception(previous)
 
 
 def _could_carry_stereochemistry(mol_with_hs: "Chem.Mol", bond_idx: int) -> bool:
@@ -338,41 +363,46 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
 
     # Go through and consider each of the retained combinations.
     smiles_to_consider = set([])
-    for atom_config_options in all_atom_config_options:
-        # Make a copy of the original RDKit molecule.
-        a_rd_mol = copy.copy(rdkit_mol_with_hs)
-        # a_rd_mol = Chem.MolFromSmiles(mol.smiles())
+    with _legacy_stereo_perception():
+        for atom_config_options in all_atom_config_options:
+            # Make a copy of the original RDKit molecule.
+            a_rd_mol = copy.copy(rdkit_mol_with_hs)
+            # a_rd_mol = Chem.MolFromSmiles(mol.smiles())
 
-        for bond_idx, direc in zip(all_sngl_bnd_idxs, atom_config_options):
-            # Always done with reference to the atom in the double bond.
-            if direc:
-                a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(Chem.BondDir.ENDUPRIGHT)
-            else:
-                a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(Chem.BondDir.ENDDOWNRIGHT)
+            for bond_idx, direc in zip(all_sngl_bnd_idxs, atom_config_options):
+                # Always done with reference to the atom in the double bond.
+                if direc:
+                    a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(
+                        Chem.BondDir.ENDUPRIGHT
+                    )
+                else:
+                    a_rd_mol.GetBondWithIdx(bond_idx).SetBondDir(
+                        Chem.BondDir.ENDDOWNRIGHT
+                    )
 
-        # Assign the StereoChemistry. Required to actually set it.
-        a_rd_mol.ClearComputedProps()
-        Chem.AssignStereochemistry(a_rd_mol, force=True)
+            # Assign the StereoChemistry. Required to actually set it.
+            a_rd_mol.ClearComputedProps()
+            Chem.AssignStereochemistry(a_rd_mol, force=True)
 
-        # Add to list of ones to consider. Canonicalize without the hydrogens
-        # added above: MyMol parses with sanitize=False, so any [H] in the
-        # SMILES stays in the graph and in can_smi, the key used to tell
-        # variants apart. That makes a molecule spelled with explicit
-        # hydrogens count as distinct from the same molecule spelled without
-        # them, wasting a max_variants_per_compound slot. RemoveHs keeps the
-        # hydrogens that define a double bond's stereochemistry, so a few
-        # necessarily remain.
-        try:
-            smiles_to_consider.add(
-                Chem.MolToSmiles(
-                    Chem.RemoveHs(a_rd_mol), isomericSmiles=True, canonical=True
+            # Add to list of ones to consider. Canonicalize without the hydrogens
+            # added above: MyMol parses with sanitize=False, so any [H] in the
+            # SMILES stays in the graph and in can_smi, the key used to tell
+            # variants apart. That makes a molecule spelled with explicit
+            # hydrogens count as distinct from the same molecule spelled without
+            # them, wasting a max_variants_per_compound slot. RemoveHs keeps the
+            # hydrogens that define a double bond's stereochemistry, so a few
+            # necessarily remain.
+            try:
+                smiles_to_consider.add(
+                    Chem.MolToSmiles(
+                        Chem.RemoveHs(a_rd_mol), isomericSmiles=True, canonical=True
+                    )
                 )
-            )
-        except Exception:
-            # Some molecules still give troubles. Unfortunate, but these are
-            # rare cases. Let's just skip these. Example:
-            # CN1C2=C(C=CC=C2)C(C)(C)[C]1=[C]=[CH]C3=CC(=C(O)C(=C3)I)I
-            continue
+            except Exception:
+                # Some molecules still give troubles. Unfortunate, but these are
+                # rare cases. Let's just skip these. Example:
+                # CN1C2=C(C=CC=C2)C(C)(C)[C]1=[C]=[CH]C3=CC(=C(O)C(=C3)I)I
+                continue
 
     # Remove ones that don't have "/" or "\". These are not real enumerated
     # ones. Sort so downstream selection order does not depend on set iteration

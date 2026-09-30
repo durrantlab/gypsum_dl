@@ -12,6 +12,7 @@ import warnings
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import chem_utils, utils
 from gypsum_dl.MyMol import MyConformer
+from gypsum_dl.steps.conf.Minimize3D import parallel_minit
 
 try:
     from rdkit import Chem
@@ -39,7 +40,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     job_manager,
     parallelizer_obj,
     minimize: bool = True,
-):
+) -> frozenset[int]:
     """Docking programs like Vina rotate chemical moieties around their
        rotatable bonds, so it's not necessary to generate a larger rotomer
        library for each molecule. The one exception to this rule is
@@ -75,8 +76,10 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     :param minimize: Whether to minimize the geometries of the ring conformers
         that are generated. Defaults to True.
     :type minimize: bool
-    :return: Returns None if no ring conformers are generated
-    :rtype: None
+    :return: The contnr_idx of every container with non-aromatic rings for
+        which no ring conformer could be generated. Those containers keep the
+        molecules they arrived with, which this step has not minimized.
+    :rtype: frozenset[int]
     """
 
     # Let the user know you've started this step.
@@ -107,7 +110,7 @@ def generate_alternate_3d_nonaromatic_ring_confs(
 
     # If there are no compounds with non-aromatic rings, no need to continue.
     if not ones_with_nonaro_rngs:
-        return  # There are no such ligands to process.
+        return frozenset()  # There are no such ligands to process.
 
     # Run it through the parallelizer
     tmp = []
@@ -168,12 +171,15 @@ def generate_alternate_3d_nonaromatic_ring_confs(
     # Any container that had non-aromatic rings but produced no results (all
     # ring-conformer generation failed) is absent from grouped. Its original
     # mols are untouched; flag them so the failure is recorded.
-    for contnr_idx in ones_with_nonaro_rngs - set(grouped.keys()):
+    failed_contnr_idxs = frozenset(ones_with_nonaro_rngs - set(grouped.keys()))
+    for contnr_idx in failed_contnr_idxs:
         for mol in contnr_by_idx[contnr_idx].mols:
             mol.genealogy.append(
                 "(WARNING: Could not generate alternate conformations "
                 + "of nonaromatic ring)"
             )
+
+    return failed_contnr_idxs
 
 
 def parallel_get_ring_confs(
@@ -207,6 +213,12 @@ def parallel_get_ring_confs(
     :rtype: list
     """
 
+    # Serial and in-process runs pass the container's own molecule, while
+    # multiprocessing passes a pickled copy. Work on a copy in every mode, so
+    # a molecule whose conformer search fails part way is carried over in the
+    # same state regardless of the job manager.
+    mol = copy.deepcopy(mol)
+
     # Make it easier to access the container index.
     contnr_idx = mol.contnr_idx
 
@@ -221,7 +233,15 @@ def parallel_get_ring_confs(
     # original molecule was not. In that case, there are no non-aromatic
     # rings to generate conformers for.
     if len(rings) == 0:
-        return [mol]
+        if not minimize:
+            return [mol]
+        # minimize_3d leaves every molecule in a ring-bearing container to
+        # this step, so a variant with no ring to vary still has to be
+        # minimized here or it ships with its raw embedded geometry.
+        minimized = parallel_minit(
+            mol, max_variants_per_compound, thoroughness, second_embed
+        )
+        return None if minimized is None else [minimized]
 
     # Convert that into the bond indecies.
 
