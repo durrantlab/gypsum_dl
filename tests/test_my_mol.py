@@ -809,6 +809,63 @@ def test_second_embed_fallback_passes_a_seed(monkeypatch: pytest.MonkeyPatch) ->
     assert seed > 0
 
 
+def _record_failed_embeds(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, object]]:
+    """Make every EmbedMolecule call fail, recording each call's kwargs.
+
+    Failing without adding a conformer walks MyConformer through every
+    fallback, so the number and shape of the recorded calls show which ones
+    ran.
+
+    Args:
+        monkeypatch: The pytest monkeypatch fixture.
+
+    Returns:
+        The list that receives each call's keyword arguments.
+    """
+    calls: list[dict[str, object]] = []
+
+    def failing_embed(mol: Chem.Mol, *args: object, **kwargs: object) -> int:
+        """Record the call and report RDKit's failure code without embedding.
+
+        Args:
+            mol: The molecule handed to RDKit.
+            *args: Positional arguments, which carry the EmbedParameters.
+            **kwargs: Keyword arguments, which carry the legacy call's options.
+
+        Returns:
+            RDKit's failure code.
+        """
+        calls.append(dict(kwargs))
+        return -1
+
+    monkeypatch.setattr(MyMol.AllChem, "EmbedMolecule", failing_embed)
+    return calls
+
+
+def test_add_conformers_honors_second_embed(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Regression: add_conformers built every conformer with second_embed
+    # hardcoded to False, so the JSON second_embed parameter changed nothing.
+    calls = _record_failed_embeds(monkeypatch)
+
+    MyMol.MyMol("CCO").add_conformers(1, second_embed=True)
+
+    assert len(calls) == 3
+    # The last resort has to differ from the attempts before it, which share
+    # its seed, or it just repeats a failure.
+    assert calls[-1].get("useRandomCoords") is True
+    assert calls[-1].get("ignoreSmoothingFailures") is True
+
+
+def test_add_conformers_skips_the_fallback_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = _record_failed_embeds(monkeypatch)
+
+    MyMol.MyMol("CCO").add_conformers(1)
+
+    assert len(calls) == 2
+
+
 def test_standardize_smiles_survives_an_unknown_noh_smiles(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

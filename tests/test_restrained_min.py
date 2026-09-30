@@ -131,6 +131,31 @@ def test_find_cross_reference_gaps_ignores_bonds_within_one_reference() -> None:
     assert [(a, b) for a, b, _ in gaps] == [(0, 1)]
 
 
+def test_pdb_reference_without_bond_orders_aligns(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Regression: a PDB reference reads with every bond single, and the MCS
+    # compared bond orders and valences, so the phenyl ring could never match
+    # the aromatic target and almost nothing was held fixed.
+    script = _load_script()
+    mol_path = _write_fragment(
+        _embedded_pose(), PHENYL_SIDE, 0.0, os.path.join(tmp_path, "a.mol")
+    )
+    pdb_block = Chem.MolToPDBBlock(Chem.MolFromMolFile(mol_path))
+    pdb_path = os.path.join(tmp_path, "a.pdb")
+    with open(pdb_path, "w", encoding="utf-8") as handle:
+        handle.writelines(
+            line + "\n"
+            for line in pdb_block.splitlines()
+            if not line.startswith("CONECT")
+        )
+    out = os.path.join(tmp_path, "out.sdf")
+
+    script.generate_conformer([pdb_path], TARGET, out)
+
+    assert f"Aligned {len(PHENYL_SIDE)} new atoms" in capsys.readouterr().out
+
+
 def _write_probe_pdb(point: Point3D, path: str) -> str:
     """Write a one-atom receptor, so a clash can be placed exactly.
 

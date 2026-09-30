@@ -30,7 +30,9 @@ class _FakeMol:
         self.conformers = confs
         self.genealogy = []
 
-    def add_conformers(self, num, rmsd_cutoff=0.1, minimize=True) -> None:
+    def add_conformers(
+        self, num, rmsd_cutoff=0.1, minimize=True, second_embed=False
+    ) -> None:
         # Mirror the real add_conformers(minimize=False): it sorts by the
         # (pre-minimization) energy and does not minimize.
         self.conformers.sort(key=lambda c: c.energy)
@@ -152,10 +154,14 @@ class _RecordingMol(_FakeMol):
     def __init__(self, confs: list) -> None:
         super().__init__(confs)
         self.requested = -1
+        self.second_embed: bool | None = None
 
-    def add_conformers(self, num, rmsd_cutoff=0.1, minimize=True) -> None:
+    def add_conformers(
+        self, num, rmsd_cutoff=0.1, minimize=True, second_embed=False
+    ) -> None:
         self.requested = num
-        super().add_conformers(num, rmsd_cutoff, minimize)
+        self.second_embed = second_embed
+        super().add_conformers(num, rmsd_cutoff, minimize, second_embed)
 
 
 def test_parallel_minit_keeps_one_conformer_with_a_zero_variant_cap(
@@ -184,6 +190,25 @@ def test_parallel_minit_keeps_one_conformer_with_a_zero_variant_cap(
     assert result is not None
     assert result.requested >= 1
     assert len(result.conformers) == 1
+
+
+def test_parallel_minit_forwards_second_embed(monkeypatch) -> None:
+    # Regression: parallel_minit received second_embed but never handed it to
+    # add_conformers, so the fallback embedder could not run from this step.
+    mol = _RecordingMol([_FakeConf(pre=10, post=5)])
+
+    class _FakeMyConformer:
+        def __init__(self, new_mol, conf, second_embed) -> None:
+            self.energy = conf.energy
+
+    monkeypatch.setattr(Minimize3D, "MyConformer", _FakeMyConformer)
+
+    result = Minimize3D.parallel_minit(
+        mol, max_variants_per_compound=1, thoroughness=1, second_embed=True
+    )
+
+    assert result is not None
+    assert result.second_embed is True
 
 
 class _AlertMol:

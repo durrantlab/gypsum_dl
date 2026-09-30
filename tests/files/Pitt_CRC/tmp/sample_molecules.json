@@ -3,5 +3,5 @@
     "separate_output_files": true,
     "job_manager": "mpi",
     "output_folder": "./gypsum_dl_output/",
-    "output_pdb": true
+    "add_pdb_output": true
 }

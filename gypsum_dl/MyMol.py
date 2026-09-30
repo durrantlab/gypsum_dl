@@ -833,7 +833,13 @@ class MyMol:
         self.set_rdkit_mol_prop("Genealogy", genealogy)
         self.set_rdkit_mol_prop("_Name", self.name)
 
-    def add_conformers(self, num, rmsd_cutoff=0.1, minimize=True):
+    def add_conformers(
+        self,
+        num: int,
+        rmsd_cutoff: float = 0.1,
+        minimize: bool = True,
+        second_embed: bool = False,
+    ) -> None:
         """Add conformers to this molecule.
 
         :param num: The total number of conformers to generate, including ones
@@ -845,6 +851,10 @@ class MyMol:
         :param minimize: Whether or not to minimize the geometry of all these
            conformers. Defaults to True.
         :param minimize: bool, optional
+        :param second_embed: Whether each new conformer may fall back to a
+           last-resort embedding attempt if the default ones fail. Defaults to
+           False.
+        :type second_embed: bool, optional
         """
 
         # First, do you need to add new conformers? Some might have already
@@ -853,10 +863,10 @@ class MyMol:
         for _ in range(num_new_confs):
             if len(self.conformers) == 0:
                 # For the first one, don't start from random coordinates.
-                new_conf = MyConformer(self)
+                new_conf = MyConformer(self, None, second_embed)
             else:
                 # For all subsequent ones, do start from random coordinates.
-                new_conf = MyConformer(self, None, False, True)
+                new_conf = MyConformer(self, None, second_embed, True)
 
             if new_conf.mol is not False:
                 self.conformers.append(new_conf)
@@ -1075,13 +1085,17 @@ class MyConformer:
                 try:
                     # This legacy call takes no EmbedParameters, so it needs
                     # the seed passed separately or it falls back to RDKit's
-                    # unseeded default. Reuse the seed drawn above: the older
-                    # algorithm is a different embedder, so it does not
-                    # reproduce the attempt that just failed.
+                    # unseeded default. It reuses the seed drawn above, so it
+                    # must differ from the earlier attempts in some other way
+                    # or it would fail exactly as they did: random starting
+                    # coordinates (the non-random start is what attempt 2
+                    # rescues) and tolerance of triangle-smoothing failures,
+                    # a common cause of the failures that remain.
                     AllChem.EmbedMolecule(
                         self.mol,
-                        useRandomCoords=use_random_coordinates,
+                        useRandomCoords=True,
                         randomSeed=params.randomSeed,
+                        ignoreSmoothingFailures=True,
                     )
                 except RuntimeError as e:
                     self.mol = False

@@ -52,6 +52,23 @@ def test_merge_parameters_rejects_wrong_type() -> None:
         start.merge_parameters({"min_ph": 6.4}, {"min_ph": "high"})
 
 
+FIXTURE_JSONS = sorted((Path(__file__).parent / "files").rglob("*.json"))
+
+
+@pytest.mark.parametrize("json_path", FIXTURE_JSONS, ids=lambda p: p.name)
+def test_fixture_json_files_are_valid_parameters(
+    json_path: Path, tmp_path: Path
+) -> None:
+    # Regression: a fixture still used the retired "output_pdb" key, so anyone
+    # copying it as a cluster template hit "Unrecognized parameter" at once.
+    params = json.loads(json_path.read_text(encoding="utf-8"))
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\n")
+    params["source"] = str(src)
+
+    start.set_parameters(params)
+
+
 def test_set_parameters_lowercases_keys_and_fills_defaults(tmp_path) -> None:
     src = tmp_path / "input.smi"
     src.write_text("CCO\tethanol\n")

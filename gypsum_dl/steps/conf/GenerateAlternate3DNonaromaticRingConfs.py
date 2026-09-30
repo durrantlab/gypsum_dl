@@ -326,7 +326,9 @@ def parallel_get_ring_confs(
     # Generate a bunch of conformations, ordered from best energy to worst.
     # Note that this is cached. Minimizing too, unless the caller asked for the
     # optimization step to be skipped.
-    mol.add_conformers(thoroughness * max_variants_per_compound, 0.1, minimize)
+    mol.add_conformers(
+        thoroughness * max_variants_per_compound, 0.1, minimize, second_embed
+    )
 
     if len(mol.conformers) > 0:
         # Sometimes there are no conformers if it's an impossible structure.

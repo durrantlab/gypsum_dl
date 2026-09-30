@@ -1020,7 +1020,11 @@ def test_generate_alternate_ring_confs_honors_the_minimize_flag(monkeypatch) -> 
     original_add_conformers = MyMol.add_conformers
 
     def spy(
-        self: MyMol, num: int, rmsd_cutoff: float = 0.1, minimize: bool = True
+        self: MyMol,
+        num: int,
+        rmsd_cutoff: float = 0.1,
+        minimize: bool = True,
+        second_embed: bool = False,
     ) -> None:
         """Record the minimize argument, then do the real work.
 
@@ -1033,9 +1037,10 @@ def test_generate_alternate_ring_confs_honors_the_minimize_flag(monkeypatch) -> 
             num: Number of conformers requested.
             rmsd_cutoff: Redundancy cutoff, as in MyMol.add_conformers.
             minimize: Whether to minimize the conformers.
+            second_embed: Whether to allow the last-resort embedding attempt.
         """
         captured.append(minimize)
-        original_add_conformers(self, num, rmsd_cutoff, minimize)
+        original_add_conformers(self, num, rmsd_cutoff, minimize, second_embed)
 
     monkeypatch.setattr(MyMol, "add_conformers", spy)
 
@@ -1044,6 +1049,41 @@ def test_generate_alternate_ring_confs_honors_the_minimize_flag(monkeypatch) -> 
     )
 
     assert captured == [False]
+
+
+def test_parallel_get_ring_confs_forwards_second_embed(monkeypatch) -> None:
+    # Regression: the ring-conformer step received second_embed but called
+    # add_conformers without it, so the fallback embedder never ran here.
+    contnr = _container("C1CCCCC1", "cyclohexane")
+    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+
+    captured: list[bool] = []
+    original_add_conformers = MyMol.add_conformers
+
+    def spy(
+        self: MyMol,
+        num: int,
+        rmsd_cutoff: float = 0.1,
+        minimize: bool = True,
+        second_embed: bool = False,
+    ) -> None:
+        """Record the second_embed argument, then do the real work.
+
+        Args:
+            self: The molecule gaining conformers.
+            num: Number of conformers requested.
+            rmsd_cutoff: Redundancy cutoff, as in MyMol.add_conformers.
+            minimize: Whether to minimize the conformers.
+            second_embed: Whether to allow the last-resort embedding attempt.
+        """
+        captured.append(second_embed)
+        original_add_conformers(self, num, rmsd_cutoff, minimize, second_embed)
+
+    monkeypatch.setattr(MyMol, "add_conformers", spy)
+
+    parallel_get_ring_confs(contnr.mols[0], 1, 1, True, False)
+
+    assert captured == [True]
 
 
 def test_generate_alternate_ring_confs_skips_molecules_without_rings() -> None:

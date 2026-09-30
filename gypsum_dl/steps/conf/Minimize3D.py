@@ -180,7 +180,7 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
     variant_cap = max(1, max_variants_per_compound)
 
     # Not minimizing. Just adding the conformers.
-    mol.add_conformers(thoroughness * variant_cap, 0.1, False)
+    mol.add_conformers(thoroughness * variant_cap, 0.1, False, second_embed)
 
     if len(mol.conformers) > 0:
         # Because it is possible to find a molecule that has no
