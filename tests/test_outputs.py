@@ -149,6 +149,52 @@ def test_output_numbering_follows_input_position(tmp_path) -> None:
         assert mol.GetProp("UniqueID").startswith("2_")
 
 
+def test_unparseable_smiles_is_written_to_the_failed_file(tmp_path) -> None:
+    # Regression: an input rejected while building the containers was only
+    # logged, so the success and failed files together accounted for fewer
+    # entries than the input, and the missing ones were the malformed SMILES.
+    src = tmp_path / "input.smi"
+    src.write_text("moosedogfacecat\tgarbage\nCCO\tethanol\n")
+    output_folder = tmp_path / "out_rejected"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "2d_output_only": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+
+    failed = os.path.join(str(output_folder), "gypsum_dl_failed.smi")
+    with open(failed, encoding="utf-8") as f:
+        assert f.read() == "moosedogfacecat\tgarbage"
+
+
+def test_unparseable_smiles_is_filed_under_its_input_number(tmp_path) -> None:
+    src = tmp_path / "input.smi"
+    src.write_text("moosedogfacecat\tgarbage\nCCO\tethanol\n")
+    output_folder = tmp_path / "out_rejected_separate"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "separate_output_files": True,
+            "2d_output_only": True,
+            "max_variants_per_compound": 1,
+            "thoroughness": 1,
+        }
+    )
+
+    folder = str(output_folder)
+    failed = os.path.join(folder, "gypsum_dl_failed__input1.smi")
+    with open(failed, encoding="utf-8") as f:
+        assert f.read() == "moosedogfacecat\tgarbage"
+    assert not os.path.exists(os.path.join(folder, "gypsum_dl_failed__input2.smi"))
+
+
 def test_nested_output_folder_is_created(tmp_path) -> None:
     # Regression (M5): os.mkdir raised FileNotFoundError when a parent segment
     # of output_folder was missing, before the "couldn't be created" message

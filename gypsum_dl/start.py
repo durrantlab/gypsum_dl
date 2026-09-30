@@ -223,7 +223,11 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # rejected record therefore leaves a gap, which nothing downstream minds
     # (utils.contnrs_by_idx needs only uniqueness, and mpi mode rewrites the
     # live index to 0 anyway).
+    # Rejected records are kept so they reach the failed-molecule file. That
+    # file is what a user reconciles against the input, and a malformed
+    # SMILES that appears only in the log is effectively lost on a large run.
     contnrs = []
+    rejected: list[MolContainer] = []
     for i in range(0, len(smiles_data)):
         try:
             smiles, name, props = smiles_data[i]
@@ -236,6 +240,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             utils.log(
                 "WARNING: Throwing out SMILES because of unassigned bonds: " + smiles
             )
+            rejected.append(MolContainer(smiles, name, i, props))
             continue
 
         new_contnr = MolContainer(smiles, name, i, props)
@@ -247,6 +252,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
                 "WARNING: Throwing out SMILES because of it couldn't convert to mol: "
                 + smiles
             )
+            rejected.append(new_contnr)
             continue
 
         contnrs.append(new_contnr)
@@ -261,7 +267,7 @@ def prepare_molecules(args: dict[str, Any]) -> None:
     # molecule container on a single thread.
     if params["Parallelizer"].return_mode() != "mpi":
         # Non-MPI (e.g., multiprocessing)
-        execute_gypsum_dl(contnrs, params)
+        execute_gypsum_dl(contnrs, params, rejected)
     else:
         # MPI mode. Group the molecule containers so they can be passed to the
         # parallelizer.
@@ -285,6 +291,11 @@ def prepare_molecules(args: dict[str, Any]) -> None:
         job_input = tuple(job_input)
 
         job_results = params["Parallelizer"].run(job_input, execute_gypsum_dl)
+
+        # No job owns the rejected records, so the root files them. mpi
+        # forces separate per-input files, and no job holds these inputs, so
+        # this cannot overwrite a file a job wrote.
+        write_failed_molecules(rejected, params, "These entries could not be parsed:")
 
         # run_one turns a raised exception into None, and the failure and
         # output writers run inside the job, so a job that raised leaves no
@@ -366,12 +377,16 @@ def seed_random_number_generators(params: dict[str, Any]) -> None:
     )
 
 
-def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> bool:
+def execute_gypsum_dl(
+    contnrs: list, params: dict[str, Any], rejected: list[MolContainer] | None = None
+) -> bool:
     """A function for doing all of the manipulations to each molecule.
 
     Args:
         contnrs: A list of all molecules.
         params: A dictionary containing all of the parameters.
+        rejected: Containers for inputs that could not be parsed. They skip
+            every step and are only reported in the failed-molecule file.
 
     Returns:
         True once every step has run. In mpi mode a job that raised comes back
@@ -396,8 +411,13 @@ def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> bool:
     if params.get("debug", False):
         utils.print_current_smiles(contnrs)
 
-    # Write any mols that fail entirely to a file.
-    deal_with_failed_molecules(contnrs, params)  ####
+    # Write any mols that fail entirely to a file. Rejected containers never
+    # received a variant, so they count as failed; sorting keeps the file in
+    # input order.
+    reported = contnrs
+    if rejected:
+        reported = sorted(contnrs + rejected, key=lambda c: c.contnr_idx_orig)
+    deal_with_failed_molecules(reported, params)  ####
 
     # Process the output.
     proccess_output(contnrs, params)
