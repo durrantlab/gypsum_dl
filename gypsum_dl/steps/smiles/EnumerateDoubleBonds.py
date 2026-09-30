@@ -102,7 +102,9 @@ def enumerate_double_bonds(
             mol.genealogy.append("(WARNING: Unable to generate double-bond variant)")
             flat.append(mol)
 
-    flat = chem_utils.uniq_mols_in_list(flat)
+    # No dedup over flat here: it mixes containers, so a global pass would
+    # strip a second container's variants whenever two inputs share a SMILES.
+    # bst_for_each_contnr_no_opt already dedups within each container.
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
@@ -155,7 +157,7 @@ def sample_bond_dir_configs(num_bonds: int, cap: int) -> list[tuple[bool, ...]]:
 
 
 def _could_carry_stereochemistry(mol_with_hs: "Chem.Mol", bond_idx: int) -> bool:
-    """Report whether a double bond has a substituent on each end.
+    """Report whether a double bond has distinguishable substituents on each end.
 
     The candidate list is built from `GetStereo() is STEREONONE`, which is also
     true of bonds that can never be cis/trans (carbonyls, terminal alkenes).
@@ -168,13 +170,21 @@ def _could_carry_stereochemistry(mol_with_hs: "Chem.Mol", bond_idx: int) -> bool
         bond_idx: Index of the double bond to test.
 
     Returns:
-        True when both bonded atoms carry at least one other bond.
+        False when either end has no other neighbor (C=O) or carries two
+            hydrogens (=CH2), otherwise True.
     """
     bond = mol_with_hs.GetBondWithIdx(bond_idx)
-    return (
-        len(bond.GetBeginAtom().GetBonds()) > 1
-        and len(bond.GetEndAtom().GetBonds()) > 1
+    ends = (
+        (bond.GetBeginAtom(), bond.GetEndAtomIdx()),
+        (bond.GetEndAtom(), bond.GetBeginAtomIdx()),
     )
+    for atom, partner_idx in ends:
+        others = [n for n in atom.GetNeighbors() if n.GetIdx() != partner_idx]
+        # A lone hydrogen still counts (an N-H imine is E/Z), so only an end
+        # whose two substituents are both hydrogen is ruled out.
+        if not others or sum(1 for n in others if n.GetAtomicNum() == 1) >= 2:
+            return False
+    return True
 
 
 def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):

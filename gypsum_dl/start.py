@@ -284,7 +284,23 @@ def prepare_molecules(args: dict[str, Any]) -> None:
             job_input.append(tuple([[contnr], temp_param]))
         job_input = tuple(job_input)
 
-        params["Parallelizer"].run(job_input, execute_gypsum_dl)
+        job_results = params["Parallelizer"].run(job_input, execute_gypsum_dl)
+
+        # run_one turns a raised exception into None, and the failure and
+        # output writers run inside the job, so a job that raised leaves no
+        # file behind. Only the root can see that, so it has to say so.
+        num_succeeded = sum(1 for result in job_results if result is True)
+        num_raised = len(job_input) - num_succeeded
+        if num_raised:
+            utils.log(
+                "WARNING: "
+                + str(num_raised)
+                + " of "
+                + str(len(job_input))
+                + " input molecules raised an error and produced no output file "
+                + "at all. Search the output above for lines beginning with "
+                + "'ERROR in execute_gypsum_dl' to identify them."
+            )
 
     # Calculate the total run time. Neither of these is a parameter: the
     # parameters record is written by save_to_sdf while the run is still going,
@@ -331,12 +347,16 @@ def seed_random_number_generators(params: dict[str, Any]) -> None:
     )
 
 
-def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> None:
+def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> bool:
     """A function for doing all of the manipulations to each molecule.
 
     Args:
         contnrs: A list of all molecules.
         params: A dictionary containing all of the parameters.
+
+    Returns:
+        True once every step has run. In mpi mode a job that raised comes back
+        as None instead, which is how the root tells the two apart.
     """
     # Start creating the models.
 
@@ -362,6 +382,8 @@ def execute_gypsum_dl(contnrs: list, params: dict[str, Any]) -> None:
 
     # Process the output.
     proccess_output(contnrs, params)
+
+    return True
 
 
 def detect_unassigned_bonds(smiles: str) -> str | None:

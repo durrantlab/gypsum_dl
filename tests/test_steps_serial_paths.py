@@ -534,6 +534,23 @@ def test_enumerate_double_bonds_expands_unspecified_bond() -> None:
     assert len(contnr.mols) >= 1
 
 
+def test_enumerate_double_bonds_enumerates_each_repeated_input() -> None:
+    # Regression: the step deduplicated its variants over every container at
+    # once, so when two inputs shared a SMILES (a repeated entry, or a free
+    # acid and its salt after desalting) the first container kept the variants
+    # and the second got none. It then fell back to its unenumerated mol with
+    # a warning about conformers instead.
+    first = _container_at_idx("CC=CC", "butene", 0)
+    second = _container_at_idx("CC=CC", "butene_again", 1)
+
+    enumerate_double_bonds([first, second], 2, 1, 1, "serial", None)
+
+    for contnr in (first, second):
+        smis = [m.smiles(True) for m in contnr.mols]
+        assert len(smis) == 2, f"{contnr.name} ended with {smis}"
+        assert all("/" in s or "\\" in s for s in smis)
+
+
 def test_enumerate_double_bonds_respects_zero_variants() -> None:
     contnr = _container("CC=CCC", "pentene")
     enumerate_double_bonds([contnr], 0, 1, 1, "serial", None)

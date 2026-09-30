@@ -488,10 +488,11 @@ def test_prepare_molecules_mpi_reindex_restamps_original_mol(
         def run(
             self,
             job_input: tuple[tuple[list[MolContainer], dict[str, object]], ...],
-            func: Callable[..., None],
-        ) -> None:
+            func: Callable[..., bool],
+        ) -> list[bool]:
             """Capture the grouped jobs instead of dispatching them."""
             captured.extend(job_input)
+            return [True] * len(job_input)
 
         def end(self, job_manager: str) -> None:
             """No mpi universe to tear down."""
@@ -517,6 +518,83 @@ def test_prepare_molecules_mpi_reindex_restamps_original_mol(
         desalt_orig_smi([contnr])
         durrant_lab_filters([contnr], 1, "serial", None)
         assert len(contnr.mols) == 1
+
+
+def test_prepare_molecules_mpi_reports_jobs_that_raised(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Regression: in mpi mode each container's whole pipeline is one job, and
+    # run_one turns a raised exception into None. The failure and output
+    # writers run inside that job, so the input vanished from every output
+    # file, and the root discarded the results, so nothing said so.
+    src = tmp_path / "input.smi"
+    src.write_text("CCO\tethanol\nCCCO\tpropanol\n")
+
+    def prepare_smiles_failing_for_propanol(
+        contnrs: list[MolContainer], params: dict[str, object]
+    ) -> None:
+        """Raise for one container, as an unexpected RDKit error would.
+
+        Args:
+            contnrs: The single container this mpi job owns.
+            params: The run parameters (unused).
+        """
+        if contnrs[0].name == "propanol":
+            raise RuntimeError("simulated failure")
+
+    def skip_step(contnrs: list[MolContainer], params: dict[str, object]) -> None:
+        """Stand in for a pipeline step the test does not need to run.
+
+        Args:
+            contnrs: The containers the step would process (unused).
+            params: The run parameters (unused).
+        """
+
+    monkeypatch.setattr(start, "prepare_smiles", prepare_smiles_failing_for_propanol)
+    for step in ("prepare_3d", "deal_with_failed_molecules", "proccess_output"):
+        monkeypatch.setattr(start, step, skip_step)
+
+    class _StubParallelizer:
+        """Claim mpi mode but run each job in process through run_one.
+
+        run_one is what the real mpi path wraps every job in, so routing
+        through it reproduces how a raised job reaches the root.
+        """
+
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def return_mode(self) -> str:
+            """Report mpi so prepare_molecules takes the per-container branch."""
+            return "mpi"
+
+        def run(
+            self,
+            job_input: tuple[tuple[list[MolContainer], dict[str, object]], ...],
+            func: Callable[..., bool],
+        ) -> list[bool | None]:
+            """Run each job the way an mpi rank would."""
+            return [parallelizer.run_one(func, job) for job in job_input]
+
+        def end(self, job_manager: str) -> None:
+            """No mpi universe to tear down."""
+
+    monkeypatch.setattr(start, "Parallelizer", _StubParallelizer)
+
+    start.prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(tmp_path),
+            "job_manager": "serial",
+        }
+    )
+
+    # Collapse whitespace: log() wraps at 80 columns.
+    out = " ".join(capsys.readouterr().out.split())
+    assert "ERROR in execute_gypsum_dl" in out
+    assert "WARNING: 1 of 2 input molecules raised an error" in out
 
 
 def _prepare_molecules_in_stubbed_mpi_mode(
@@ -550,8 +628,11 @@ def _prepare_molecules_in_stubbed_mpi_mode(
             """Report mpi so the per-container branch runs nothing in here."""
             return "mpi"
 
-        def run(self, job_input: tuple[object, ...], func: Callable[..., None]) -> None:
+        def run(
+            self, job_input: tuple[object, ...], func: Callable[..., bool]
+        ) -> list[bool]:
             """Discard the jobs instead of dispatching them."""
+            return [True] * len(job_input)
 
         def end(self, job_manager: str) -> None:
             """No mpi universe to tear down."""

@@ -5,8 +5,11 @@ import time
 
 import pytest
 
+from rdkit import Chem
+
 from gypsum_dl.MyMol import MyMol
 from gypsum_dl.steps.smiles.EnumerateDoubleBonds import (
+    _could_carry_stereochemistry,
     parallel_get_double_bonded,
     sample_bond_dir_configs,
 )
@@ -119,6 +122,50 @@ def test_log_counts_only_bonds_that_can_be_enumerated(
     out = " ".join(capsys.readouterr().out.split())
     assert "has 1 double bond(s) with unspecified stereochemistry" in out
     assert "left unspecified" not in out
+
+
+def test_terminal_alkene_does_not_crowd_out_a_stereogenic_bond() -> None:
+    # Regression: the stereogenicity check counted bonds on the hydrogen-added
+    # molecule, so a terminal =CH2 (two hydrogens) passed, competed with the
+    # real alkene for a budget of one bond, and about half the seeds came back
+    # with nothing enumerated and no warning.
+    smi = "CC(=C)CC=CC"
+    for seed in range(10):
+        random.seed(seed)
+        results = parallel_get_double_bonded(MyMol(smi), 1, 1)
+        smis = [m.smiles(True) for m in results]
+        assert len(results) == 2, f"seed {seed} produced {smis}"
+        assert all("/" in s or "\\" in s for s in smis)
+
+
+def test_terminal_alkene_is_not_logged_as_unspecified(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    mol = MyMol("CC=C")
+
+    assert parallel_get_double_bonded(mol, 1, 1) == [mol]
+    assert "unspecified stereochemistry" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("smiles", "expected"),
+    [
+        ("CC=CC", True),
+        ("CC=N", True),  # N-H imines are E/Z; a single hydrogen is enough.
+        ("CC=C", False),
+        ("CC(C)=C", False),
+        ("CC=O", False),
+    ],
+)
+def test_could_carry_stereochemistry(smiles: str, expected: bool) -> None:
+    mol_with_hs = Chem.AddHs(Chem.MolFromSmiles(smiles))
+    double_bond_idx = next(
+        bond.GetIdx()
+        for bond in mol_with_hs.GetBonds()
+        if bond.GetBondType() == Chem.BondType.DOUBLE
+    )
+
+    assert _could_carry_stereochemistry(mol_with_hs, double_bond_idx) is expected
 
 
 def test_sample_bond_dir_configs_enumerates_small_spaces() -> None:
