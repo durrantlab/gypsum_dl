@@ -19,7 +19,7 @@ from gypsum_dl.steps.smiles import (
     EnumerateDoubleBonds,
     MakeTautomers,
 )
-from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d
+from gypsum_dl.steps.conf.Convert2DTo3D import convert_2d_to_3d, parallel_make_3d
 from gypsum_dl.steps.conf.GenerateAlternate3DNonaromaticRingConfs import (
     generate_alternate_3d_nonaromatic_ring_confs,
     parallel_get_ring_confs,
@@ -1161,25 +1161,23 @@ def test_step_treats_containers_with_the_same_smiles_independently(step) -> None
     assert first == second
 
 
-def test_convert_2d_to_3d_carry_over_is_the_untouched_input(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Regression: serial mode handed the container's own variant to
-    # parallel_make_3d, which swaps in the hydrogen-added molecule before
-    # embedding. When every embedding failed, the container kept that
-    # half-converted variant as its carry-over, whereas under multiprocessing
-    # only a pickled copy was ever touched.
+def test_make_3d_job_leaves_its_input_alone() -> None:
+    # Regression: parallel_make_3d swapped in the hydrogen-added molecule and
+    # extended the genealogy on the variant it was handed. Serial mode hands
+    # it the container's own variant, so that variant's state depended on the
+    # job manager.
     contnr = _container("CCO", "ethanol")
     variant = contnr.mols[0]
     num_atoms = variant.rdkit_mol.GetNumAtoms()
     genealogy = list(variant.genealogy)
-    monkeypatch.setattr(MyMol, "add_conformers", lambda self, *args: None)
 
-    convert_2d_to_3d([contnr], 1, 1, 1, "serial", None)
+    result = parallel_make_3d(variant)
 
-    assert len(contnr.mols) == 1
-    assert contnr.mols[0] is variant
+    assert result is not None
+    assert result is not variant
+    assert len(result.conformers) == 1
     assert variant.rdkit_mol.GetNumAtoms() == num_atoms
+    assert variant.conformers == []
     assert variant.genealogy == genealogy
 
 

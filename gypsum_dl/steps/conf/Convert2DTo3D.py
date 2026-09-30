@@ -95,9 +95,9 @@ def parallel_make_3d(mol):
 
     # The conversion swaps in a hydrogen-added molecule and extends the
     # genealogy in place. A worker process only ever sees a pickled copy, but
-    # serial mode passes the container's own variant, and a container whose
-    # every embedding fails keeps those variants as its carry-over. Work on a
-    # copy so the carry-over is the same under every job manager.
+    # serial mode passes the container's own variant. The caller currently
+    # replaces or discards every input variant, so nothing observes the
+    # difference yet; working on a copy keeps it that way if that changes.
     mol = copy.deepcopy(mol)
 
     # Initially assume you won't show an error message.
