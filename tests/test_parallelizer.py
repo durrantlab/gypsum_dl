@@ -689,6 +689,27 @@ def test_parallel_mpi_worker_applies_the_scattered_seeds(
     assert comm.gathered == [serial]
 
 
+def test_parallel_mpi_worker_skips_the_padding_split_hands_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The worker's dedicated filler branch compared an argument list to
+    # Empty_obj and could never fire, so padding was skipped only by an
+    # incidental check further down. Taking the chunk from _split, rather than
+    # spelling out its shape here, keeps this test tied to the padding the
+    # root actually sends.
+    par = _make_parallel_mpi(monkeypatch, _RootComm())
+    arg_chunks = par._split([[1]], 3)
+    seed_chunks = par._split([[11]], 3)
+
+    comm = _WorkerComm(add_one_unless_two, arg_chunks[-1], seed_chunks[-1])
+    par.COMM = comm
+
+    with pytest.raises(SystemExit):
+        par._worker()
+
+    assert comm.gathered == [[]]
+
+
 def test_parallel_mpi_failure_handling_matches_the_other_modes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -1,5 +1,7 @@
 """Unit tests for the variant-selection helpers in chem_utils."""
 
+import pytest
+
 from gypsum_dl import MyMol, chem_utils
 from gypsum_dl.MolContainer import MolContainer
 
@@ -127,6 +129,31 @@ def test_bst_for_each_contnr_no_opt_can_discard_originals() -> None:
         [contnr], [], 1, 1, crry_ovr_frm_lst_step_if_no_fnd=False
     )
     assert contnr.mols == []
+
+
+def test_bst_for_each_contnr_no_opt_rejects_a_foreign_container_index() -> None:
+    # A candidate tagged for a container missing from the list used to be
+    # dropped without a word, leaving its real container on the previous
+    # step's variants.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    mol = MyMol.MyMol("CCO")
+    mol.contnr_idx = 1
+
+    with pytest.raises(Exception, match="contnr_idx"):
+        chem_utils.bst_for_each_contnr_no_opt([contnr], [mol], 1, 1)
+
+
+def test_bst_for_each_contnr_no_opt_names_the_step_in_its_warning(capsys) -> None:
+    # The warning spoke of low-energy conformations whichever step called it,
+    # although every SMILES-stage caller works before any conformer exists.
+    contnr = MolContainer("CCO", "ethanol", 0, {})
+    contnr.add_smiles("CCO")
+
+    chem_utils.bst_for_each_contnr_no_opt([contnr], [], 1, 1, variant_desc="tautomers")
+
+    log = " ".join(capsys.readouterr().out.split())
+    assert "No tautomers remained for CCO (ethanol)" in log
+    assert "conformations" not in log
 
 
 def test_pick_lowest_enrgy_mols_dedups_in_first_seen_order() -> None:

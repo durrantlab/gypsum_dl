@@ -255,7 +255,7 @@ Here is the full list of substructures Gypsum-DL matches, in the order they appe
 - `N=c1cc[#7]c[#7]1`
 - `[$(N)]=C[$([OH]),$([O-])]`
 - `[$(N)]C(=C)[$([OH]),$([O-])]`
-- Metals
+- Metals (any metal atom left after desalting, so a metal counterion that desalting removes does not count)
 
 Note that the two iminol patterns match any aliphatic nitrogen, so internal (N-substituted) iminols and the mistaken amide tautomers built on them are discarded along with the terminal forms.
 

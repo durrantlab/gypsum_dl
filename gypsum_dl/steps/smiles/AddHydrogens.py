@@ -127,7 +127,11 @@ def add_hydrogens(
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
     chem_utils.bst_for_each_contnr_no_opt(
-        contnrs, results, max_variants_per_compound, thoroughness
+        contnrs,
+        results,
+        max_variants_per_compound,
+        thoroughness,
+        variant_desc="ionization states",
     )
 
 

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     # import. With this module importing nothing from the package, no such
     # workaround is needed anywhere.
     from gypsum_dl.MolContainer import MolContainer
+    from gypsum_dl.MyMol import MyMol
 
 
 def group_mols_by_container_index(mol_lst):
@@ -188,6 +189,48 @@ def contnrs_by_idx(
         by_idx[contnr.contnr_idx] = contnr
 
     return by_idx
+
+
+def carry_over_unrepresented(
+    contnrs: list["MolContainer"],
+    results: list["MyMol"],
+    variant_desc: str,
+    genealogy_note: str,
+) -> None:
+    """Return a container's existing variants to results when a step made none.
+
+    A compound that an enumeration step cannot process should reach the next
+    step as it arrived, with a log line and a genealogy entry saying so. Each
+    step used to carry its own copy of this fallback, and the copies drifted:
+    one step had none, so its failures went unrecorded in the genealogy. The
+    carried-over molecules are appended to results rather than written to the
+    container because bst_for_each_contnr_no_opt, which every caller runs next,
+    repopulates each container from that list.
+
+    Args:
+        contnrs: A list of containers (MolContainer.MolContainer).
+        results: The step's flat list of new variants. Extended in place.
+        variant_desc: What the step produces (e.g., "tautomers"), for the log.
+        genealogy_note: The entry appended to each carried-over molecule's
+            genealogy.
+    """
+
+    contnr_by_idx = contnrs_by_idx(contnrs)
+    for miss_indx in fnd_contnrs_not_represntd(contnrs, results):
+        failed_contnr = contnr_by_idx[miss_indx]
+        log(
+            "\tCould not generate valid "
+            + variant_desc
+            + " for "
+            + failed_contnr.orig_smi
+            + " ("
+            + failed_contnr.name
+            + "), so using existing "
+            + "(unprocessed) structures."
+        )
+        for mol in failed_contnr.mols:
+            mol.genealogy.append(genealogy_note)
+            results.append(mol)
 
 
 def print_current_smiles(contnrs: list["MolContainer"]) -> None:

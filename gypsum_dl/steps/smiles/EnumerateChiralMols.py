@@ -82,29 +82,19 @@ def enumerate_chiral_molecules(
     # Flatten the data into a single list.
     flat = Parallelizer.flatten_list(clean)
 
-    # Get the indexes of the ones that failed to generate.
-    contnr_idxs_of_failed = utils.fnd_contnrs_not_represntd(contnrs, flat)
-    contnr_by_idx = utils.contnrs_by_idx(contnrs)
-
-    # Go through the missing ones and throw a message.
-    for miss_indx in contnr_idxs_of_failed:
-        failed_contnr = contnr_by_idx[miss_indx]
-        utils.log(
-            "\tCould not generate valid enantiomers for "
-            + failed_contnr.orig_smi
-            + " ("
-            + failed_contnr.name
-            + "), so using existing "
-            + "(unprocessed) structures."
-        )
-        for mol in failed_contnr.mols:
-            mol.genealogy.append("(WARNING: Unable to generate enantiomers)")
-            flat.append(mol)
+    # Containers that produced no enantiomers keep their existing structures.
+    utils.carry_over_unrepresented(
+        contnrs, flat, "enantiomers", "(WARNING: Unable to generate enantiomers)"
+    )
 
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
     chem_utils.bst_for_each_contnr_no_opt(
-        contnrs, flat, max_variants_per_compound, thoroughness
+        contnrs,
+        flat,
+        max_variants_per_compound,
+        thoroughness,
+        variant_desc="enantiomers",
     )
 
 
@@ -173,7 +163,7 @@ def parallel_get_chiral(mol, max_variants_per_compound, thoroughness):
     # Let the user know the number of chiral centers.
     utils.log(
         "\t"
-        + mol.smiles(True)
+        + str(mol.smiles(True))
         + " ("
         + mol.name
         + ") has "

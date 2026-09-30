@@ -528,7 +528,8 @@ def test_prepare_molecules_mpi_reports_jobs_that_raised(
     # Regression: in mpi mode each container's whole pipeline is one job, and
     # run_one turns a raised exception into None. The failure and output
     # writers run inside that job, so the input vanished from every output
-    # file, and the root discarded the results, so nothing said so.
+    # file, and the root discarded the results, so nothing said so. The root
+    # now writes the failed-molecule file the job never reached.
     src = tmp_path / "input.smi"
     src.write_text("CCO\tethanol\nCCCO\tpropanol\n")
 
@@ -588,6 +589,8 @@ def test_prepare_molecules_mpi_reports_jobs_that_raised(
             "source": str(src),
             "output_folder": str(tmp_path),
             "job_manager": "serial",
+            # Real mpi mode forces this on; the stub bypasses that check.
+            "separate_output_files": True,
         }
     )
 
@@ -595,6 +598,11 @@ def test_prepare_molecules_mpi_reports_jobs_that_raised(
     out = " ".join(capsys.readouterr().out.split())
     assert "ERROR in execute_gypsum_dl" in out
     assert "WARNING: 1 of 2 input molecules raised an error" in out
+
+    # Only the job that raised is filed, under its own input number.
+    assert not (tmp_path / "gypsum_dl_failed__input1.smi").exists()
+    written = (tmp_path / "gypsum_dl_failed__input2.smi").read_text()
+    assert written == "CCCO\tpropanol"
 
 
 def _prepare_molecules_in_stubbed_mpi_mode(

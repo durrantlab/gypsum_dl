@@ -72,7 +72,12 @@ def convert_2d_to_3d(
     # not "emit no models," so every surviving input still needs room for one
     # conformer here.
     chem_utils.bst_for_each_contnr_no_opt(
-        contnrs, clear, max(1, max_variants_per_compound), thoroughness, False
+        contnrs,
+        clear,
+        max(1, max_variants_per_compound),
+        thoroughness,
+        False,
+        variant_desc="3D conformers",
     )
 
 

@@ -61,20 +61,30 @@ metal_element_symbols: list[str] = (
 # only be written as a bracketed atom, so keeping the opening bracket is what
 # separates indium from iodine and sodium from nitrogen. One symbol overreaches
 # slightly: "[K" also catches krypton, which is no more druglike than a metal.
-prohibited_smi_substrs_for_substr = [f"[{sym}" for sym in metal_element_symbols]
+# Matched on atomic number rather than on the SMILES text. A "[K" substring
+# also caught krypton, "[Na" missed isotope-labeled sodium ("[23Na+]"), and
+# the text tested was the input string rather than the variant being judged.
+metal_atomic_nums: frozenset[int] = frozenset(
+    Chem.GetPeriodicTable().GetAtomicNumber(sym) for sym in metal_element_symbols
+)
 
 
-def durrant_lab_contains_bad_substr(smiles):
-    """Determines if a smiles string contains a prohibitive substring. Faster
-    than substructure matching.
+def durrant_lab_contains_metal(mol: "Chem.Mol") -> bool:
+    """Report whether a molecule contains a metal atom.
 
-    :param smiles: The SMILES string.
-    :type smiles: A string.
-    :return: True if it contains the substring. False otherwise.
-    :rtype: boolean
+    The check runs on the variant's own structure, so it sees what the
+    desalter left behind: a metal counterion that desalting removed no longer
+    counts against the fragment that remains, while a metal bound into that
+    fragment still does.
+
+    Args:
+        mol: The RDKit molecule to test.
+
+    Returns:
+        True if any atom is one of metal_element_symbols.
     """
 
-    return any(s in smiles for s in prohibited_smi_substrs_for_substr)
+    return any(atom.GetAtomicNum() in metal_atomic_nums for atom in mol.GetAtoms())
 
 
 @cache
@@ -165,6 +175,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
         variant_cap,
         variant_cap,  # max_variants_per_compound, thoroughness
         crry_ovr_frm_lst_step_if_no_fnd=False,
+        variant_desc="variants that pass the Durrant-lab filters",
     )
 
 
@@ -197,18 +208,18 @@ def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None"
             contnr.mols[mi] = None
             continue
 
-        # The substring test looks at the molecule alone, so it belongs outside
-        # the pattern loop; inside, it was re-evaluated once per query. Both
-        # tests still short circuit, so a molecule is matched against no more
-        # patterns than before.
-        prohibited = durrant_lab_contains_bad_substr(m.orig_smi_deslt) or any(
+        # The metal test looks at the molecule alone, so it belongs outside the
+        # pattern loop; inside, it was re-evaluated once per query. Both tests
+        # short circuit, so a molecule is matched against no more patterns
+        # than it needs to be.
+        prohibited = durrant_lab_contains_metal(m.rdkit_mol) or any(
             m.rdkit_mol.HasSubstructMatch(pattrn) for pattrn in prohibited_substructs
         )
 
         if prohibited:
             utils.log(
                 "\t"
-                + m.smiles(True)
+                + str(m.smiles(True))
                 + ", a variant generated "
                 + "from "
                 + contnr.orig_smi

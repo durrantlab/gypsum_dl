@@ -42,9 +42,9 @@ def prepare_smiles(contnrs, params):
     desalt_orig_smi(contnrs)
     # utils.log("Done with Desalting")
 
-    # Note: Metal-containing and other bad-substring compounds are removed by
+    # Note: Metal-containing and other prohibited compounds are removed by
     # the full durrant_lab_filters step (when enabled), which applies
-    # durrant_lab_contains_bad_substr to every molecule. A pre-filter here would
+    # durrant_lab_contains_metal to every molecule. A pre-filter here would
     # only rebind a local list (execute_gypsum_dl keeps the original) and would
     # break the position==contnr_idx invariant relied on downstream.
 

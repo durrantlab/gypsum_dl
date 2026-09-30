@@ -536,23 +536,44 @@ class ParallelMPI(object):
             args_chunk = self.COMM.scatter([], root=0)
             seed_chunk = self.COMM.scatter([], root=0)
 
-            if type(args_chunk[0]) == type(
-                self.Empty_object
-            ):  # or  args_chunk[0] == [[self.Empty_object]]:
-                result_chunk = [[self.Empty_object]]
-                result_chunk = self.COMM.gather(result_chunk, root=0)
+            # perform the calculation and send results. A rank with no real
+            # work receives a filler chunk, whose args are skipped here like
+            # any other filler, so it gathers an empty list. run_one turns a
+            # raised exception into None, matching every other dispatch path;
+            # calling func bare here let one bad job skip the gather below,
+            # which blocks every other rank forever.
+            result_chunk = [
+                run_one(func, arg, seed[0])
+                for arg, seed in zip(args_chunk, seed_chunk)
+                if not self._is_filler_arg(arg)
+            ]
+            self.COMM.gather(result_chunk, root=0)
 
-            else:
-                # perform the calculation and send results. run_one turns a
-                # raised exception into None, matching every other dispatch
-                # path; calling func bare here let one bad job skip the gather
-                # below, which blocks every other rank forever.
-                result_chunk = [
-                    run_one(func, arg, seed[0])
-                    for arg, seed in zip(args_chunk, seed_chunk)
-                    if type(arg[0]) != type(self.Empty_object)
-                ]
-                result_chunk = self.COMM.gather(result_chunk, root=0)
+    def _filler_chunk(self) -> list[list["Empty_obj"]]:
+        """Build the chunk handed to a rank that has no real work.
+
+        Every rank must take part in each scatter and gather, so a job list
+        shorter than the rank count is padded. The worker recognizes padding
+        through _is_filler_arg, and the two are kept side by side so that the
+        padding shape and its test cannot drift apart.
+
+        Returns:
+            A chunk holding a single filler arg.
+        """
+
+        return [[self.Empty_object]]
+
+    def _is_filler_arg(self, arg: list[object]) -> bool:
+        """Tell padding apart from a real job's argument list.
+
+        Args:
+            arg: One argument list from a scattered chunk.
+
+        Returns:
+            True if arg is the filler arg that _filler_chunk builds.
+        """
+
+        return len(arg) == 1 and isinstance(arg[0], Empty_obj)
 
     def handle_undersized_jobs(self, arr, n):
         if len(arr) > n:
@@ -560,7 +581,7 @@ class ParallelMPI(object):
             print(printout)
             raise Exception(printout)
 
-        filler_slot = [[self.Empty_object]]
+        filler_slot = self._filler_chunk()
         while len(arr) < n:
             arr.append(filler_slot)
             if len(arr) == n:

@@ -177,10 +177,21 @@ def make_tauts(
             contnrs, taut_data, num_procs, job_manager, parallelizer_obj
         )
 
+    # Containers left with no tautomers (the worker failed, or the filters
+    # above rejected every form) keep their existing structures. This runs
+    # after the filters so that it sees what actually survived.
+    utils.carry_over_unrepresented(
+        contnrs, taut_data, "tautomers", "(WARNING: Unable to generate tautomers)"
+    )
+
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion.
     chem_utils.bst_for_each_contnr_no_opt(
-        contnrs, taut_data, max_variants_per_compound, thoroughness
+        contnrs,
+        taut_data,
+        max_variants_per_compound,
+        thoroughness,
+        variant_desc="tautomers",
     )
 
 
@@ -248,7 +259,7 @@ def parallel_make_taut(
 
     # If there's more than one, let the user know that.
     if len(tauts_mols) > 1:
-        utils.log("\t" + mol.smiles(True) + " has tautomers.")
+        utils.log("\t" + str(mol.smiles(True)) + " has tautomers.")
 
     # Now collect the final results.
     results = []
@@ -408,7 +419,7 @@ def parallel_check_nonarom_rings(
     else:
         utils.log(
             "\t"
-            + taut.smiles(True)
+            + str(taut.smiles(True))
             + ", a tautomer generated "
             + "from "
             + facts["orig_smi"]
@@ -465,7 +476,7 @@ def parallel_check_chiral_centers(
         "\t"
         + facts["orig_smi"]
         + " ==> "
-        + taut.smiles(True)
+        + str(taut.smiles(True))
         + " (tautomer transformation on "
         + taut.name
         + ") "

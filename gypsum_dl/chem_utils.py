@@ -171,10 +171,18 @@ def bst_for_each_contnr_no_opt(
     max_variants_per_compound,
     thoroughness,
     crry_ovr_frm_lst_step_if_no_fnd=True,
-):
+    variant_desc: str = "variants",
+) -> None:
     """Keep only the top few compound variants in each container, to prevent a
        combinatorial explosion. This is run periodically on the growing
        containers to keep them in check.
+
+       mol_lst mixes every container's candidates, and everything here treats
+       it one container at a time, keyed on contnr_idx. A caller that
+       deduplicates, samples, or otherwise operates on the flat list as a
+       whole breaks that partition (two inputs that share a SMILES then starve
+       each other), so callers must leave cross-container work to this
+       function.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
@@ -196,7 +204,26 @@ def bst_for_each_contnr_no_opt(
        conformers, determines whether to just keep the old ones. Defaults to
        True.
     :param crry_ovr_frm_lst_step_if_no_fnd: bool, optional
+    :param variant_desc: What the calling step was producing (e.g.,
+       "tautomers"), for the warning logged when a container ends up with none.
+       Defaults to "variants".
+    :type variant_desc: str, optional
+    :raises Exception: If a candidate's contnr_idx matches none of contnrs, or
+       two containers share a contnr_idx.
     """
+
+    # A candidate whose contnr_idx names no container would otherwise be
+    # dropped without a word, leaving its real container to fall back on the
+    # previous step's variants. contnrs_by_idx also rejects duplicate indices,
+    # which would make the grouping below ambiguous.
+    contnr_by_idx = utils.contnrs_by_idx(contnrs)
+    for mol in mol_lst:
+        if mol is not None and mol.contnr_idx not in contnr_by_idx:
+            utils.exception(
+                f"A candidate variant ({mol.smiles()}) carries contnr_idx "
+                f"{mol.contnr_idx!r}, which matches none of the molecule "
+                "containers."
+            )
 
     # Remove duplicate ligands from each container.
     for mol_cont in contnrs:
@@ -243,27 +270,27 @@ def bst_for_each_contnr_no_opt(
         else:
             none_generated = True
 
-        # No low-energy conformers were generated.
+        # No candidates survived for this container. Most callers are SMILES
+        # steps, where no conformers are involved, so the message names what
+        # the step was producing instead.
         if none_generated:
+            no_survivors = (
+                "\tWARNING: No "
+                + variant_desc
+                + " remained for "
+                + contnr.orig_smi_deslt
+                + " ("
+                + contnr.name
+                + ")."
+            )
             if crry_ovr_frm_lst_step_if_no_fnd:
                 # Just use previous ones.
                 utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: "
-                    + contnr.orig_smi_deslt
-                    + " ("
-                    + contnr.name
-                    + "). Keeping original "
-                    + "conformers."
+                    no_survivors + " Keeping the variants from the previous step."
                 )
             else:
-                # Discard the conformation.
-                utils.log(
-                    "\tWARNING: Unable to find low-energy conformations: "
-                    + contnr.orig_smi_deslt
-                    + " ("
-                    + contnr.name
-                    + "). Discarding conformer."
-                )
+                # Discard the compound.
+                utils.log(no_survivors + " Discarding the compound.")
                 contnr.mols = []
 
 

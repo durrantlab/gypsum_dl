@@ -12,9 +12,9 @@ import pytest
 from rdkit import Chem
 
 from gypsum_dl.steps.smiles.DurrantLabFilter import (
-    durrant_lab_contains_bad_substr,
+    durrant_lab_contains_metal,
+    metal_atomic_nums,
     metal_element_symbols,
-    prohibited_smi_substrs_for_substr,
     prohibited_smi_substrs_for_substruc,
 )
 
@@ -54,6 +54,16 @@ def test_readme_documents_the_patterns_the_code_uses() -> None:
 @pytest.mark.parametrize("pattern", prohibited_smi_substrs_for_substruc)
 def test_every_pattern_is_valid_smarts(pattern: str) -> None:
     assert Chem.MolFromSmarts(pattern) is not None
+
+
+@pytest.mark.parametrize("pattern", prohibited_smi_substrs_for_substruc)
+def test_no_pattern_depends_on_stereochemistry(pattern: str) -> None:
+    # The filter runs before chiral and double-bond enumeration, which is only
+    # sound while no pattern cares about stereochemistry. HasSubstructMatch
+    # also ignores stereo unless asked, so a stereo pattern added here would
+    # quietly match every stereoisomer rather than fail. Either way it needs
+    # the step moved and useChirality=True, not just a new list entry.
+    assert not any(marker in pattern for marker in "@/\\")
 
 
 @pytest.mark.parametrize(
@@ -118,15 +128,33 @@ def test_every_metal_symbol_is_a_real_element(symbol: str) -> None:
     assert mol.GetAtomWithIdx(0).GetAtomicNum() <= 92
 
 
+def _contains_metal(smiles: str) -> bool:
+    """Run the metal check on a SMILES string.
+
+    The check takes a molecule, so each test would otherwise repeat the parse
+    and the guard against a SMILES that RDKit rejects.
+
+    Args:
+        smiles: The SMILES string to test.
+
+    Returns:
+        Whether the parsed molecule contains a metal atom.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    assert mol is not None
+    return durrant_lab_contains_metal(mol)
+
+
 @pytest.mark.parametrize("symbol", metal_element_symbols)
-def test_every_metal_symbol_has_a_prohibited_substring(symbol: str) -> None:
-    assert f"[{symbol}" in prohibited_smi_substrs_for_substr
+def test_every_metal_symbol_is_filtered_by_atomic_number(symbol: str) -> None:
+    atom = Chem.MolFromSmiles(f"[{symbol}]").GetAtomWithIdx(0)
+    assert atom.GetAtomicNum() in metal_atomic_nums
 
 
 @pytest.mark.parametrize("symbol", ORIGINAL_METALS + PREVIOUSLY_PERMITTED_METALS)
 def test_metal_containing_smiles_are_rejected(symbol: str) -> None:
-    assert durrant_lab_contains_bad_substr(f"[{symbol}]") is True
-    assert durrant_lab_contains_bad_substr(f"CC(=O)[O-].[{symbol}+2]") is True
+    assert _contains_metal(f"[{symbol}]") is True
+    assert _contains_metal(f"CC(=O)[O-].[{symbol}+2]") is True
 
 
 @pytest.mark.parametrize(
@@ -137,18 +165,25 @@ def test_metal_containing_smiles_are_rejected(symbol: str) -> None:
         "c1cc[nH]c1",  # Bracketed aromatic nitrogen, not sodium.
         "C[N+](C)(C)C",  # Charged nitrogen, not niobium.
         "[I-]",  # Iodide, not indium.
-        "O=[PH](=O)([O-])[O-]",  # Bracketed phosphorus, not lead or platinum.
+        "O=[PH](O)O",  # Bracketed phosphorus, not lead or platinum.
         "[Si](C)(C)C",  # A metalloid, left alone on purpose.
         "[2H]C(Cl)(Cl)Cl",  # Isotope label on a non-metal.
     ],
 )
 def test_non_metal_bracket_atoms_are_kept(smiles: str) -> None:
-    # The substrings keep the opening bracket precisely so that these do not
-    # collide with a metal symbol that shares a first letter.
-    assert durrant_lab_contains_bad_substr(smiles) is False
+    # Bracket atoms whose symbols share a first letter with a metal. The old
+    # SMILES substring test had to be written carefully to leave these alone.
+    assert _contains_metal(smiles) is False
 
 
-def test_krypton_is_caught_by_the_potassium_substring() -> None:
-    # Known and accepted overreach: "[K" matches krypton as well as potassium.
-    # Pinned so that it reads as a decision rather than a surprise.
-    assert durrant_lab_contains_bad_substr("[Kr]") is True
+def test_krypton_is_not_mistaken_for_potassium() -> None:
+    # Regression: the substring "[K" matched krypton as well as potassium.
+    assert _contains_metal("[Kr]") is False
+    assert _contains_metal("[K+]") is True
+
+
+@pytest.mark.parametrize("smiles", ["[23Na+]", "CC(=O)[O-].[64Cu+2]"])
+def test_isotope_labeled_metals_are_rejected(smiles: str) -> None:
+    # Regression: an isotope label puts digits between the bracket and the
+    # symbol, so the substring "[Na" never matched "[23Na+]".
+    assert _contains_metal(smiles) is True

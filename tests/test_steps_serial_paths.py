@@ -6,6 +6,7 @@ executed.
 """
 
 import numpy
+import pytest
 
 from gypsum_dl import chem_utils
 from gypsum_dl.MolContainer import MolContainer
@@ -27,7 +28,7 @@ from gypsum_dl.steps.conf.Minimize3D import minimize_3d
 from gypsum_dl.steps.smiles.AddHydrogens import add_hydrogens
 from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
 from gypsum_dl.steps.smiles.DurrantLabFilter import (
-    durrant_lab_contains_bad_substr,
+    durrant_lab_contains_metal,
     durrant_lab_filters,
 )
 from gypsum_dl.steps.smiles.EnumerateChiralMols import enumerate_chiral_molecules
@@ -510,6 +511,21 @@ def test_enumerate_chiral_carries_over_failed_container(monkeypatch) -> None:
     assert original_mol.genealogy[-1] == "(WARNING: Unable to generate enantiomers)"
 
 
+def test_make_tauts_carries_over_failed_container(monkeypatch) -> None:
+    # Regression: make_tauts had no fallback of its own. A container that
+    # produced no tautomers kept its structures only through the selector's
+    # carry-over default, so its genealogy never recorded the failure.
+    contnr = _container("CCO", "ethanol")
+    original_mol = contnr.mols[0]
+    monkeypatch.setattr(MakeTautomers, "parallel_make_taut", lambda *a: None)
+    captured = _capture_carried_over(monkeypatch, MakeTautomers)
+
+    make_tauts([contnr], 5, 1, 1, "serial", False, None)
+
+    assert original_mol in captured["flat"]
+    assert original_mol.genealogy[-1] == "(WARNING: Unable to generate tautomers)"
+
+
 def test_enumerate_double_bonds_carries_over_failed_container(monkeypatch) -> None:
     # Regression: same carry-over path for double-bond enumeration.
     contnr = _container("CC=CCC", "pentene")
@@ -557,9 +573,9 @@ def test_enumerate_double_bonds_respects_zero_variants() -> None:
     assert len(contnr.mols) == 1
 
 
-def test_durrant_lab_contains_bad_substr_detects_metals() -> None:
-    assert durrant_lab_contains_bad_substr("CC(=O)[O-][Zn+2]") is True
-    assert durrant_lab_contains_bad_substr("CCO") is False
+def test_durrant_lab_contains_metal_detects_metals() -> None:
+    assert durrant_lab_contains_metal(MyMol("CC(=O)[O-].[Zn+2]").rdkit_mol) is True
+    assert durrant_lab_contains_metal(MyMol("CCO").rdkit_mol) is False
 
 
 def test_durrant_lab_filters_discards_boron() -> None:
@@ -568,12 +584,24 @@ def test_durrant_lab_filters_discards_boron() -> None:
     assert contnr.mols == []
 
 
-def test_durrant_lab_filters_discards_metal_by_substring() -> None:
-    # The metal check is a SMILES substring test rather than a substructure
-    # match, so it is the one branch of the filter that no pattern covers.
-    contnr = _container("CCO.[Zn+2]", "zinc_salt")
+def test_durrant_lab_filters_discards_metal_bound_into_the_compound() -> None:
+    # The metal check is an atom test rather than a substructure match, so it
+    # is the one branch of the filter that no pattern covers.
+    contnr = MolContainer("C[Sn](C)(C)C", "tetramethyltin", 0, {})
+    desalt_orig_smi([contnr])
     durrant_lab_filters([contnr], 1, "serial", None)
     assert contnr.mols == []
+
+
+def test_durrant_lab_filters_keeps_a_fragment_desalted_away_from_its_metal() -> None:
+    # The filter judges the variant's own structure, and the desalter has
+    # already removed the counterion by then, so a metal salt of an otherwise
+    # clean compound survives as that compound.
+    contnr = MolContainer("CCCCCC(=O)[O-].[Zn+2]", "zinc_salt", 0, {})
+    desalt_orig_smi([contnr])
+    durrant_lab_filters([contnr], 1, "serial", None)
+    assert len(contnr.mols) == 1
+    assert "Zn" not in contnr.mols[0].smiles()
 
 
 def test_durrant_lab_filters_keeps_clean_molecule() -> None:
@@ -643,7 +671,7 @@ def test_durrant_lab_filters_does_not_claim_originals_were_kept(capsys) -> None:
     log = " ".join(capsys.readouterr().out.split())
     assert contnr.mols == []
     assert "discarding it" in log
-    assert "Keeping original" not in log
+    assert "Keeping the variants" not in log
 
 
 def test_durrant_lab_filters_discards_variant_with_no_rdkit_mol() -> None:
@@ -951,3 +979,51 @@ def test_minimize_3d_records_energy_for_ring_mols_when_requested() -> None:
     assert len(contnr.mols) == 1
     assert "Energy" in contnr.mols[0].mol_props
     assert len(contnr.mols[0].conformers) == 1
+
+
+# Every step that feeds bst_for_each_contnr_no_opt, run with a cap high enough
+# that nothing is sampled away, so the variant sets are deterministic.
+_STEPS_THAT_REGROUP_BY_CONTAINER = [
+    pytest.param(
+        lambda c: add_hydrogens(c, 6.4, 8.4, 1.0, 50, 1, 1, "serial", None),
+        id="add_hydrogens",
+    ),
+    pytest.param(
+        lambda c: make_tauts(c, 50, 1, 1, "serial", False, None), id="make_tauts"
+    ),
+    pytest.param(
+        lambda c: durrant_lab_filters(c, 1, "serial", None),
+        id="durrant_lab_filters",
+    ),
+    pytest.param(
+        lambda c: enumerate_chiral_molecules(c, 50, 1, 1, "serial", None),
+        id="enumerate_chiral_molecules",
+    ),
+    pytest.param(
+        lambda c: enumerate_double_bonds(c, 50, 1, 1, "serial", None),
+        id="enumerate_double_bonds",
+    ),
+    pytest.param(
+        lambda c: convert_2d_to_3d(c, 50, 1, 1, "serial", None),
+        id="convert_2d_to_3d",
+    ),
+]
+
+
+@pytest.mark.parametrize("step", _STEPS_THAT_REGROUP_BY_CONTAINER)
+def test_step_treats_containers_with_the_same_smiles_independently(step) -> None:
+    # Each step flattens every container's variants into one list before
+    # bst_for_each_contnr_no_opt regroups them by contnr_idx. Any operation
+    # applied to that flat list as a whole (a global dedup, for instance)
+    # lets the first of two inputs that share a SMILES strip the second, so
+    # the two containers must come out of every step identical.
+    contnrs = [
+        _container_at_idx("CC=CC(N)C(=O)O", "first", 0),
+        _container_at_idx("CC=CC(N)C(=O)O", "second", 1),
+    ]
+
+    step(contnrs)
+
+    first, second = _contnr_smiles(contnrs)
+    assert first
+    assert first == second

@@ -288,7 +288,9 @@ def prepare_molecules(args: dict[str, Any]) -> None:
 
         # run_one turns a raised exception into None, and the failure and
         # output writers run inside the job, so a job that raised leaves no
-        # file behind. Only the root can see that, so it has to say so.
+        # file behind. Only the root can see that, so it has to say so, and it
+        # writes the failed-molecule file the job never reached so that a
+        # retry built from those files includes these inputs too.
         num_succeeded = sum(1 for result in job_results if result is True)
         num_raised = len(job_input) - num_succeeded
         if num_raised:
@@ -297,10 +299,27 @@ def prepare_molecules(args: dict[str, Any]) -> None:
                 + str(num_raised)
                 + " of "
                 + str(len(job_input))
-                + " input molecules raised an error and produced no output file "
-                + "at all. Search the output above for lines beginning with "
-                + "'ERROR in execute_gypsum_dl' to identify them."
+                + " input molecules raised an error. Search the output above "
+                + "for lines beginning with 'ERROR in execute_gypsum_dl' for "
+                + "the tracebacks."
             )
+
+            # Results come back in job order, one per job, which is what lets
+            # a result be traced to its container. If the counts disagree
+            # that pairing is gone, and naming the wrong inputs in a retry
+            # file is worse than naming none.
+            if len(job_results) == len(contnrs):
+                raised = [
+                    contnr
+                    for contnr, result in zip(contnrs, job_results)
+                    if result is not True
+                ]
+                write_failed_molecules(
+                    raised,
+                    params,
+                    "These entries raised an error, so no 3D models were "
+                    + "generated for them:",
+                )
 
     # Calculate the total run time. Neither of these is a parameter: the
     # parameters record is written by save_to_sdf while the run is still going,
@@ -698,6 +717,30 @@ def deal_with_failed_molecules(
 
     # To keep track of failed molecules
     failed = [contnr for contnr in contnrs if len(contnr.mols) == 0]
+    write_failed_molecules(
+        failed,
+        params,
+        "3D models could not be generated for the following entries:",
+    )
+
+
+def write_failed_molecules(
+    failed: list[MolContainer], params: dict[str, Any], heading: str
+) -> None:
+    """Log the given inputs and write them to the failed-molecule file(s).
+
+    Two callers decide what failed in different ways: each job finds its own
+    empty containers, and the mpi root finds the jobs that raised, which never
+    reached their own writer. Both have to produce the same retry file, so
+    the naming and the line format live here only.
+
+    Args:
+        failed: The containers to report. Nothing is written if empty.
+        params: The parameters, used to determine the output folder and
+            whether each input gets its own file.
+        heading: The log line printed above the list of entries.
+    """
+
     if not failed:
         return
 
@@ -709,7 +752,7 @@ def deal_with_failed_molecules(
     }
 
     # Let the user know if there's more than one failed molecule.
-    utils.log("\n3D models could not be generated for the following entries:")
+    utils.log("\n" + heading)
     utils.log("\n".join(lines.values()))
     utils.log("\n")
 
