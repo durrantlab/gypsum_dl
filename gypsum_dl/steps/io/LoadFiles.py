@@ -24,7 +24,10 @@ def load_smiles_file(filename):
     data = []
     duplicate_names = {}
     name_set: set[str] = set()
-    with open(filename, encoding="utf-8") as f:
+    # utf-8-sig drops the byte-order mark that Excel and older Windows editors
+    # write. str.strip() leaves it in place, so it otherwise ends up glued to
+    # the first SMILES and that molecule fails to parse.
+    with open(filename, encoding="utf-8-sig") as f:
         # enumerate over the raw file so reported line numbers match the file,
         # regardless of any blank lines that get skipped.
         for line_num, line in enumerate(f, start=1):

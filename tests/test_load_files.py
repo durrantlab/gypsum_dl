@@ -74,6 +74,16 @@ def test_load_smiles_file_reads_utf8_names(tmp_path) -> None:
     assert [d[1] for d in load_smiles_file(str(path))] == ["café"]
 
 
+def test_load_smiles_file_strips_byte_order_mark(tmp_path) -> None:
+    # Regression: the file was read as plain UTF-8, so a leading BOM stayed on
+    # the first SMILES and only that molecule landed in the failed output.
+    path = tmp_path / "input.smi"
+    path.write_text("\ufeffCCO\tethanol\nCCC\tpropane\n", encoding="utf-8")
+    data = load_smiles_file(str(path))
+    assert [d[0] for d in data] == ["CCO", "CCC"]
+    assert [d[1] for d in data] == ["ethanol", "propane"]
+
+
 def test_load_smiles_file_renames_duplicates(tmp_path) -> None:
     path = tmp_path / "input.smi"
     path.write_text("CCO\tethanol\nOCC\tethanol\nCCCO\tethanol\n")
