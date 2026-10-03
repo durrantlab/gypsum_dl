@@ -27,8 +27,7 @@ def minimize_3d(
 ) -> None:
     """This function minimizes a 3D molecular conformation. In an attempt to
        not get trapped in a local minimum, it actually generates a number of
-       conformers, minimizes the best ones, and then saves the best of the
-       best.
+       conformers, minimizes them all, and then saves the best one.
 
     :param contnrs: A list of containers (MolContainer.MolContainer).
     :type contnrs: list
@@ -176,7 +175,7 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
 
     # A cap of zero means "do not enumerate variants," not "emit no models,"
     # so one conformer is still needed here; a cap of zero would otherwise
-    # request zero conformers and then index an empty slice below.
+    # request zero conformers and leave nothing to minimize.
     variant_cap = max(1, max_variants_per_compound)
 
     # Not minimizing. Just adding the conformers.
@@ -188,11 +187,13 @@ def parallel_minit(mol, max_variants_per_compound, thoroughness, second_embed):
         # Consider this:
         # O=C([C@@]1([C@@H]2O[C@@H]([C@@]1(C3=O)C)CC2)C)N3c4sccn4
 
-        # Further minimize the unoptimized conformers that were among the best
-        # scoring. The conformers were sorted by their pre-minimization energy,
-        # which is not monotonic with post-minimization energy, so re-sort the
-        # minimized subset before selecting the best one.
-        minimized = mol.conformers[:variant_cap]
+        # Minimize every conformer rather than only the best few by
+        # pre-minimization energy. That energy is dominated by embedding strain
+        # and does not predict the minimized ranking (for flexible molecules it
+        # is often anti-correlated), so pre-filtering on it discards good
+        # conformers and leaves thoroughness with almost no effect when
+        # max_variants_per_compound is small.
+        minimized = mol.conformers
         for conf in minimized:
             conf.minimize()
         minimized.sort(key=operator.attrgetter("energy"))

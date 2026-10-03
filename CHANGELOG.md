@@ -4,6 +4,129 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## WIP: [2.0.0] - 2026-09-30
+
+This release focuses on correctness, consistency, and reproducibility. Some of
+these improvements affect which variants Gypsum-DL generates, so output may
+differ from 2.0.0, including for runs that use the same random seed.
+
+### Added
+
+-   Added the `--random_seed` parameter. Seeds are drawn per job in the
+    dispatching process, so a seeded run produces the same output under the
+    serial, multiprocessing, and MPI job managers.
+-   Added a `python -m gypsum_dl` entry point. MPI runs now launch with
+    `mpirun -n N python -m mpi4py -m gypsum_dl ...`.
+-   In MPI mode, the root process now writes `gypsum_dl_failed__inputN.smi` for
+    jobs that raised, matching the other job managers.
+-   Added validation for `job_manager`, `pH`, `thoroughness`,
+    `max_variants_per_compound`, and the input source. `thoroughness` must now
+    be between 1 and 1000.
+
+### Changed
+
+-   Seeded output differs from earlier releases because per-job seeding and
+    cached ranking energies change the sequence of random draws.
+-   Ring conformers are now selected within each chemical form (protonation
+    state or tautomer) rather than by pooled UFF energy, since UFF energies are
+    not comparable across forms. Every form kept by the SMILES steps now gets
+    at least one output slot.
+-   The Durrant-lab metal filter now matches atomic numbers on the variant
+    structure rather than SMILES substrings. This keeps krypton from matching
+    `[K` and lets the filter recognize isotope-labeled metals.
+-   Durrant-lab SMARTS queries are now compiled once per process rather than
+    being sent with each container.
+-   The tautomer enumeration budget now scales with `thoroughness`.
+-   Chiral-center detection and cis/trans enumeration now use RDKit's legacy
+    stereo perception, so results are consistent across RDKit versions.
+-   The PDB "Final SMILES" remark now matches the SMILES written to the SDF and
+    HTML outputs.
+-   Fields that Gypsum-DL computes now take precedence over tags in input SDF
+    files.
+-   HTML output is now written as UTF-8.
+-   mpi4py is now optional. It is only needed for MPI mode.
+-   `max_variants_per_compound = 0` is now supported and documented: Gypsum-DL
+    desalts, skips SMILES enumeration, and outputs one 3D model per compound.
+-   Updated the help text, error messages, `README.md`, and Pitt CRC example
+    scripts to reflect the new MPI launch command. The documentation no longer
+    describes multiprocessing and MPI runs as nondeterministic.
+-   Warnings about steps that produced no variants now name what the step was
+    generating (tautomers, enantiomers, etc.).
+
+### Removed
+
+-   Removed the unused `cache_prerun` parameter. Passing it now raises an
+    unrecognized-parameter error.
+-   Removed `end_time` and `run_time` from the saved parameters, since the
+    parameter record is written before the run finishes. Both are still
+    reported in the log.
+-   Removed an unused tautomer filter, `durrant_lab_contains_bad_substr`,
+    `prohibited_smi_substrs_for_substr`, and several unused `MolObjectHandling`
+    helpers.
+
+### Fixed
+
+-   Parallel execution and error handling:
+    -   Multiprocessing runs now continue when a job raises, and Gypsum-DL
+        detects workers that exit unexpectedly.
+    -   Serial, multiprocessing, and MPI jobs now share one failure handler,
+        so an error in one job is isolated from the rest, and every failed job
+        is reported.
+    -   Improved MPI per-rank failure files, result reindexing, and handling
+        of the parameters SDF.
+    -   Enumeration, 3D, and filter workers now leave their inputs unchanged,
+        so serial and multiprocessing runs give the same results.
+-   Variant enumeration and selection:
+    -   Corrected list indexing during low-energy variant selection.
+    -   Containers are now indexed by `contnr_idx` rather than list position.
+        Input compounds that share a SMILES string are now processed
+        independently, and deduplication stays within each compound.
+    -   Steps that generate no variants now consistently keep the existing
+        structures, and tautomer-step failures are now recorded in the
+        genealogy.
+    -   Removed a redundant metal pre-filter in favor of the full Durrant-lab
+        filter step, which already removes these compounds.
+    -   Improved chiral-center counting, handling of truncated chirality
+        assignments, and the chirality reference used by the tautomer filter.
+    -   Improved double-bond enumeration for molecules with only one possible
+        combination, deduplication in molecules without explicit hydrogens,
+        the terminal-alkene stereo check, the enumeration budget, and
+        reproducibility.
+    -   Improved desalting tie-breaks, fragment pairing, and genealogy
+        records. Desalting is now deterministic.
+    -   Improved ionization fallbacks and provenance tracking, and preserved
+        names in `add_smiles`. The genealogy now records the source SMILES,
+        and each variant's `UniqueID` is now unique.
+    -   SMILES caches are now refreshed when a molecule changes, including when
+        hydrogen handling renumbers atoms.
+-   3D generation and minimization:
+    -   `second_embed` and `skip_optimize_geometry` are now applied as
+        documented.
+    -   Ring-containing molecules are now minimized when the ring-conformer
+        step is skipped. Ringless variants, and molecules for which ring
+        conformers could not be generated, are now minimized as well.
+    -   Improved conformer ordering after minimization, conformer IDs, the
+        ring-conformer shape check, and handling of missing conformers in
+        RMSD calculation, conformer generation, and `minimize_3d`.
+-   Input and output:
+    -   Improved creation of nested `output_folder` paths, 2D SDF output,
+        per-input SDF files, handling of atomless SDF records and `None` SDF
+        properties, and handling of duplicate molecule names.
+    -   Improved failure-file names, file encodings, `source_dir` handling,
+        and file-handle cleanup. Output writers now skip molecules they
+        cannot write.
+-   Command line and logging:
+    -   All command-line flags are now passed through correctly. Also
+        improved boolean parameter checks, the default number of processors,
+        and CLI documentation.
+    -   Improved log environment variable parsing, line wrapping, newline
+        handling, and debug-output settings. Sanitization failures are now
+        reported without a SMILES string.
+-   Error handling for problematic molecules:
+    -   Improved handling of edge cases in `standardize_smiles`, `MyMol` SMILES
+        generation, non-string canonical SMILES, and `flatten_list` results
+        from failed workers.
+
 ## [1.3.0] - 2025-11-17
 
 -   Bumping version to 1.3.0 to match the version on PyPI.

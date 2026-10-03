@@ -2,6 +2,8 @@
 
 from typing import TypedDict
 
+import pytest
+
 from gypsum_dl import MyMol
 from gypsum_dl.steps.conf import Minimize3D, PrepareThreeD
 
@@ -42,10 +44,10 @@ class _FakeMol:
 
 
 def test_parallel_minit_returns_lowest_energy_minimized_conformer(monkeypatch) -> None:
-    # Regression (M7): conformers are ranked by pre-minimization energy, then
-    # the best few are minimized. Post-minimization ranking is not monotonic
-    # with the pre-minimization ranking, so the code must re-sort the minimized
-    # subset instead of blindly keeping conformers[0].
+    # Regression (M7): conformers arrive sorted by pre-minimization energy.
+    # Post-minimization ranking is not monotonic with the pre-minimization
+    # ranking, so the code must re-sort the minimized conformers instead of
+    # blindly keeping conformers[0].
     #
     # Pre-min order: A(10) < B(20).  Post-min: B(1) < A(5). The lowest-energy
     # minimized conformer is B, but the buggy code returned A.
@@ -69,6 +71,38 @@ def test_parallel_minit_returns_lowest_energy_minimized_conformer(monkeypatch) -
     # parallel_minit works on a copy of mol, so B is recognized by the energy
     # only it reaches after minimization rather than by identity.
     assert captured["conf"].energy == 1
+    assert result.conformers[0].energy == 1
+    assert "1 kcal/mol" in result.genealogy[-1]
+
+
+def test_parallel_minit_minimizes_conformers_beyond_the_variant_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Thoroughness must buy minimized candidates, not just discarded embeds.
+
+    Regression: only the top max_variants_per_compound conformers by raw
+    (unminimized) energy were minimized. With a cap of one, the extra
+    conformers thoroughness generated were thrown away unminimized, so a
+    conformer that embeds strained but relaxes lowest could never win. Here C
+    has the worst raw energy and the best minimized energy.
+    """
+    conf_a = _FakeConf(pre=10, post=5)
+    conf_b = _FakeConf(pre=20, post=3)
+    conf_c = _FakeConf(pre=30, post=1)
+    mol = _FakeMol([conf_c, conf_a, conf_b])
+
+    class _FakeMyConformer:
+        def __init__(
+            self, new_mol: object, conf: _FakeConf, second_embed: bool
+        ) -> None:
+            self.energy = conf.energy
+
+    monkeypatch.setattr(Minimize3D, "MyConformer", _FakeMyConformer)
+
+    result = Minimize3D.parallel_minit(
+        mol, max_variants_per_compound=1, thoroughness=3, second_embed=False
+    )
+
     assert result.conformers[0].energy == 1
     assert "1 kcal/mol" in result.genealogy[-1]
 

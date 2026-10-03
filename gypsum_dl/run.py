@@ -15,7 +15,7 @@ def main():
         # set_parameters as the single source of the defaults.
         argument_default=argparse.SUPPRESS,
         description="""
-    Gypsum-DL 1.3.0, a free, open-source program for preparing 3D small-molecule
+    Gypsum-DL 2.0.0, a free, open-source program for preparing 3D small-molecule
     models. Beyond simply assigning atomic coordinates, Gypsum-DL accounts for
     alternate ionization, tautomeric, chiral, cis/trans isomeric, and
     ring-conformational forms.""",
