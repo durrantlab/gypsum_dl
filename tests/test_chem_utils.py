@@ -286,6 +286,88 @@ def test_bst_for_each_contnr_no_opt_records_ranking_energies_on_the_container() 
 
     chem_utils.bst_for_each_contnr_no_opt([contnr], mols, 1, 1)
 
-    # num=1 and thoroughness=1 means random_sample draws one candidate, so
-    # exactly one structure is measured and recorded.
-    assert len(contnr.probe_energies) == 1
+    # The three candidates have different formulas, so each is its own group,
+    # and with thoroughness=1 each group has one candidate measured.
+    assert len(contnr.probe_energies) == 3
+
+
+class _ScoredConf:
+    """A stand-in conformer carrying a fixed ranking energy."""
+
+    def __init__(self, energy: float) -> None:
+        self.energy = energy
+
+
+def _scored_mol(smiles: str, energy: float) -> MyMol.MyMol:
+    """Build a candidate whose ranking energy is fixed, so no embedding runs.
+
+    first_conf_energy reads an existing conformer's energy directly, which
+    lets a test choose the ranking without RDKit's embedder.
+
+    Args:
+        smiles: SMILES of the candidate.
+        energy: The energy it should rank with.
+
+    Returns:
+        A MyMol carrying one stand-in conformer.
+    """
+    mol = MyMol.MyMol(smiles)
+    mol.conformers = [_ScoredConf(energy)]
+    return mol
+
+
+def test_comparable_group_key_separates_protonation_states_only() -> None:
+    """Only molecules with the same atoms may share a ranking group.
+
+    Tautomers and stereoisomers keep their formula and charge, so they group
+    with the protonation state they came from; different protonation states
+    must not.
+    """
+    key = chem_utils._comparable_group_key
+
+    assert key(MyMol.MyMol("CC(=O)O")) != key(MyMol.MyMol("CC(=O)[O-]"))
+    assert key(MyMol.MyMol("CC(C)=O")) == key(MyMol.MyMol("C=C(C)O"))
+    assert key(MyMol.MyMol("C[C@H](N)C(=O)O")) == key(MyMol.MyMol("C[C@@H](N)C(=O)O"))
+
+
+def test_pick_lowest_enrgy_mols_keeps_every_protonation_state() -> None:
+    """A higher-energy protonation state must still get a slot.
+
+    Regression: candidates were ranked on one pooled list, so three neutral
+    C2H4O2 isomers outranked the acetate anion, whose UFF energy is not on the
+    same scale. Each group now gets a slot before any group gets a second.
+    """
+    neutral = [
+        _scored_mol("CC(=O)O", 1.0),
+        _scored_mol("OCC=O", 2.0),
+        _scored_mol("COC=O", 3.0),
+    ]
+    anion = _scored_mol("CC(=O)[O-]", 100.0)
+
+    for _ in range(20):
+        kept = chem_utils.pick_lowest_enrgy_mols(neutral + [anion], 3, 3)
+        assert {m.smiles() for m in kept} == {
+            neutral[0].smiles(),
+            neutral[1].smiles(),
+            anion.smiles(),
+        }
+
+
+def test_pick_lowest_enrgy_mols_samples_every_group() -> None:
+    """Sampling must not eliminate a protonation state before it is scored.
+
+    Regression: the num * thoroughness sample was drawn from the pooled list,
+    so a group with one member was often left out of the sample entirely. The
+    sample is now drawn per group.
+    """
+    hexanes = [
+        _scored_mol(smi, float(i))
+        for i, smi in enumerate(
+            ["CCCCCC", "CCCC(C)C", "CCC(C)CC", "CC(C)C(C)C", "CCC(C)(C)C"]
+        )
+    ]
+    pentane = _scored_mol("CCCCC", 100.0)
+
+    for _ in range(20):
+        kept = chem_utils.pick_lowest_enrgy_mols(hexanes + [pentane], 2, 1)
+        assert pentane.smiles() in {m.smiles() for m in kept}

@@ -44,6 +44,12 @@ differ from 2.0.0, including for runs that use the same random seed.
     cannot compare states that differ in atom count and charge. It now
     requests `max_variants_per_compound` states, so `thoroughness` no longer
     affects ionization. This requires Dimorphite-DL 2.1.0 or later.
+-   Variants are now ranked by UFF energy only against variants with the same
+    molecular formula and net charge, and each such group (in practice, each
+    protonation state) gets a slot before any group gets a second. The
+    tautomer, enantiomer, cis-trans, and first 3D culls previously ranked all
+    of a compound's variants together, so a protonation state could be dropped
+    because its energy, which is not comparable across states, was higher.
 -   The Durrant-lab metal filter now matches atomic numbers on the variant
     structure rather than SMILES substrings. This keeps krypton from matching
     `[K` and lets the filter recognize isotope-labeled metals.

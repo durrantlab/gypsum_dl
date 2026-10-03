@@ -1,9 +1,12 @@
 """The module includes definitions to manipulate the molecules."""
 
 import copy
+import math
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from rdkit import Chem
+from rdkit.Chem import rdMolDescriptors
 
 from gypsum_dl import utils
 
@@ -70,6 +73,32 @@ def first_conf_energy(
     return energy
 
 
+def _comparable_group_key(mol: "MyMol") -> Hashable:
+    """Identify which candidates have UFF energies that can be compared.
+
+    UFF energies share a scale only between molecules with the same atoms, and
+    RDKit's UFF has no electrostatic term, so protonation states (which differ
+    in hydrogen count and charge) cannot be ranked against one another.
+    Tautomers and stereoisomers keep the formula and net charge of the state
+    they came from, so this key also groups each protonation state with its
+    descendants. A zwitterion and its neutral form share a key; they have the
+    same atoms, and the tautomer step can interconvert them anyway.
+
+    Args:
+        mol: A candidate variant.
+
+    Returns:
+        The molecular formula and net formal charge, or the molecule itself
+            when its SMILES cannot be determined or parsed, so such a molecule
+            is a group of its own.
+    """
+    smi = mol.smiles()
+    parsed = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
+    if parsed is None:
+        return mol
+    return (rdMolDescriptors.CalcMolFormula(parsed), Chem.GetFormalCharge(parsed))
+
+
 def pick_lowest_enrgy_mols(
     mol_lst: list["MyMol"],
     num: int,
@@ -79,6 +108,13 @@ def pick_lowest_enrgy_mols(
     """Pick molecules with low energies. If necessary, the definition also
        makes a conformer without minimization (so not too computationally
        expensive).
+
+       Energies are compared only within groups of candidates that have the
+       same formula and net charge (see _comparable_group_key). Slots are
+       filled round-robin across groups: each group's lowest-energy candidate
+       first, then each group's second lowest, and so on. Groups are visited
+       in order of their lowest energy, which only matters when there are more
+       groups than slots.
 
     :param mol_lst: The list of MyMol.MyMol objects.
     :type mol_lst: list
@@ -108,25 +144,45 @@ def pick_lowest_enrgy_mols(
     if len(mol_lst) <= num:
         return mol_lst
 
-    # First, generate 3D structures. How many? num * thoroughness. mols_3d is
-    # a list of Gypsum-DL MyMol.MyMol objects.
-    mols_3d = utils.random_sample(mol_lst, num * thoroughness, "")
+    # Group in first-seen order, so a seeded run samples the groups in a fixed
+    # order.
+    groups: dict[Hashable, list["MyMol"]] = {}
+    for mol in mol_lst:
+        groups.setdefault(_comparable_group_key(mol), []).append(mol)
 
-    # Now get the energies
-    data = []
-    for i, mol in enumerate(mols_3d):
-        energy = first_conf_energy(mol, energy_cache)
+    # Split the embedding budget (num * thoroughness) across the groups. A
+    # single sample over the pooled list could leave a protonation state
+    # unsampled, and so eliminate it before it was ever scored.
+    per_group = thoroughness * math.ceil(num / len(groups))
 
-        if energy is not None:
-            data.append((energy, i))
+    # Score a sample of each group, lowest energy first. Ties keep sample
+    # order, and candidates that could not be embedded are dropped.
+    ranked_groups: list[list["MyMol"]] = []
+    group_best: list[float] = []
+    for members in groups.values():
+        sample = utils.random_sample(members, per_group, "")
+        scored: list[tuple[float, int]] = []
+        for i, mol in enumerate(sample):
+            energy = first_conf_energy(mol, energy_cache)
+            if energy is not None:
+                scored.append((energy, i))
+        if scored:
+            scored.sort()
+            ranked_groups.append([sample[i] for _, i in scored])
+            group_best.append(scored[0][0])
 
-    data.sort()
+    # Stable sort, so groups with equal best energies keep first-seen order.
+    order = sorted(range(len(ranked_groups)), key=lambda g: group_best[g])
 
-    # Now keep only best top few.
-    data = data[:num]
+    kept: list["MyMol"] = []
+    depth = 0
+    while len(kept) < num and any(depth < len(g) for g in ranked_groups):
+        for g in order:
+            if depth < len(ranked_groups[g]) and len(kept) < num:
+                kept.append(ranked_groups[g][depth])
+        depth += 1
 
-    # Keep just the mols there.
-    return [mols_3d[d[1]] for d in data]
+    return kept
 
 
 def remove_highly_charged_molecules(mol_lst):
