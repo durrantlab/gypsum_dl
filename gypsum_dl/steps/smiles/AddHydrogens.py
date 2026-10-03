@@ -36,13 +36,9 @@ def add_hydrogens(
        only this number of variants (molecules) will be advanced to the next
        step.
     :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
+    :param thoroughness: Passed on to the variant cull. It does not affect
+       which ionization states are kept: Dimorphite-DL returns no more than
+       max_variants_per_compound states, so the cull keeps them all.
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -61,12 +57,16 @@ def add_hydrogens(
 
     utils.log("Ionizing all molecules...")
 
-    # Make a simple directory with the ionization parameters.
+    # Make a simple directory with the ionization parameters. Dimorphite-DL
+    # keeps its most probable states when it has to cap, so it is asked for
+    # exactly as many as can survive. Requesting more left the choice to the
+    # raw-embed UFF cull below, which cannot compare states that differ in
+    # atom count and charge.
     protonation_settings = {
         "ph_min": min_pH,
         "ph_max": max_pH,
         "precision": st_dev,
-        "max_variants": thoroughness * max_variants_per_compound,
+        "max_variants": max_variants_per_compound,
     }
 
     # Format the inputs for use in the parallelizer.

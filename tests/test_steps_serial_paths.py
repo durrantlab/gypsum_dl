@@ -7,6 +7,8 @@ executed.
 
 import numpy
 import pytest
+from dimorphite_dl import protonate_smiles
+from rdkit import Chem
 
 from gypsum_dl import chem_utils
 from gypsum_dl.MolContainer import MolContainer
@@ -126,6 +128,74 @@ def test_parallel_add_h_does_not_mutate_shared_settings() -> None:
     AddHydrogens.parallel_add_H(contnr, settings)
 
     assert settings == before
+
+
+def test_add_hydrogens_asks_dimorphite_for_only_the_states_it_keeps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dimorphite-DL, not UFF, must decide which ionization states survive.
+
+    Regression: add_hydrogens requested thoroughness * max_variants_per_compound
+    states and culled the excess by raw-embed UFF energy, which cannot compare
+    states that differ in atom count and charge. Requesting exactly the cap
+    lets Dimorphite-DL keep its most probable states.
+    """
+    requested: list[float] = []
+
+    def fake_parallel_add_h(
+        contnr: MolContainer, settings: dict[str, float]
+    ) -> list[MyMol]:
+        requested.append(settings["max_variants"])
+        return []
+
+    monkeypatch.setattr(AddHydrogens, "parallel_add_H", fake_parallel_add_h)
+
+    add_hydrogens(
+        [_container("CC(=O)O", "acetic_acid")],
+        6.4,
+        8.4,
+        1.0,
+        4,
+        3,
+        1,
+        "serial",
+        None,
+    )
+
+    assert requested == [4]
+
+
+def test_add_hydrogens_keeps_dimorphites_most_probable_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The surviving state must be Dimorphite-DL's pick, unranked by UFF.
+
+    With a cap of one and thoroughness three, the old request returned several
+    states and the UFF cull chose among them. Making the energy probe raise
+    shows that no ranking happens, and the survivor has to match what
+    Dimorphite-DL itself returns when capped at one.
+    """
+    # Canonical, because that is what add_hydrogens hands Dimorphite-DL, and
+    # tied probabilities would otherwise resolve by input atom order.
+    smiles = Chem.CanonSmiles("Cc1c[nH]cn1")
+    all_states = protonate_smiles(
+        smiles, ph_min=6.4, ph_max=8.4, precision=1.0, max_variants=128
+    )
+    assert len(all_states) >= 2, "test molecule needs two states in the pH range"
+    expected = protonate_smiles(
+        smiles, ph_min=6.4, ph_max=8.4, precision=1.0, max_variants=1
+    )
+
+    def no_ranking(*args: object, **kwargs: object) -> float:
+        raise AssertionError("ionization states were ranked by UFF energy")
+
+    monkeypatch.setattr(chem_utils, "first_conf_energy", no_ranking)
+
+    contnr = _container(smiles, "methylimidazole")
+    add_hydrogens([contnr], 6.4, 8.4, 1.0, 1, 3, 1, "serial", None)
+
+    assert len(contnr.mols) == 1
+    assert Chem.CanonSmiles(contnr.mols[0].smiles()) == Chem.CanonSmiles(expected[0])
 
 
 def test_add_hydrogens_fallback_does_not_invent_a_desalting_step(monkeypatch) -> None:

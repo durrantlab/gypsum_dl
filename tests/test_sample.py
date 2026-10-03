@@ -102,21 +102,26 @@ def test_samples(test_dir):
 
     # There should be no =[N-] if Durrant lab filters are turned on. Note:
     # Removed "CC(=N)O" from below list because durrant lab filters now remove
-    # iminols.
-    target_smiles |= {"CC([NH-])=O", "CC(N)=O"}
+    # iminols. The amide anion CC([NH-])=O is gone too: its pKa is far above
+    # the pH range, and Dimorphite-DL 2.1.0 no longer produces it.
+    target_smiles |= {"CC(N)=O"}
 
-    # There should be no [N-]C=[N+] (CC(=O)[N-]C=[N+](C)C).
+    # There should be no [N-]C=[N+] (CC(=O)[N-]C=[N+](C)C). Dimorphite-DL
+    # 2.1.0 protonates the amidine on the imine nitrogen rather than the
+    # dimethylamino nitrogen, and also keeps the neutral form.
     target_smiles |= {
-        r"CC(=O)/N=C\[NH+](C)C",
-        "CC(=O)/N=C/[NH+](C)C",
-        "CC(=O)NC=[N+](C)C",
+        "CC(=O)/N=C/N(C)C",
+        r"CC(=O)/N=C\N(C)C",
+        "CC(=O)/[NH+]=C/N(C)C",
+        r"CC(=O)/[NH+]=C\N(C)C",
     }
 
     # There should be no [nH+]c[n-] (c1c[nH+]c[n-]1)
     target_smiles |= {"c1c[n-]cn1", "c1c[nH+]c[nH]1", "c1c[nH]cn1"}
 
-    # There should be no [#7+]~[#7+] (c1cc[nH+][nH+]c1)
-    target_smiles |= {"c1ccnnc1", "c1cc[nH+]nc1"}
+    # There should be no [#7+]~[#7+] (c1cc[nH+][nH+]c1). Pyridazinium
+    # (c1cc[nH+]nc1) is absent as well, since its pKa is below the pH range.
+    target_smiles |= {"c1ccnnc1"}
 
     # There should be no [#7-]~[#7-] (CC(=O)[N-][N-]C(C)=O). Note that some
     # are commented out because Python2 and Python3 given different SMILES

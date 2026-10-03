@@ -38,6 +38,12 @@ differ from 2.0.0, including for runs that use the same random seed.
     `thoroughness` had little effect when `max_variants_per_compound` was
     small. The final minimization step now takes roughly 30 to 45 percent
     longer.
+-   Ionization states are now chosen by Dimorphite-DL's probability ranking.
+    Gypsum-DL previously requested `thoroughness × max_variants_per_compound`
+    states and kept the ones with the lowest unminimized UFF energy, which
+    cannot compare states that differ in atom count and charge. It now
+    requests `max_variants_per_compound` states, so `thoroughness` no longer
+    affects ionization. This requires Dimorphite-DL 2.1.0 or later.
 -   The Durrant-lab metal filter now matches atomic numbers on the variant
     structure rather than SMILES substrings. This keeps krypton from matching
     `[K` and lets the filter recognize isotope-labeled metals.
