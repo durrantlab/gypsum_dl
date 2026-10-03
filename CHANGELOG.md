@@ -62,6 +62,11 @@ differ from 2.0.0, including for runs that use the same random seed.
     HTML outputs.
 -   Fields that Gypsum-DL computes now take precedence over tags in input SDF
     files.
+-   An `Energy` tag in an input SDF file is now written to the output as
+    `Input_Energy`. Previously, when no step computed an energy (with
+    `--2d_output_only`, or with both `--skip_optimize_geometry` and
+    `--skip_alternate_ring_conformations`), every variant reported the input
+    structure's energy as its own.
 -   HTML output is now written as UTF-8.
 -   mpi4py is now optional. It is only needed for MPI mode.
 -   `max_variants_per_compound = 0` is now supported and documented: Gypsum-DL
@@ -130,6 +135,13 @@ differ from 2.0.0, including for runs that use the same random seed.
     -   Improved conformer ordering after minimization, conformer IDs, the
         ring-conformer shape check, and handling of missing conformers in
         RMSD calculation, conformer generation, and `minimize_3d`.
+    -   UFF minimization now runs to convergence. It previously stopped at
+        RDKit's default of 200 iterations, which left most drug-sized
+        conformers only partly relaxed. In a test on 300 approved drugs, 56
+        percent of conformers had not converged, reported energies were up to
+        19 kcal/mol too high, and 8 percent of molecules kept a conformer that
+        was not actually the lowest in energy. Runtime is essentially
+        unchanged.
 -   Input and output:
     -   Improved creation of nested `output_folder` paths, 2D SDF output,
         per-input SDF files, handling of atomless SDF records and `None` SDF
@@ -137,6 +149,12 @@ differ from 2.0.0, including for runs that use the same random seed.
     -   Improved failure-file names, file encodings, `source_dir` handling,
         and file-handle cleanup. Output writers now skip molecules they
         cannot write.
+    -   Input SDF tag values are now copied to the output unchanged.
+        Numeric-looking values were previously converted to numbers and back,
+        so an ID such as `00123` came out as `123`, and `3E4` as `30000.0`.
+    -   SMILES files that begin with a UTF-8 byte-order mark (as saved by
+        Excel and some Windows editors) are now read correctly. The first
+        molecule in such a file previously failed to parse.
 -   Command line and logging:
     -   All command-line flags are now passed through correctly. Also
         improved boolean parameter checks, the default number of processors,
