@@ -144,9 +144,12 @@ def load_sdf_file(filename):
         mol_obj_counter += 1
         name_set.add(name)
 
-        # SDF files may also contain properties. Get those as well.
+        # SDF files may also contain properties. Get those as well. They are
+        # read as raw strings because GetPropsAsDict converts anything that
+        # looks numeric, so an ID like "00123" was written back out as "123"
+        # and "3E4" as "30000.0".
         try:
-            properties = mol.GetPropsAsDict()
+            properties = {key: mol.GetProp(key) for key in mol.GetPropNames()}
         except Exception:
             properties = {}
 

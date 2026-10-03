@@ -106,7 +106,27 @@ def test_load_sdf_file_reads_names_and_properties(tmp_path) -> None:
     smiles, name, props = data[0]
     assert smiles == "CCO"
     assert name == "ethanol"
-    assert props["activity"] == 1.5
+    assert props["activity"] == "1.5"
+
+
+def test_load_sdf_file_keeps_property_values_verbatim(tmp_path) -> None:
+    # Regression: properties were read with GetPropsAsDict, which converts
+    # numeric-looking strings, so leading zeros, trailing zeros, and exponent
+    # notation were lost before the values were written back to the output.
+    mol = Chem.MolFromSmiles("CCO")
+    mol.SetProp("_Name", "ethanol")
+    raw_values = {
+        "CatalogID": "00123",
+        "activity": "1.50",
+        "conc": "3E4",
+        "barcode": "12345678901234",
+    }
+    for key, val in raw_values.items():
+        mol.SetProp(key, val)
+    path = tmp_path / "input.sdf"
+    _write_sdf(str(path), [mol])
+    props = load_sdf_file(str(path))[0][2]
+    assert props == raw_values
 
 
 def test_load_sdf_file_names_untitled_molecules(tmp_path) -> None:
