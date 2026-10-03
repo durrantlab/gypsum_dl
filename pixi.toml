@@ -1,4 +1,4 @@
-[project]
+[workspace]
 authors = ["Durrant Lab <durrantj@pitt.edu>"]
 channels = ["conda-forge"]
 description = "Open-source tool to generate 3D-ready small molecules for virtual screening"

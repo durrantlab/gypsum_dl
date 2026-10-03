@@ -1000,7 +1000,7 @@ class MyConformer:
         # failed conformer so add_conformers() skips it.
         if mol.rdkit_mol is None:
             self.mol = False
-            self.coord_3d_err_warning(None)
+            self.coord_3d_err_warning("There was no RDKit molecule to embed.")
             return
 
         self.mol = copy.deepcopy(mol.rdkit_mol)
@@ -1106,7 +1106,10 @@ class MyConformer:
             # COc1cccc2c1[C@H](CO)[N@H+]1[C@@H](C#N)[C@@H]3C[C@@H](C(=O)[O-])[C@H]([C@H]1C2)[N@H+]3C
             if self.mol is not False and self.mol.GetNumConformers() == 0:
                 self.mol = False
-                self.coord_3d_err_warning(None)
+                self.coord_3d_err_warning(
+                    "Every embedding attempt finished without producing a "
+                    "conformer, and RDKit reported no error."
+                )
         else:
             # The user has provided a conformer. Just add it.
             conformer.SetId(0)
@@ -1134,9 +1137,16 @@ class MyConformer:
                 a.GetIdx() for a in self.mol.GetAtoms() if a.GetAtomicNum() != 1
             ]
 
-    def coord_3d_err_warning(self, err):
+    def coord_3d_err_warning(self, err: Exception | str) -> None:
+        """Log why a variant could not be given 3D coordinates.
+
+        Args:
+            err: The exception RDKit raised, or a description of the failure
+                when RDKit raised nothing.
+        """
+        detail = f"Specific RDKit error: {err}" if isinstance(err, Exception) else err
         utils.log(
-            f'WARNING: RDKit failed to generate 3D coordinates for a molecule originating from "{self.orig_smi}". The SMILES string of the problematic variant is "{self.smiles}". The variant will be skipped. Specific RDKit error: {err}'
+            f'WARNING: RDKit failed to generate 3D coordinates for a molecule originating from "{self.orig_smi}". The SMILES string of the problematic variant is "{self.smiles}". The variant will be skipped. {detail}'
         )
 
     def conformer(self, conf=None):

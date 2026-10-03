@@ -144,6 +144,8 @@ differ from 2.0.0, including for runs that use the same random seed.
     -   Improved log environment variable parsing, line wrapping, newline
         handling, and debug-output settings. Sanitization failures are now
         reported without a SMILES string.
+    -   When RDKit fails to embed a variant without raising an error, the
+        warning now says so instead of ending "Specific RDKit error: None".
     -   The `GYPSUM_DL_LOG` environment variables now take effect. Messages
         are sent to loguru as well as printed, so `GYPSUM_DL_LOG_FILE_PATH`
         receives them, without color codes. `GYPSUM_DL_STDOUT` now defaults

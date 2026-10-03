@@ -739,8 +739,31 @@ def test_eliminate_similar_conformers_still_drops_duplicates() -> None:
 def test_coord_3d_err_warning_is_logged(capsys: pytest.CaptureFixture[str]) -> None:
     mol = MyMol.MyMol("CCO")
     mol.make_first_3d_conf_no_min()
-    mol.conformers[0].coord_3d_err_warning(None)
+    mol.conformers[0].coord_3d_err_warning("A test failure.")
     assert "WARNING" in capsys.readouterr().out
+
+
+def test_embedding_failure_without_an_error_is_explained(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A failure RDKit did not explain must still tell the user what happened.
+
+    Regression: when every embedding attempt returned without a conformer and
+    without raising, the warning ended "Specific RDKit error: None".
+    """
+
+    def embed_nothing(*args: object, **kwargs: object) -> int:
+        return -1
+
+    monkeypatch.setattr(MyMol.AllChem, "EmbedMolecule", embed_nothing)
+
+    conf = MyMol.MyConformer(MyMol.MyMol("CCO"))
+
+    out = " ".join(capsys.readouterr().out.split())
+    assert conf.mol is False
+    assert "error: None" not in out
+    assert "Every embedding attempt finished without producing a conformer" in out
 
 
 def _first_conformer_positions(smiles: str, seed: int) -> numpy.ndarray:
