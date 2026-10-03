@@ -116,17 +116,21 @@ Gypsum-DL accepts the following command-line parameters:
 
 ### Examples
 
+These examples use the sample library included in the Gypsum-DL repository
+(`tests/files/sample/sample_molecules.smi`), so run them from the repository
+root, or substitute your own SMILES or SDF file.
+
 Prepare a virtual library and save all 3D models to a single SDF file in the
 present directory:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi
 ```
 
 Instead save all 3D models to a different, existing folder:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
    --output_folder /my/folder/
 ```
 
@@ -134,7 +138,7 @@ Additionally save the models associated with each input molecule to separate
 files:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --separate_output_files
 ```
 
@@ -142,14 +146,14 @@ In addition to saving a 3D SDF file, also save 3D PDB files and an HTML file
 with 2D structures (for debugging).
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --add_pdb_output --add_html_output
 ```
 
 Save at most two variants per input molecule:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --max_variants_per_compound 2
 ```
 
@@ -159,28 +163,28 @@ input, but it does not generate alternate ionization states, tautomers,
 enantiomers, or double-bond isomers:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --max_variants_per_compound 0
 ```
 
 Control how Gypsum-DL ionizes the input molecules:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --output_folder /my/folder/ --min_ph 12 --max_ph 14 --pka_precision 1
 ```
 
 Run Gypsum-DL in serial mode (using only one processor):
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --job_manager serial
 ```
 
 Run Gypsum-DL in multiprocessing mode, using 4 processors:
 
 ```bash
-gypsum-dl --source ./examples/sample_molecules.smi \
+gypsum-dl --source ./tests/files/sample/sample_molecules.smi \
     --job_manager multiprocessing --num_processors 4
 ```
 
@@ -194,7 +198,8 @@ pip install "gypsum-dl[mpi]"
 ```
 
 ```bash
-mpirun -n $NTASKS python -m mpi4py -m gypsum_dl --source ./examples/sample_molecules.smi \
+mpirun -n $NTASKS python -m mpi4py -m gypsum_dl \
+    --source ./tests/files/sample/sample_molecules.smi \
     --job_manager mpi --num_processors -1
 ```
 
@@ -208,7 +213,7 @@ Where `myparams.json` might look like:
 
 ```json
 {
-    "source": "./examples/sample_molecules.smi",
+    "source": "./tests/files/sample/sample_molecules.smi",
     "separate_output_files": true,
     "job_manager": "multiprocessing",
     "output_folder": "/my/folder/",
