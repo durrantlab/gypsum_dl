@@ -373,6 +373,39 @@ def test_input_sdf_tags_do_not_replace_computed_output_fields(tmp_path) -> None:
         assert out.GetProp("UniqueID") == "1_1"
 
 
+def test_tautomers_do_not_unlock_a_specified_double_bond(tmp_path) -> None:
+    # Regression: MolVS dropped the input's E/Z label from every tautomer of
+    # this Z-aurone, because one tautomer makes the exocyclic bond single, and
+    # the double-bond step then added the E isomer the input had ruled out.
+    # Only that bond is checked: iminol tautomers of the urea add a C=N whose
+    # geometry the input never specified, and both of its isomers are correct
+    # output.
+    src = tmp_path / "aurone.smi"
+    src.write_text("Cc1ccc(cc1)NC(=O)Nc1ccc(cc1)/C=C/1\\Oc2ccc(C)cc2C1=O aurone\n")
+    output_folder = tmp_path / "out_aurone"
+    prepare_molecules(
+        {
+            "source": str(src),
+            "output_folder": str(output_folder),
+            "job_manager": "serial",
+            "max_variants_per_compound": 20,
+            "thoroughness": 1,
+            "2d_output_only": True,
+        }
+    )
+
+    exocyclic = Chem.MolFromSmarts("[CH;!R](c)=[C;R]O")
+    mols = _molecules_in(os.path.join(str(output_folder), "gypsum_dl_success.sdf"))
+    checked = 0
+    for out in mols:
+        tag = Chem.MolFromSmiles(out.GetProp("SMILES"))
+        for match in tag.GetSubstructMatches(exocyclic):
+            bond = tag.GetBondBetweenAtoms(match[0], match[2])
+            assert bond.GetStereo() == Chem.BondStereo.STEREOZ, out.GetProp("SMILES")
+            checked += 1
+    assert checked
+
+
 def test_web_2d_output_declares_utf8_and_round_trips(tmp_path) -> None:
     # Regression (bug 17): the HTML was written with the platform default
     # encoding and carried no charset declaration, so a non-ASCII ligand name

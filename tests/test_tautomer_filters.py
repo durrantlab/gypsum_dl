@@ -1,7 +1,9 @@
 """Tests for the tautomer rejection filters."""
 
 import pytest
+from rdkit import Chem
 
+import gypsum_dl.MolObjectHandling as MOH
 from gypsum_dl import MyMol
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.steps.smiles import MakeTautomers
@@ -314,3 +316,46 @@ def test_parallel_make_taut_still_rejects_dropped_stereo_assignment() -> None:
     for taut in results:
         assert len(taut.chiral_cntrs_w_unasignd()) == 1
         assert len(taut.chiral_cntrs_only_asignd()) == 1
+
+
+# A Z-aurone from a user report. Its para-urea nitrogen has a quinone-methide
+# tautomer in which the exocyclic C=C is single.
+AURONE_SMILES = "Cc1ccc(cc1)NC(=O)Nc1ccc(cc1)/C=C/1\\Oc2ccc(C)cc2C1=O"
+
+
+def _double_bond_labels(smiles: str) -> list[str]:
+    """List the defined E/Z labels in a SMILES string.
+
+    Args:
+        smiles: The SMILES string to inspect.
+
+    Returns:
+        The stereo label of every double bond whose geometry is defined.
+    """
+    undefined = (Chem.BondStereo.STEREONONE, Chem.BondStereo.STEREOANY)
+    with MOH.legacy_stereo_perception():
+        mol = Chem.MolFromSmiles(smiles)
+        return [
+            str(b.GetStereo())
+            for b in mol.GetBonds()
+            if b.GetBondType() == Chem.BondType.DOUBLE
+            and b.GetStereo() not in undefined
+        ]
+
+
+def test_parallel_make_taut_keeps_specified_double_bond_geometry() -> None:
+    # Regression: once any tautomer made the exocyclic bond single, MolVS
+    # dropped its E/Z label from every tautomer, the unchanged one included.
+    # The double-bond step then treated the bond as unspecified and output the
+    # E isomer alongside the Z isomer the input specified.
+    contnr = MolContainer(AURONE_SMILES, "aurone", 0, {})
+    contnr.add_smiles(AURONE_SMILES)
+
+    results = parallel_make_taut(contnr.mols[0], contnr.contnr_props(), 100)
+
+    labels = [_double_bond_labels(taut.smiles()) for taut in results]
+    # The quinone-methide form has to be among the results, or this test no
+    # longer exercises the case where MolVS drops the label.
+    assert [] in labels
+    assert ["STEREOZ"] in labels
+    assert all(label in ([], ["STEREOZ"]) for label in labels)

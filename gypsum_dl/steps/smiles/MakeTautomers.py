@@ -24,6 +24,20 @@ except Exception:
     utils.exception("You need to install molvs and its dependencies.")
 
 
+class DoubleBondStereo(TypedDict):
+    """One double bond whose geometry a tautomer's parent variant specified.
+
+    Recorded as cis or trans relative to a fixed pair of neighbor atoms rather
+    than as E or Z, because tautomerization can change the CIP ranks that E
+    and Z are defined by while the geometry stays the same.
+    """
+
+    begin: int
+    end: int
+    stereo_atoms: tuple[int, int]
+    cis: bool
+
+
 class ContnrRingFacts(TypedDict):
     """What the aromaticity filter needs to know about the input compound.
 
@@ -194,6 +208,94 @@ def make_tauts(
     )
 
 
+def specified_double_bonds(mol: "Chem.Mol") -> list[DoubleBondStereo]:
+    """Record the double-bond geometry a molecule specifies, by atom index.
+
+    MolVS strips the E/Z label from a double bond in every tautomer it returns
+    once any one tautomer makes that bond single, the unchanged tautomer
+    included. The double-bond step then treats the bond as unspecified and
+    enumerates both isomers. Recording the geometry before enumeration lets it
+    be put back afterwards.
+
+    Args:
+        mol: The exact molecule handed to MolVS, since the record is keyed on
+            its atom indices.
+
+    Returns:
+        One entry per double bond with a defined geometry.
+    """
+
+    ref = Chem.Mol(mol)
+    with MOH.legacy_stereo_perception():
+        Chem.AssignStereochemistry(ref, cleanIt=True, force=True)
+
+    cis_labels = (Chem.BondStereo.STEREOZ, Chem.BondStereo.STEREOCIS)
+    trans_labels = (Chem.BondStereo.STEREOE, Chem.BondStereo.STEREOTRANS)
+    specified: list[DoubleBondStereo] = []
+    for bond in ref.GetBonds():
+        stereo = bond.GetStereo()
+        stereo_atoms = tuple(bond.GetStereoAtoms())
+        if bond.GetBondType() != Chem.BondType.DOUBLE or len(stereo_atoms) != 2:
+            continue
+        if stereo not in cis_labels and stereo not in trans_labels:
+            continue
+        specified.append(
+            {
+                "begin": bond.GetBeginAtomIdx(),
+                "end": bond.GetEndAtomIdx(),
+                "stereo_atoms": (stereo_atoms[0], stereo_atoms[1]),
+                "cis": stereo in cis_labels,
+            }
+        )
+    return specified
+
+
+def restore_double_bond_stereo(
+    taut: "Chem.Mol", specified: list[DoubleBondStereo]
+) -> None:
+    """Put the parent's double-bond geometry back on a MolVS tautomer.
+
+    MolVS transforms edit copies of the input, so atom indices carry over.
+    A recorded bond is restored only where the tautomer still has a double
+    bond between the same atoms, with the same neighbors; where
+    tautomerization made it single, it correctly stays unlabeled.
+
+    Args:
+        taut: A tautomer returned by MolVS. Modified in place.
+        specified: The parent's record, from specified_double_bonds.
+    """
+
+    if not specified:
+        return
+
+    # Single-bond directions are what the SMILES writer turns into "/" and
+    # "\", and MolVS leaves stale ones behind. Clear them all and rebuild them
+    # from the restored bond labels, so the two cannot disagree.
+    for bond in taut.GetBonds():
+        bond.SetBondDir(Chem.BondDir.NONE)
+        if bond.GetBondType() == Chem.BondType.DOUBLE:
+            bond.SetStereo(Chem.BondStereo.STEREONONE)
+
+    for spec in specified:
+        bond = taut.GetBondBetweenAtoms(spec["begin"], spec["end"])
+        if bond is None or bond.GetBondType() != Chem.BondType.DOUBLE:
+            continue
+        stereo_begin, stereo_end = spec["stereo_atoms"]
+        if bond.GetBeginAtomIdx() != spec["begin"]:
+            stereo_begin, stereo_end = stereo_end, stereo_begin
+        if (
+            taut.GetBondBetweenAtoms(stereo_begin, bond.GetBeginAtomIdx()) is None
+            or taut.GetBondBetweenAtoms(stereo_end, bond.GetEndAtomIdx()) is None
+        ):
+            continue
+        bond.SetStereoAtoms(stereo_begin, stereo_end)
+        bond.SetStereo(
+            Chem.BondStereo.STEREOCIS if spec["cis"] else Chem.BondStereo.STEREOTRANS
+        )
+
+    Chem.SetDoubleBondNeighborDirections(taut)
+
+
 def parallel_make_taut(
     mol: MyMol.MyMol,
     props: MyMol.ContnrProps,
@@ -254,8 +356,11 @@ def parallel_make_taut(
     # could add more, and MolVS itself can overshoot, so you'll need to trim to
     # max_variants_per_compound later. But this could at least help prevent the
     # combinatorial explosion at this stage.
+    specified = specified_double_bonds(m)
     enum = tautomer.TautomerEnumerator(max_tautomers=max_tauts)
     tauts_rdkit_mols = enum.enumerate(m)
+    for taut_rdkit_mol in tauts_rdkit_mols:
+        restore_double_bond_stereo(taut_rdkit_mol, specified)
 
     # Make all those tautomers into MyMol objects.
     tauts_mols = [MyMol.MyMol(m) for m in tauts_rdkit_mols]

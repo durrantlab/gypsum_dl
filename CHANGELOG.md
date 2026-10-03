@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 This release focuses on correctness, consistency, and reproducibility. Some of
 these improvements affect which variants Gypsum-DL generates, so output may
-differ from 2.0.0, including for runs that use the same random seed.
+differ from earlier releases, including for runs that use the same random seed.
 
 ### Added
 
@@ -119,6 +119,10 @@ differ from 2.0.0, including for runs that use the same random seed.
     -   Double-bond enumeration no longer changes double bonds whose stereo
         the input specified. In a conjugated system such as `C/C=C/C=CC`, a
         specified bond could previously come out flipped.
+    -   Tautomer enumeration no longer erases double-bond stereo that the
+        input specified. When any tautomer made a specified double bond
+        single (as a quinone-methide tautomer can), MolVS dropped that bond's
+        E/Z label from every tautomer, and both isomers were output.
     -   Improved desalting tie-breaks, fragment pairing, and genealogy
         records. Desalting is now deterministic.
     -   Improved ionization fallbacks and provenance tracking, and preserved
