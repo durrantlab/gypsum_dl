@@ -619,6 +619,23 @@ def test_conformer_minimize_is_idempotent() -> None:
     assert conf.energy == energy
 
 
+def test_conformer_minimize_runs_to_convergence() -> None:
+    # Regression: Minimize ran with RDKit's default cap of 200 iterations,
+    # which leaves most drug-sized conformers unconverged, and the energies
+    # Gypsum-DL ranked and reported were those of partially relaxed
+    # geometries. Imatinib (68 atoms with hydrogens) is in the size range
+    # where 200 iterations usually falls short. A converged geometry passes
+    # the convergence test on a fresh force field's first iteration.
+    random.seed(0)
+    mol = MyMol.MyMol("Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1")
+    mol.make_first_3d_conf_no_min()
+    conf = mol.conformers[0]
+    conf.minimize()
+
+    ff = AllChem.UFFGetMoleculeForceField(conf.mol)
+    assert ff.Minimize(maxIts=1) == 0
+
+
 def test_conformer_write_pdb_file(tmp_path) -> None:
     mol = MyMol.MyMol("CCO")
     mol.make_first_3d_conf_no_min()
