@@ -18,15 +18,18 @@ LOG_FORMAT = (
 
 def enable_logging(
     level_set: int | str,
-    stdout_set: bool = True,
+    stdout_set: bool = False,
     file_path: str | None = None,
     log_format: str = LOG_FORMAT,
 ) -> None:
     r"""Enable logging.
 
     Args:
-        level: Requested log level: `10` is debug, `20` is info.
+        level_set: Requested log level: `10` is debug, `20` is info.
+        stdout_set: Also send log records to stdout. Off by default because
+            every message is already printed there.
         file_path: Also write logs to files here.
+        log_format: The loguru format string for each record.
     """
     config: dict[str, Any] = {"handlers": []}
     if stdout_set:
@@ -44,7 +47,7 @@ def enable_logging(
                 "sink": file_path,
                 "level": level_set,
                 "format": log_format,
-                "colorize": True,
+                "colorize": False,
             }
         )
     # https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure
@@ -106,6 +109,6 @@ def _env_log_level(default: int) -> int | str:
 if _env_flag("GYPSUM_DL_LOG", False):
     enable_logging(
         _env_log_level(20),
-        _env_flag("GYPSUM_DL_STDOUT", True),
+        _env_flag("GYPSUM_DL_STDOUT", False),
         os.environ.get("GYPSUM_DL_LOG_FILE_PATH", None),
     )

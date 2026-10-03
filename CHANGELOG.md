@@ -141,6 +141,10 @@ differ from 2.0.0, including for runs that use the same random seed.
     -   Improved log environment variable parsing, line wrapping, newline
         handling, and debug-output settings. Sanitization failures are now
         reported without a SMILES string.
+    -   The `GYPSUM_DL_LOG` environment variables now take effect. Messages
+        are sent to loguru as well as printed, so `GYPSUM_DL_LOG_FILE_PATH`
+        receives them, without color codes. `GYPSUM_DL_STDOUT` now defaults
+        to off, so terminal output is not printed twice.
 -   Error handling for problematic molecules:
     -   Improved handling of edge cases in `standardize_smiles`, `MyMol` SMILES
         generation, non-string canonical SMILES, and `flatten_list` results

@@ -7,6 +7,8 @@ import string
 import textwrap
 from typing import TYPE_CHECKING
 
+from loguru import logger
+
 if TYPE_CHECKING:
     # Annotations only. Importing MolContainer at run time would make utils the
     # head of a utils -> MolContainer -> MyMol -> MolObjectHandling -> utils
@@ -90,7 +92,7 @@ def random_sample(lst: list, num: int, msg_if_cut: str = ""):
 
 
 def log(txt: str, trailing_whitespace: str = "") -> None:
-    """Prints a message to the screen.
+    """Prints a message to the screen and passes it to loguru.
 
     Args:
         txt: The message to print.
@@ -118,7 +120,16 @@ def log(txt: str, trailing_whitespace: str = "") -> None:
                 break_on_hyphens=False,
             )
         )
-    print("\n".join(wrapped_lines) + trailing_whitespace)
+    text = "\n".join(wrapped_lines)
+    print(text + trailing_whitespace)
+
+    # Also hand the message to loguru, which drops it unless the GYPSUM_DL_LOG
+    # environment variables (or enable_logging) turned logging on. No depth
+    # offset: loguru filters on the calling module's name, and only messages
+    # attributed to a gypsum_dl module are covered by logger.disable, so a
+    # caller outside the package would otherwise reach loguru's default stderr
+    # sink.
+    logger.info(text)
 
 
 def fnd_contnrs_not_represntd(contnrs: list["MolContainer"], results: list) -> list:
