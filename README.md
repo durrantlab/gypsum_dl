@@ -238,6 +238,16 @@ Use the `--let_tautomers_change_chirality` flag if you would like to retain thes
 
 As always, be sure to examine the structures that Gypsum-DL outputs to ensure they are chemically feasible.
 
+### Protonated Amines
+
+When Gypsum-DL protonates a tertiary amine with three different substituents, the nitrogen becomes a stereocenter, and Gypsum-DL enumerates both configurations (e.g., `C[N@H+](CC)CCC` and `C[N@@H+](CC)CCC`).
+These invertomers interconvert rapidly in solution, but docking programs do not invert nitrogen atoms, and the two forms point the N-H hydrogen in different directions.
+Generating both lets the docking program consider either orientation of what is often a key hydrogen-bond or salt-bridge donor.
+In ring amines the two forms differ more substantially, for example by placing the N-H axial or equatorial.
+
+These variants count toward `max_variants_per_compound`.
+The `--skip_enumerate_chiral_mol` flag disables them along with all other chirality enumeration.
+
 ### Durrant-Lab Filters
 
 In looking over many Gypsum-DL-generated variants, we have identified a number of substructures that, though technically possible, strike us as improbable or otherwise poorly suited for virtual screening.
