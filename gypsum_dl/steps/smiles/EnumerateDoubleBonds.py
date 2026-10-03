@@ -6,6 +6,7 @@ import copy
 import itertools
 import math
 import random
+from typing import TypedDict
 
 import gypsum_dl.MolObjectHandling as MOH
 import gypsum_dl.parallelizer as Parallelizer
@@ -179,6 +180,92 @@ def _could_carry_stereochemistry(mol_with_hs: "Chem.Mol", bond_idx: int) -> bool
         if not others or sum(1 for n in others if n.GetAtomicNum() == 1) >= 2:
             return False
     return True
+
+
+class _StereoReference(TypedDict):
+    """The input's specified double bonds, in a form variants can be matched to."""
+
+    query: "Chem.Mol"
+    specified: dict[tuple[int, int], "Chem.BondStereo"]
+
+
+def _double_bond_stereo_by_atoms(
+    rd_mol: "Chem.Mol",
+) -> dict[tuple[int, int], "Chem.BondStereo"]:
+    """Map each double bond with defined stereo to its label, keyed by atoms.
+
+    Keyed by atom pair rather than bond index, so a substructure match (which
+    maps atoms) can translate between two spellings of the same molecule.
+
+    Args:
+        rd_mol: A molecule parsed under the legacy perception, which labels
+            bonds E or Z by CIP rank, so labels compare across spellings.
+
+    Returns:
+        Sorted atom-index pair to stereo label.
+    """
+    undefined = (Chem.BondStereo.STEREONONE, Chem.BondStereo.STEREOANY)
+    return {
+        tuple(sorted((b.GetBeginAtomIdx(), b.GetEndAtomIdx()))): b.GetStereo()
+        for b in rd_mol.GetBonds()
+        if b.GetBondType() == Chem.BondType.DOUBLE and b.GetStereo() not in undefined
+    }
+
+
+def _stereo_reference(smiles: object) -> _StereoReference | None:
+    """Record which double bonds the input specified, and how.
+
+    Built from the input's canonical SMILES rather than its RDKit molecule,
+    because that molecule's stereo state depends on how it was constructed:
+    one built from a sanitized Mol carries labels that the enumeration's
+    forced reassignment does not refresh.
+
+    Args:
+        smiles: The input molecule's canonical SMILES, or a failure marker.
+
+    Returns:
+        A stereo-free copy to match variants against, plus the specified
+        bonds' labels, or None when nothing is specified or parsing fails.
+    """
+    if not isinstance(smiles, str):
+        return None
+    ref = Chem.MolFromSmiles(smiles)
+    if ref is None:
+        return None
+    specified = _double_bond_stereo_by_atoms(ref)
+    if not specified:
+        return None
+    query = Chem.Mol(ref)
+    Chem.RemoveStereochemistry(query)
+    return {"query": query, "specified": specified}
+
+
+def _keeps_specified_double_bonds(reference: _StereoReference, smiles: str) -> bool:
+    """Check that a variant left every specified double bond as it was.
+
+    Every atom mapping is tried, because in a symmetric molecule (hexa-2,4-
+    diene) a variant can match the input only when read from the other end.
+
+    Args:
+        reference: Output of _stereo_reference for the input molecule.
+        smiles: A candidate variant's SMILES.
+
+    Returns:
+        True if some mapping onto the variant preserves every specified bond.
+    """
+    candidate = Chem.MolFromSmiles(smiles)
+    if candidate is None:
+        return False
+    found = _double_bond_stereo_by_atoms(candidate)
+    for match in candidate.GetSubstructMatches(
+        reference["query"], uniquify=False, useChirality=False
+    ):
+        if all(
+            found.get(tuple(sorted((match[a], match[b])))) == stereo
+            for (a, b), stereo in reference["specified"].items()
+        ):
+            return True
+    return False
 
 
 def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
@@ -386,6 +473,20 @@ def parallel_get_double_bonded(mol, max_variants_per_compound, thoroughness):
     # ones. Sort so downstream selection order does not depend on set iteration
     # order (which varies with PYTHONHASHSEED across processes).
     smiles_to_consider = sorted(s for s in smiles_to_consider if "/" in s or "\\" in s)
+
+    # Discard variants that changed a double bond the input specified. The
+    # direction set on a single bond shared with a neighboring double bond
+    # also rewrites that neighbor (C/C=C/C=CC could come out Z,Z), and the
+    # stereo labels on the working molecule do not reliably show it, so check
+    # the SMILES that will actually be kept.
+    with MOH.legacy_stereo_perception():
+        reference = _stereo_reference(mol.smiles())
+        if reference is not None:
+            smiles_to_consider = [
+                s
+                for s in smiles_to_consider
+                if _keeps_specified_double_bonds(reference, s)
+            ]
 
     # Get the maximum number of / + \ in any string.
     cnts = [s.count("/") + s.count("\\") for s in smiles_to_consider]

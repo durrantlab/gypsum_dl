@@ -111,6 +111,9 @@ differ from 2.0.0, including for runs that use the same random seed.
         combination, deduplication in molecules without explicit hydrogens,
         the terminal-alkene stereo check, the enumeration budget, and
         reproducibility.
+    -   Double-bond enumeration no longer changes double bonds whose stereo
+        the input specified. In a conjugated system such as `C/C=C/C=CC`, a
+        specified bond could previously come out flipped.
     -   Improved desalting tie-breaks, fragment pairing, and genealogy
         records. Desalting is now deterministic.
     -   Improved ionization fallbacks and provenance tracking, and preserved

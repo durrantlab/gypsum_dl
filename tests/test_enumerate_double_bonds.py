@@ -2,6 +2,7 @@
 
 import random
 import time
+from collections.abc import Callable
 
 import pytest
 
@@ -22,6 +23,35 @@ def test_enumerates_when_thoroughness_times_variants_is_one() -> None:
     smis = [m.smiles(True) for m in results]
     assert len(results) == 2
     assert all("/" in s or "\\" in s for s in smis)
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda: MyMol("C/C=C/C=CC"),
+        lambda: MyMol("CC=C/C=C/C"),
+        # How the ionization step builds it, and the case seen in real runs.
+        lambda: MyMol(Chem.MolFromSmiles("CC=C/C=C/C")),
+    ],
+    ids=["string", "reversed_string", "sanitized_mol"],
+)
+def test_keeps_the_specified_bond_of_a_partially_specified_diene(
+    build: Callable[[], MyMol],
+) -> None:
+    """A bond the input specified must not be varied along with its neighbor.
+
+    Regression: the single bond between the two double bonds also encodes the
+    specified bond's stereo, and enumeration assigned it a direction for the
+    unspecified bond, so one of three outputs was (Z,Z) although the input
+    fixed one bond as trans. Only (E,E) and (E,Z) are allowed, however the
+    input molecule was built.
+    """
+    results = parallel_get_double_bonded(build(), 8, 3)
+
+    assert {Chem.CanonSmiles(m.smiles(True)) for m in results} == {
+        Chem.CanonSmiles("C/C=C/C=C/C"),
+        Chem.CanonSmiles("C/C=C/C=C\\C"),
+    }
 
 
 def test_does_not_mutate_input_molecule() -> None:
