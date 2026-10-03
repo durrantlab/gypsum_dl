@@ -265,11 +265,19 @@ class MolContainer:
         saving final files, to keep a record in the file itself."""
 
         # Input-file properties must not overwrite values Gypsum-DL computed
-        # itself (Energy, UniqueID, and so on), so they only fill gaps. An
-        # input SDF that had already been scored otherwise had its old Energy
-        # tag reported as though Gypsum-DL had produced it.
+        # itself (Energy, UniqueID, and so on), so they only fill gaps.
+        # Energy needs more than that: when no step computes one (2D output,
+        # or both optimization and ring conformations skipped), filling the
+        # gap would report the input structure's energy as this variant's.
+        # The input value is kept, but under its own tag. It replaces any
+        # Input_Energy the input already carried, since the input's Energy
+        # describes the structure actually submitted.
+        input_props = dict(self.properties)
+        if "Energy" in input_props:
+            input_props["Input_Energy"] = input_props.pop("Energy")
+
         for mol in self.mols:
-            for key, val in self.properties.items():
+            for key, val in input_props.items():
                 mol.mol_props.setdefault(key, val)
             mol.set_all_rdkit_mol_props()
 

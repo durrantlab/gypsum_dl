@@ -86,8 +86,31 @@ def test_add_container_properties_do_not_overwrite_computed_values() -> None:
 
     assert contnr.mols[0].mol_props["Energy"] == -34.2
     assert contnr.mols[0].rdkit_mol.GetProp("Energy") == "-34.2"
+    # The input's energy is kept, but under its own tag.
+    assert contnr.mols[0].rdkit_mol.GetProp("Input_Energy") == "-9.5"
     # An input property that collides with nothing is still copied through.
     assert contnr.mols[0].rdkit_mol.GetProp("activity") == "1.0"
+
+
+def test_add_container_properties_never_report_input_energy_as_computed() -> None:
+    # Regression: Energy is only set when minimization or the ring step runs,
+    # so with 2D output or both skipped, the gap-filling merge copied the input
+    # SDF's Energy onto every variant as though Gypsum-DL had computed it. The
+    # value now goes to Input_Energy, replacing any Input_Energy the input
+    # already carried (as a re-processed Gypsum-DL output would).
+    contnr = MolContainer(
+        "CCO", "ethanol", 0, {"Energy": "-9.5", "Input_Energy": "-3.0"}
+    )
+    contnr.add_smiles("CCO")
+
+    contnr.add_container_properties()
+
+    mol = contnr.mols[0]
+    assert "Energy" not in mol.mol_props
+    assert not mol.rdkit_mol.HasProp("Energy")
+    assert mol.rdkit_mol.GetProp("Input_Energy") == "-9.5"
+    # The container's own record of the input is left as loaded.
+    assert contnr.properties == {"Energy": "-9.5", "Input_Energy": "-3.0"}
 
 
 def test_remove_identical_mols_from_contnr() -> None:
