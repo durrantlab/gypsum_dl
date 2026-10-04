@@ -74,9 +74,9 @@ differ from earlier releases, including for runs that use the same random seed.
     desalts, skips SMILES enumeration, and outputs one 3D model per compound.
 -   Updated the help text, error messages, `README.md`, and Pitt CRC example
     scripts to reflect the new MPI launch command. The documentation no longer
-    describes multiprocessing and MPI runs as nondeterministic. The `README.md`
-    examples now use the sample library included in the repository
-    (`tests/files/sample/sample_molecules.smi`).
+    describes multiprocessing and MPI runs as nondeterministic. The examples in
+    `README.md` and the help text now use the sample library included in the
+    repository (`tests/files/sample/sample_molecules.smi`).
 -   Warnings about steps that produced no variants now name what the step was
     generating (tautomers, enantiomers, etc.).
 
