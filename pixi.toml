@@ -29,7 +29,9 @@ docs = ["docs"]
 ruff = ">=0.7.2,<1"
 isort = ">=5.13.2,<6"
 mypy = ">=1.13.0,<2"
-twine = ">=5.1.1,<6"
+# twine must read the metadata version that current setuptools writes (2.4
+# needs twine 6.1), since python -m build always builds with the newest one.
+twine = ">=6.1.0,<7"
 pytest = ">=8.3.3,<9"
 pytest-cov = ">=6.0.0,<7"
 coverage = ">=7.6.4,<8"
@@ -67,10 +69,12 @@ profile = { cmd = [
     "--failed-first",
 ]}
 coverage = { cmd = ["coverage", "report"] }
-cleanup-build = { cmd = ["rm", "-rf", "./build"] }
-build = { cmd = ["python3", "-m", "build"], depends-on = ["cleanup-build"]}
-publish-test = { cmd = ["twine", "upload", "--repository", "testpypi", "dist/*"] }
-publish = { cmd = ["twine", "upload", "dist/*"] }
+# dist/ is cleared on every build because the publish tasks upload dist/*.
+cleanup-build = { cmd = ["rm", "-rf", "./build", "./dist", "./gypsum_dl.egg-info"] }
+build = { cmd = ["python", "-m", "build"], depends-on = ["cleanup-build"]}
+check-dist = { cmd = ["twine", "check", "--strict", "dist/*", "&&", "python", "scripts/check_release.py"], depends-on = ["build"] }
+publish-test = { cmd = ["twine", "upload", "--repository", "testpypi", "dist/*"], depends-on = ["check-dist"] }
+publish = { cmd = ["twine", "upload", "dist/*"], depends-on = ["check-dist"] }
 
 [feature.dev.pypi-dependencies]
 build = ">=1.2.2.post1,<2"
