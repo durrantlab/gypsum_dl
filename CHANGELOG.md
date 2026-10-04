@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## WIP: [2.0.0] - 2026-09-30
+## [2.0.0] - 2026-10-03
 
 This release focuses on correctness, consistency, and reproducibility. Some of
 these improvements affect which variants Gypsum-DL generates, so output may
@@ -63,17 +63,20 @@ differ from earlier releases, including for runs that use the same random seed.
 -   Fields that Gypsum-DL computes now take precedence over tags in input SDF
     files.
 -   An `Energy` tag in an input SDF file is now written to the output as
-    `Input_Energy`. Previously, when no step computed an energy (with
+    `Input_Energy`, so the `Energy` field always holds a value Gypsum-DL
+    computed. Previously, when no step computed an energy (with
     `--2d_output_only`, or with both `--skip_optimize_geometry` and
-    `--skip_alternate_ring_conformations`), every variant reported the input
-    structure's energy as its own.
+    `--skip_alternate_ring_conformations`), the input value could appear in
+    the `Energy` field.
 -   HTML output is now written as UTF-8.
 -   mpi4py is now optional. It is only needed for MPI mode.
 -   `max_variants_per_compound = 0` is now supported and documented: Gypsum-DL
     desalts, skips SMILES enumeration, and outputs one 3D model per compound.
 -   Updated the help text, error messages, `README.md`, and Pitt CRC example
     scripts to reflect the new MPI launch command. The documentation no longer
-    describes multiprocessing and MPI runs as nondeterministic.
+    describes multiprocessing and MPI runs as nondeterministic. The `README.md`
+    examples now use the sample library included in the repository
+    (`tests/files/sample/sample_molecules.smi`).
 -   Warnings about steps that produced no variants now name what the step was
     generating (tautomers, enantiomers, etc.).
 
@@ -119,10 +122,11 @@ differ from earlier releases, including for runs that use the same random seed.
     -   Double-bond enumeration no longer changes double bonds whose stereo
         the input specified. In a conjugated system such as `C/C=C/C=CC`, a
         specified bond could previously come out flipped.
-    -   Tautomer enumeration no longer erases double-bond stereo that the
-        input specified. When any tautomer made a specified double bond
-        single (as a quinone-methide tautomer can), MolVS dropped that bond's
-        E/Z label from every tautomer, and both isomers were output.
+    -   Tautomer enumeration now preserves double-bond stereo that the input
+        specifies, even when another tautomer makes that bond single (as a
+        quinone-methide tautomer can). In that case, MolVS removes the bond's
+        E/Z label from all the tautomers it returns, so both isomers could
+        previously be output.
     -   Improved desalting tie-breaks, fragment pairing, and genealogy
         records. Desalting is now deterministic.
     -   Improved ionization fallbacks and provenance tracking, and preserved
@@ -139,13 +143,11 @@ differ from earlier releases, including for runs that use the same random seed.
     -   Improved conformer ordering after minimization, conformer IDs, the
         ring-conformer shape check, and handling of missing conformers in
         RMSD calculation, conformer generation, and `minimize_3d`.
-    -   UFF minimization now runs to convergence. It previously stopped at
-        RDKit's default of 200 iterations, which left most drug-sized
-        conformers only partly relaxed. In a test on 300 approved drugs, 56
-        percent of conformers had not converged, reported energies were up to
-        19 kcal/mol too high, and 8 percent of molecules kept a conformer that
-        was not actually the lowest in energy. Runtime is essentially
-        unchanged.
+    -   UFF minimization now runs until it converges, rather than stopping at
+        RDKit's default limit of 200 iterations. Larger drug-like molecules
+        often need more iterations than that, so their reported energies are
+        now fully relaxed, and in some cases a different conformer is kept as
+        the lowest in energy. Runtime is essentially unchanged.
 -   Input and output:
     -   Improved creation of nested `output_folder` paths, 2D SDF output,
         per-input SDF files, handling of atomless SDF records and `None` SDF
@@ -154,8 +156,8 @@ differ from earlier releases, including for runs that use the same random seed.
         and file-handle cleanup. Output writers now skip molecules they
         cannot write.
     -   Input SDF tag values are now copied to the output unchanged.
-        Numeric-looking values were previously converted to numbers and back,
-        so an ID such as `00123` came out as `123`, and `3E4` as `30000.0`.
+        Previously, numeric-looking values could be reformatted (for example,
+        an ID of `00123` became `123`).
     -   SMILES files that begin with a UTF-8 byte-order mark (as saved by
         Excel and some Windows editors) are now read correctly. The first
         molecule in such a file previously failed to parse.
