@@ -84,6 +84,7 @@ def prepare_smiles(contnrs, params):
             job_manager,
             let_tautomers_change_chirality,
             parallelizer_obj,
+            params["use_durrant_lab_filters"],
         )
         # utils.log("Done with Tautomerization")
     else:
@@ -92,7 +93,24 @@ def prepare_smiles(contnrs, params):
     if debug:
         utils.print_current_smiles(contnrs)
 
-    # Apply Durrant-lab filters if requested
+    # Apply Durrant-lab filters if requested. Every step that trims toward
+    # max_variants_per_compound before this point was checked for discarding
+    # a variant the filters would accept:
+    #
+    # - Tautomers: the trim is real (thoroughness-bounded sampling, then an
+    #   energy ranking), so make_tauts applies the filters to each candidate
+    #   before it trims. This call stays as the authoritative check, since it
+    #   also covers tautomer-step carry-overs and runs with tautomers skipped.
+    # - Ionization: not a lossy trim. Dimorphite-DL is asked for at most
+    #   max_variants_per_compound states, so the cull in add_hydrogens keeps
+    #   them all. Which states Dimorphite-DL returns is protonation handling,
+    #   deliberately left to it. Filtering ionization states early would also
+    #   be wrong when tautomers are on, because a rejected state can have an
+    #   acceptable tautomer.
+    # - Chirality and double bonds: they run after this step, and stereo
+    #   enumeration cannot change the outcome. No filter pattern carries
+    #   stereo, and the metal test reads elements only, so every stereoisomer
+    #   of an accepted variant is accepted too.
     if params["use_durrant_lab_filters"]:
         # utils.log("Applying Durrant-Lab Filters")
         durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj)

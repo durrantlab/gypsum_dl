@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, TypedDict
 import gypsum_dl.MolObjectHandling as MOH
 import gypsum_dl.parallelizer as Parallelizer
 from gypsum_dl import MyMol, chem_utils, utils
+from gypsum_dl.steps.smiles.DurrantLabFilter import passes_durrant_lab_filters
 
 if TYPE_CHECKING:
     # Annotations only, for the two facts builders below.
@@ -98,14 +99,15 @@ def chirality_facts(contnr: "MolContainer") -> ContnrChiralityFacts:
 
 
 def make_tauts(
-    contnrs,
-    max_variants_per_compound,
-    thoroughness,
-    num_procs,
-    job_manager,
-    let_tautomers_change_chirality,
-    parallelizer_obj,
-):
+    contnrs: list["MolContainer"],
+    max_variants_per_compound: int,
+    thoroughness: int,
+    num_procs: int,
+    job_manager: str,
+    let_tautomers_change_chirality: bool,
+    parallelizer_obj: "Parallelizer.Parallelizer | None",
+    use_durrant_lab_filters: bool = False,
+) -> None:
     """Generates tautomers of the molecules. Note that some of the generated
     tautomers are not realistic. If you find a certain improbable
     substructure keeps popping up, add it to the list in the
@@ -136,6 +138,10 @@ def make_tauts(
     :type job_manager: string
     :param parallelizer_obj: The Parallelizer object.
     :type parallelizer_obj: Parallelizer.Parallelizer
+    :param use_durrant_lab_filters: Whether to drop tautomers the Durrant-lab
+      filters reject before the trim to max_variants_per_compound. Defaults to
+      False.
+    :type use_durrant_lab_filters: bool, optional
     """
 
     # No need to proceed if there are no max variants.
@@ -165,7 +171,14 @@ def make_tauts(
     for contnr in contnrs:
         props = contnr.contnr_props()
         params.extend(
-            (mol, props, max_tauts, reject_chirality_changes) for mol in contnr.mols
+            (
+                mol,
+                props,
+                max_tauts,
+                reject_chirality_changes,
+                use_durrant_lab_filters,
+            )
+            for mol in contnr.mols
         )
     params = tuple(params)
 
@@ -191,14 +204,24 @@ def make_tauts(
     )
 
     # Containers left with no tautomers (the worker failed, or the filters
-    # above rejected every form) keep their existing structures. This runs
-    # after the filters so that it sees what actually survived.
+    # above or in parallel_make_taut rejected every form) keep their existing
+    # structures. This runs after the filters so that it sees what actually
+    # survived. A carried-over structure still faces the Durrant-lab filter
+    # step later, so a compound whose every form the filters reject fails
+    # there rather than slipping through on this fallback.
     utils.carry_over_unrepresented(
         contnrs, taut_data, "tautomers", "(WARNING: Unable to generate tautomers)"
     )
 
     # Keep only the top few compound variants in each container, to prevent a
-    # combinatorial explosion.
+    # combinatorial explosion. When the Durrant-lab filters are on, every
+    # tautomer they reject was already dropped inside parallel_make_taut, so
+    # both the thoroughness-bounded sample and the final energy ranking below
+    # choose among acceptable forms only. The filter step used to see only the
+    # survivors of this trim, so whenever the trim kept nothing but rejected
+    # forms (with max_variants_per_compound 1, a single amide, urea, or imide
+    # enol ranked or sampled ahead of the keto form), the compound failed
+    # although an acceptable tautomer had been generated and discarded.
     chem_utils.bst_for_each_contnr_no_opt(
         contnrs,
         taut_data,
@@ -301,6 +324,7 @@ def parallel_make_taut(
     props: MyMol.ContnrProps,
     max_tauts: int,
     reject_chirality_changes: bool = False,
+    apply_durrant_lab_filters: bool = False,
 ) -> list[MyMol.MyMol] | None:
     """Makes alternate tautomers for a given molecule. This is the function
        that gets fed into the parallelizer.
@@ -319,6 +343,9 @@ def parallel_make_taut(
        center counts differ from those of mol. See
        parallel_check_chiral_centers.
     :type reject_chirality_changes: bool
+    :param apply_durrant_lab_filters: Whether to drop tautomers the
+       Durrant-lab filters reject. See passes_durrant_lab_filters.
+    :type apply_durrant_lab_filters: bool
     :return: A list of MyMol.MyMol objects, containing the alternate
         tautomeric forms.
     :rtype: list
@@ -395,6 +422,14 @@ def parallel_make_taut(
         if (
             reject_chirality_changes
             and parallel_check_chiral_centers(tm, parent_facts) is None
+        ):
+            continue
+
+        # Rejected here, before make_tauts trims to max_variants_per_compound,
+        # so the trim cannot keep a rejected form in place of an acceptable
+        # one. The filter step that runs later applies the same test again.
+        if apply_durrant_lab_filters and not passes_durrant_lab_filters(
+            tm, props["orig_smi"]
         ):
             continue
 

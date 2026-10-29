@@ -19,6 +19,7 @@ except Exception:
 
 if TYPE_CHECKING:
     from gypsum_dl.MolContainer import MolContainer
+    from gypsum_dl.MyMol import MyMol
 
 # Get the substructures you won't permit (per substructure matching, not
 # substring matching)
@@ -180,6 +181,65 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     )
 
 
+def passes_durrant_lab_filters(mol: "MyMol", orig_smi: str) -> bool:
+    """Decide whether one variant survives the Durrant-lab filters.
+
+    This is the whole per-variant decision, kept in one place because two
+    steps apply it. The tautomer step calls it on every candidate before
+    trimming to max_variants_per_compound, so the trim chooses only among
+    variants the filters accept; parallel_durrant_lab_filter calls it again on
+    whatever reaches the filter step. Each rejection is logged here, so both
+    callers report a discarded variant the same way.
+
+    Args:
+        mol: The variant to judge.
+        orig_smi: The SMILES of the input compound the variant came from, for
+            the log message.
+
+    Returns:
+        True if the variant has a valid RDKit molecule, no metal atom, and
+            none of the prohibited substructures.
+    """
+
+    # A variant whose RDKit mol failed to build can't be substructure
+    # matched, and its canonical SMILES can't be generated either, so it
+    # gets its own message rather than the one below.
+    if mol.rdkit_mol is None:
+        utils.log(
+            "\tA variant generated from "
+            + orig_smi
+            + " ("
+            + mol.name
+            + ") has no valid RDKit molecule, so I'm discarding it."
+        )
+        return False
+
+    # The metal test looks at the molecule alone, so it belongs outside the
+    # pattern loop; inside, it was re-evaluated once per query. Both tests
+    # short circuit, so a molecule is matched against no more patterns than it
+    # needs to be.
+    prohibited = durrant_lab_contains_metal(mol.rdkit_mol) or any(
+        mol.rdkit_mol.HasSubstructMatch(pattrn)
+        for pattrn in get_prohibited_substructs()
+    )
+
+    if prohibited:
+        utils.log(
+            "\t"
+            + str(mol.smiles(True))
+            + ", a variant generated "
+            + "from "
+            + orig_smi
+            + " ("
+            + mol.name
+            + "), contains a prohibited substructure, so I'm "
+            + "discarding it."
+        )
+        return False
+
+    return True
+
+
 def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None":
     """A parallelizable helper function that checks that tautomers do not
        break any nonaromatic rings present in the original object.
@@ -191,55 +251,13 @@ def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None"
     :rtype: MolContainer.MolContainer | None
     """
 
-    prohibited_substructs = get_prohibited_substructs()
-
     # Serial mode passes the caller's own container rather than a pickled
     # copy, so filter into a new list and hand back a shallow copy. Pruning
     # contnr.mols in place made the caller's containers depend on the job
     # manager.
-    survivors = list(contnr.mols)
-
-    # Replace any molecules that have prohibited substructure with None.
-    for mi, m in enumerate(survivors):
-        # A variant whose RDKit mol failed to build can't be substructure
-        # matched, and its canonical SMILES can't be generated either, so it
-        # gets its own message rather than the one below.
-        if m.rdkit_mol is None:
-            utils.log(
-                "\tA variant generated from "
-                + contnr.orig_smi
-                + " ("
-                + m.name
-                + ") has no valid RDKit molecule, so I'm discarding it."
-            )
-            survivors[mi] = None
-            continue
-
-        # The metal test looks at the molecule alone, so it belongs outside the
-        # pattern loop; inside, it was re-evaluated once per query. Both tests
-        # short circuit, so a molecule is matched against no more patterns
-        # than it needs to be.
-        prohibited = durrant_lab_contains_metal(m.rdkit_mol) or any(
-            m.rdkit_mol.HasSubstructMatch(pattrn) for pattrn in prohibited_substructs
-        )
-
-        if prohibited:
-            utils.log(
-                "\t"
-                + str(m.smiles(True))
-                + ", a variant generated "
-                + "from "
-                + contnr.orig_smi
-                + " ("
-                + m.name
-                + "), contains a prohibited substructure, so I'm "
-                + "discarding it."
-            )
-
-            survivors[mi] = None
-
-    # Now go back and remove those Nones
-    survivors = Parallelizer.strip_none(survivors)
+    survivors = [
+        m for m in contnr.mols if passes_durrant_lab_filters(m, contnr.orig_smi)
+    ]
 
     # If there are no molecules, mark this container for deletion.
     if len(survivors) == 0:
