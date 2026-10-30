@@ -4,6 +4,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-29
+
+This release changes how Gypsum-DL chooses tautomers. Output differs from 2.0.0
+for many compounds that can tautomerize, including runs that use the same random
+seed.
+
+### Changed
+
+-   Tautomers are now ranked with RDKit's tautomer-scoring rules (the rules
+    RDKit uses to choose a canonical tautomer) instead of by UFF energy.
+    Tautomer selection is now deterministic, and it no longer embeds a conformer
+    for every candidate.
+-   Tautomers that score equally now go to the form the input SMILES describes.
+-   Gypsum-DL now corrects known blind spots of the scoring rules:
+    -   It keeps the input's imine or enamine form. The rules always prefer the
+        imine, but enaminones, enamino esters, arylidene hydantoins, and
+        nitroethenediamines such as nizatidine exist as enamines. When more than
+        one variant per compound is allowed, the other form can still appear as
+        a later variant.
+    -   A hydroximic acid, nitronic (aci-nitro) acid, or β-imino carbonyl now
+        ranks below its hydroxamic acid, nitro, or β-enaminone tautomer when
+        that tautomer is among the candidates. Hydroxamic acids such as
+        vorinostat previously came out as hydroximic acids.
+    -   Not corrected: a C=C bond that MolVS moves along a chain through enol
+        shifts (diethyl itaconate to the citraconate, for example), since the
+        scoring rules cannot tell the positions apart.
+-   In the tautomer step, `thoroughness` now sets only how many tautomers are
+    enumerated (`thoroughness × max_variants_per_compound`). It no longer sets
+    how many candidates are sampled for ranking, because every candidate is now
+    scored.
+-   When several tautomers of a compound are kept, they are now listed best
+    first.
+
+### Fixed
+
+-   With `--use_durrant_lab_filters`, a small `--max_variants_per_compound`
+    could make a compound fail even though one of its variants passed the
+    filters. The filters ran only after the tautomer step had trimmed its
+    candidates, so when every tautomer that survived the trim was one the
+    filters reject (often an amide, urea, or imide enol), nothing was left. The
+    filters now also screen each tautomer before that trim, and the tautomer
+    step logs each one it rejects.
+
 ## [2.0.0] - 2026-10-03
 
 This release focuses on correctness, consistency, and reproducibility. Some of

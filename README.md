@@ -1,4 +1,4 @@
-<h1 align="center">Gypsum-DL 2.0.0</h1>
+<h1 align="center">Gypsum-DL 2.1.0</h1>
 
 <h4 align="center">Open-source tool to generate 3D-ready small molecules for virtual screening</h4>
 
@@ -247,7 +247,7 @@ Ties go to the tautomer the input SMILES describes.
 Gypsum-DL also corrects known blind spots of these rules.
 It keeps the input’s imine or enamine form (the rules always prefer the imine, but enaminones, enamino esters, and similar conjugated enamines exist as enamines), it never prefers the imine form of a β-enaminone or enamino ester, and it never prefers a hydroximic acid to a hydroxamic acid or a nitronic acid to a nitro group.
 When more than one variant per compound is allowed, the other imine or enamine form can still appear as a later variant.
-Gypsum-DL 2.0.0 and earlier ranked tautomers by a force-field energy instead, which cannot reliably compare tautomers, so the kept tautomer was close to arbitrary and could change with the random seed.
+Gypsum-DL 2.1.0 and earlier ranked tautomers by a force-field energy instead, which cannot reliably compare tautomers, so the kept tautomer was close to arbitrary and could change with the random seed.
 
 As always, be sure to examine the structures that Gypsum-DL outputs to ensure they are chemically feasible.
 

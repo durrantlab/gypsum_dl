@@ -127,3 +127,20 @@ report.xml
 gypsum_dl/_version.py
 
 rsync.sh
+
+# Local scratch, not part of the repository
+.claudeignore
+.one_file_excludes
+CLAUDE.md
+bad_smi_to_test.smi
+chiral.smi
+chiral_out/
+delme/
+gypsum_dl_success.sdf
+old/
+restrained_min_tests/
+run.log
+tmp/
+
+NOTES_pypi.txt
+tests.sh
