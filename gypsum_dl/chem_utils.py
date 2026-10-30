@@ -242,6 +242,34 @@ def tautomer_score(mol: "MyMol") -> int | None:
     return rdMolStandardize.TautomerEnumerator.ScoreTautomer(parsed)
 
 
+# RDKit's tautomer scorer awards an oxime bonus (C=N-OH) that outweighs the
+# carbonyl bonus, so on its own it prefers a hydroximic acid, C(OH)=N-OH, to
+# the hydroxamic acid, C(=O)N-OH, that the group is in practice (compound 667
+# of RDKit's bundled NCI sample; vorinostat and most HDAC inhibitors carry the
+# group). Either oxygen may be deprotonated, since ionization runs first.
+_HYDROXIMIC_ACID = Chem.MolFromSmarts(
+    "[$([OX2H1]),$([OX1-])][CX3]=[NX2][$([OX2H1]),$([OX1-])]"
+)
+
+
+def _demoted_by_rule(mol: "MyMol") -> bool:
+    """Report whether a tautomer belongs to a form the scorer is known to overrate.
+
+    Args:
+        mol: A candidate tautomer.
+
+    Returns:
+        True if the tautomer contains a hydroximic acid group, or if its SMILES
+            cannot be parsed (such a candidate is dropped before ranking
+            anyway).
+    """
+    smi = mol.smiles()
+    parsed = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
+    if parsed is None:
+        return True
+    return parsed.HasSubstructMatch(_HYDROXIMIC_ACID)
+
+
 def pick_highest_scoring_tautomers(
     mol_lst: list["MyMol"], num: int, parent_smiles: set[str | None]
 ) -> list["MyMol"]:
@@ -254,7 +282,9 @@ def pick_highest_scoring_tautomers(
     form about 60% of the time, and the pick changed with the seed;
     tautomer_score matched about 92%, and it is deterministic. Ties go first
     to the form the step started from (the curated input, protonated), then to
-    canonical SMILES. Candidates are still grouped by protonation state and
+    canonical SMILES. One correction comes before the score: a tautomer with a
+    hydroximic acid group ranks below every tautomer without one (see
+    _HYDROXIMIC_ACID). Candidates are still grouped by protonation state and
     filled round-robin, as in pick_lowest_enrgy_mols, with the groups visited
     in first-seen order: scores, like energies, do not compare across
     protonation states.
@@ -278,7 +308,7 @@ def pick_highest_scoring_tautomers(
 
     parents = {_constitution(smi) for smi in parent_smiles} - {None}
 
-    groups: dict[Hashable, list[tuple[int, int, str, "MyMol"]]] = {}
+    groups: dict[Hashable, list[tuple[int, int, int, str, "MyMol"]]] = {}
     for mol in mol_lst:
         score = tautomer_score(mol)
         if score is None:
@@ -286,11 +316,17 @@ def pick_highest_scoring_tautomers(
         smi = mol.smiles()
         is_parent = _constitution(smi) in parents
         groups.setdefault(_comparable_group_key(mol), []).append(
-            (-score, 0 if is_parent else 1, smi, mol)
+            (
+                1 if _demoted_by_rule(mol) else 0,
+                -score,
+                0 if is_parent else 1,
+                smi,
+                mol,
+            )
         )
 
     ranked_groups = [
-        [entry[3] for entry in sorted(g, key=lambda e: e[:3])] for g in groups.values()
+        [entry[4] for entry in sorted(g, key=lambda e: e[:4])] for g in groups.values()
     ]
     return _fill_round_robin(ranked_groups, list(range(len(ranked_groups))), num)
 

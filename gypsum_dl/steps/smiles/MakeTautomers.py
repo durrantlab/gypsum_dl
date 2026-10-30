@@ -233,10 +233,11 @@ def make_tauts(
     # tautomer of an enolizable compound was close to arbitrary (ester enols,
     # quinone methides, iminium gem-diols); see
     # chem_utils.pick_highest_scoring_tautomers for why and for the measured
-    # difference. The score's known weakness, overrating forms that enolize a
-    # ring into aromaticity (N-bromosuccinimide to a dihydroxypyrrole), is
-    # covered by tauts_no_break_arom_rngs above, which discards such forms
-    # before they are ranked.
+    # difference. The score has two known weaknesses. It overrates forms that
+    # enolize a ring into aromaticity (N-bromosuccinimide to a
+    # dihydroxypyrrole), which tauts_no_break_arom_rngs above discards before
+    # they are ranked; and it prefers hydroximic acids to hydroxamic acids,
+    # which a rule in the selector corrects.
     chem_utils.bst_for_each_contnr_no_opt(
         contnrs,
         taut_data,

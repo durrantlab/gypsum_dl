@@ -99,3 +99,48 @@ def test_make_tauts_keeps_the_conventional_form_whatever_the_seed(
     assert [m.smiles() for m in contnr.mols] == [_canon(smiles)]
     # Scoring needs no throwaway conformers, so none were embedded.
     assert contnr.probe_energies == {}
+
+
+def test_scorer_alone_still_prefers_hydroximic_acids() -> None:
+    # Documents why _HYDROXIMIC_ACID exists. If a future RDKit stops awarding
+    # the oxime bonus that causes this, the rule may no longer be needed.
+    hydroxamic, hydroximic = _mols("CC(=O)NO", "CC(O)=NO")
+
+    assert chem_utils.tautomer_score(hydroximic) > chem_utils.tautomer_score(hydroxamic)
+
+
+@pytest.mark.parametrize(
+    ("hydroxamic", "hydroximic"),
+    [
+        pytest.param("CC(=O)NO", "CC(O)=NO", id="neutral"),
+        pytest.param("CC(=O)N[O-]", "CC([O-])=NO", id="anion"),
+    ],
+)
+def test_hydroxamic_acids_rank_above_their_hydroximic_tautomers(
+    hydroxamic: str, hydroximic: str
+) -> None:
+    # The hydroximic form is listed first and named as the parent, so only the
+    # rule can be what keeps the hydroxamic acid.
+    kept = chem_utils.pick_highest_scoring_tautomers(
+        _mols(hydroximic, hydroxamic), 1, {hydroximic}
+    )
+
+    assert [m.smiles() for m in kept] == [_canon(hydroxamic)]
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        pytest.param("NC(Cc1ccc(O)cc1)C(=O)NO", id="nci_667"),
+        pytest.param("O=C(CCCCCCC(=O)Nc1ccccc1)NO", id="vorinostat"),
+    ],
+)
+def test_make_tauts_keeps_hydroxamic_acids_without_the_filters(smiles: str) -> None:
+    # With --use_durrant_lab_filters on, the iminol pattern already rejects the
+    # hydroximic form; this covers runs with the filters off.
+    contnr = MolContainer(smiles, "compound", 0, {})
+    contnr.add_smiles(smiles)
+
+    make_tauts([contnr], 1, 3, 1, "serial", False, None)
+
+    assert [m.smiles() for m in contnr.mols] == [_canon(smiles)]
