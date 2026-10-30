@@ -1,8 +1,5 @@
 """This module makes alternate tautomeric states, using MolVS."""
 
-import __future__
-
-import random
 from typing import TYPE_CHECKING, TypedDict
 
 import gypsum_dl.MolObjectHandling as MOH
@@ -120,13 +117,11 @@ def make_tauts(
        only this number of variants (molecules) will be advanced to the next
        step.
     :type max_variants_per_compound: int
-    :param thoroughness: How many molecules to generate per variant (molecule)
-       retained, for evaluation. For example, perhaps you want to advance five
-       molecules (max_variants_per_compound = 5). You could just generate five
-       and advance them all. Or you could generate ten and advance the best
-       five (so thoroughness = 2). Using thoroughness > 1 increases the
-       computational expense, but it also increases the chances of finding good
-       molecules.
+    :param thoroughness: Sets the enumeration budget: MolVS expands each
+       variant's tautomers until the set reaches thoroughness *
+       max_variants_per_compound. Which of them are kept is decided by RDKit's
+       tautomer score (see chem_utils.pick_highest_scoring_tautomers), not by
+       sampling, so thoroughness does not affect the choice among them.
     :type thoroughness: int
     :param num_procs: The number of processors to use.
     :type num_procs: int
@@ -209,6 +204,16 @@ def make_tauts(
     # survived. A carried-over structure still faces the Durrant-lab filter
     # step later, so a compound whose every form the filters reject fails
     # there rather than slipping through on this fallback.
+    #
+    # Considered and dismissed: that the genealogy note below misleads when
+    # the Durrant-lab filters, not a worker failure, emptied the container.
+    # MolVS includes the input among its tautomers, so in that case the
+    # carried-over parent was itself rejected, fails the filter step, and is
+    # written to the failed file, which records only SMILES and name; the note
+    # is never output. A carried-over parent that does pass (because a ring,
+    # chirality, or bizarre-substructure check removed it here, not the
+    # Durrant-lab filters) really had no acceptable tautomer generated, so
+    # the note is accurate where it does appear.
     utils.carry_over_unrepresented(
         contnrs, taut_data, "tautomers", "(WARNING: Unable to generate tautomers)"
     )
@@ -216,18 +221,29 @@ def make_tauts(
     # Keep only the top few compound variants in each container, to prevent a
     # combinatorial explosion. When the Durrant-lab filters are on, every
     # tautomer they reject was already dropped inside parallel_make_taut, so
-    # both the thoroughness-bounded sample and the final energy ranking below
-    # choose among acceptable forms only. The filter step used to see only the
-    # survivors of this trim, so whenever the trim kept nothing but rejected
-    # forms (with max_variants_per_compound 1, a single amide, urea, or imide
-    # enol ranked or sampled ahead of the keto form), the compound failed
-    # although an acceptable tautomer had been generated and discarded.
+    # the ranking below chooses among acceptable forms only. The filter step
+    # used to see only the survivors of this trim, so whenever the trim kept
+    # nothing but rejected forms (with max_variants_per_compound 1, a single
+    # amide, urea, or imide enol ranked or sampled ahead of the keto form), the
+    # compound failed although an acceptable tautomer had been generated and
+    # discarded.
+    #
+    # The ranking is RDKit's tautomer score, not the energy every other step
+    # ranks by. Through 2.0.0 this step used the energy too, and the kept
+    # tautomer of an enolizable compound was close to arbitrary (ester enols,
+    # quinone methides, iminium gem-diols); see
+    # chem_utils.pick_highest_scoring_tautomers for why and for the measured
+    # difference. The score's known weakness, overrating forms that enolize a
+    # ring into aromaticity (N-bromosuccinimide to a dihydroxypyrrole), is
+    # covered by tauts_no_break_arom_rngs above, which discards such forms
+    # before they are ranked.
     chem_utils.bst_for_each_contnr_no_opt(
         contnrs,
         taut_data,
         max_variants_per_compound,
         thoroughness,
         variant_desc="tautomers",
+        rank_by_tautomer_score=True,
     )
 
 
@@ -393,7 +409,7 @@ def parallel_make_taut(
     tauts_mols = [MyMol.MyMol(m) for m in tauts_rdkit_mols]
 
     # Keep only those that have reasonable substructures.
-    tauts_mols = [t for t in tauts_mols if t.remove_bizarre_substruc() == False]
+    tauts_mols = [t for t in tauts_mols if not t.remove_bizarre_substruc()]
 
     # If there's more than one, let the user know that.
     if len(tauts_mols) > 1:
@@ -555,7 +571,7 @@ def tauts_no_elim_chiral(contnrs, taut_data, num_procs, job_manager, parallelize
         )
 
     # Stripping out None values
-    return [x for x in tmp if x != None]
+    return [x for x in tmp if x is not None]
 
 
 def parallel_check_nonarom_rings(

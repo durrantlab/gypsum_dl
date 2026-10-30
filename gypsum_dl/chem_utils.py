@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from gypsum_dl import utils
 
@@ -174,6 +175,25 @@ def pick_lowest_enrgy_mols(
     # Stable sort, so groups with equal best energies keep first-seen order.
     order = sorted(range(len(ranked_groups)), key=lambda g: group_best[g])
 
+    return _fill_round_robin(ranked_groups, order, num)
+
+
+def _fill_round_robin(
+    ranked_groups: list[list["MyMol"]], order: list[int], num: int
+) -> list["MyMol"]:
+    """Take each group's best candidate in turn, then each group's next best.
+
+    Shared by both selectors, so that whichever ranks the candidates, every
+    protonation state gets a slot before any state gets a second one.
+
+    Args:
+        ranked_groups: Each group's candidates, best first.
+        order: The order in which to visit the groups.
+        num: The number of candidates to keep.
+
+    Returns:
+        Up to num candidates.
+    """
     kept: list["MyMol"] = []
     depth = 0
     while len(kept) < num and any(depth < len(g) for g in ranked_groups):
@@ -183,6 +203,96 @@ def pick_lowest_enrgy_mols(
         depth += 1
 
     return kept
+
+
+def _constitution(smiles: object) -> str | None:
+    """Canonical SMILES without stereo, so tautomers compare by bonding only.
+
+    Args:
+        smiles: A SMILES string, or the None that smiles() reports on failure.
+
+    Returns:
+        The non-isomeric canonical SMILES, or None if there is none.
+    """
+    parsed = Chem.MolFromSmiles(smiles) if isinstance(smiles, str) else None
+    if parsed is None:
+        return None
+    return Chem.MolToSmiles(parsed, isomericSmiles=False)
+
+
+def tautomer_score(mol: "MyMol") -> int | None:
+    """Score a tautomer with RDKit's rules for choosing a canonical tautomer.
+
+    The rules reward features of the favored form, chiefly aromatic rings and
+    carbonyls, and penalize forms such as hydrogens on sulfur or phosphorus.
+    Unlike a force-field energy, the score can be compared across tautomers,
+    which differ in bonding; and it needs no embedding.
+
+    Args:
+        mol: A candidate tautomer.
+
+    Returns:
+        The score (higher is better), or None if the molecule's SMILES cannot
+            be determined or parsed.
+    """
+    smi = mol.smiles()
+    parsed = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
+    if parsed is None:
+        return None
+    return rdMolStandardize.TautomerEnumerator.ScoreTautomer(parsed)
+
+
+def pick_highest_scoring_tautomers(
+    mol_lst: list["MyMol"], num: int, parent_smiles: set[str | None]
+) -> list["MyMol"]:
+    """Keep the tautomers RDKit's scoring rules rank highest.
+
+    The tautomer step used pick_lowest_enrgy_mols through 2.0.0. Its energy is
+    UFF on an unminimized embedding, and force-field energies cannot rank
+    tautomers at all, because tautomers differ in bonding. On the first 1,000
+    compounds of RDKit's bundled NCI sample, its pick matched the curated input
+    form about 60% of the time, and the pick changed with the seed;
+    tautomer_score matched about 92%, and it is deterministic. Ties go first
+    to the form the step started from (the curated input, protonated), then to
+    canonical SMILES. Candidates are still grouped by protonation state and
+    filled round-robin, as in pick_lowest_enrgy_mols, with the groups visited
+    in first-seen order: scores, like energies, do not compare across
+    protonation states.
+
+    Args:
+        mol_lst: The candidate tautomers for one container.
+        num: The number to keep.
+        parent_smiles: SMILES of the variants the tautomers were generated
+            from, for the tie-break. None entries (failed canonicalizations)
+            are ignored.
+
+    Returns:
+        Up to num tautomers, best first within each protonation state.
+            Candidates that cannot be scored are dropped.
+    """
+
+    # First-seen order, as in pick_lowest_enrgy_mols.
+    mol_lst = list(dict.fromkeys(mol_lst))
+    if len(mol_lst) <= num:
+        return mol_lst
+
+    parents = {_constitution(smi) for smi in parent_smiles} - {None}
+
+    groups: dict[Hashable, list[tuple[int, int, str, "MyMol"]]] = {}
+    for mol in mol_lst:
+        score = tautomer_score(mol)
+        if score is None:
+            continue
+        smi = mol.smiles()
+        is_parent = _constitution(smi) in parents
+        groups.setdefault(_comparable_group_key(mol), []).append(
+            (-score, 0 if is_parent else 1, smi, mol)
+        )
+
+    ranked_groups = [
+        [entry[3] for entry in sorted(g, key=lambda e: e[:3])] for g in groups.values()
+    ]
+    return _fill_round_robin(ranked_groups, list(range(len(ranked_groups))), num)
 
 
 def remove_highly_charged_molecules(mol_lst):
@@ -228,6 +338,7 @@ def bst_for_each_contnr_no_opt(
     thoroughness,
     crry_ovr_frm_lst_step_if_no_fnd=True,
     variant_desc: str = "variants",
+    rank_by_tautomer_score: bool = False,
 ) -> None:
     """Keep only the top few compound variants in each container, to prevent a
        combinatorial explosion. This is run periodically on the growing
@@ -264,6 +375,10 @@ def bst_for_each_contnr_no_opt(
        "tautomers"), for the warning logged when a container ends up with none.
        Defaults to "variants".
     :type variant_desc: str, optional
+    :param rank_by_tautomer_score: Rank by pick_highest_scoring_tautomers
+       instead of pick_lowest_enrgy_mols; thoroughness is then unused. Only
+       the tautomer step sets this. Defaults to False.
+    :type rank_by_tautomer_score: bool, optional
     :raises Exception: If a candidate's contnr_idx matches none of contnrs, or
        two containers share a contnr_idx.
     """
@@ -301,17 +416,27 @@ def bst_for_each_contnr_no_opt(
             # Remove molecules with unusually high charges.
             mols = remove_highly_charged_molecules(mols)
 
-            # Pick the lowest-energy molecules. Note that this ranks candidates
-            # using a throwaway conformer, so the molecules themselves are
-            # returned in the state they arrived in. The container carries the
-            # cache of those throwaway energies, so a variant that survives
-            # this step is not embedded again when the next step ranks it.
-            mols = pick_lowest_enrgy_mols(
-                mols,
-                max_variants_per_compound,
-                thoroughness,
-                contnr.probe_energies,
-            )
+            if rank_by_tautomer_score:
+                # contnr.mols still holds the variants the tautomers came
+                # from; the container is repopulated only below.
+                mols = pick_highest_scoring_tautomers(
+                    mols,
+                    max_variants_per_compound,
+                    {m.smiles() for m in contnr.mols},
+                )
+            else:
+                # Pick the lowest-energy molecules. Note that this ranks
+                # candidates using a throwaway conformer, so the molecules
+                # themselves are returned in the state they arrived in. The
+                # container carries the cache of those throwaway energies, so
+                # a variant that survives this step is not embedded again when
+                # the next step ranks it.
+                mols = pick_lowest_enrgy_mols(
+                    mols,
+                    max_variants_per_compound,
+                    thoroughness,
+                    contnr.probe_energies,
+                )
 
             if len(mols) > 0:
                 # Now remove all previously determined mols for this

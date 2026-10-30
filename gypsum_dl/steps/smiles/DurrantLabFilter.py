@@ -3,8 +3,6 @@ This module removes molecules with prohibited substructures, per Durrant-lab
 filters.
 """
 
-import __future__
-
 import copy
 from functools import cache
 from typing import TYPE_CHECKING
@@ -127,7 +125,7 @@ def durrant_lab_filters(contnrs, num_procs, job_manager, parallelizer_obj):
     # themselves are compiled in the worker, not sent through the queue.
     params = [[c] for c in contnrs]
 
-    # Run the tautomizer through the parallel object.
+    # Run the filter through the parallel object.
     tmp = []
     if parallelizer_obj is None:
         # MultiThreading with one processor is the same dispatch serial mode
@@ -241,8 +239,9 @@ def passes_durrant_lab_filters(mol: "MyMol", orig_smi: str) -> bool:
 
 
 def parallel_durrant_lab_filter(contnr: "MolContainer") -> "MolContainer | None":
-    """A parallelizable helper function that checks that tautomers do not
-       break any nonaromatic rings present in the original object.
+    """A parallelizable helper function that removes every variant in a
+       container that fails the Durrant-lab filters (see
+       passes_durrant_lab_filters).
 
     :param contnr: The molecule container. It is left untouched.
     :type contnr: MolContainer.MolContainer

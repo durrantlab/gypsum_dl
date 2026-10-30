@@ -3,17 +3,10 @@ Desalts the input SMILES strings. If an input SMILES string contains to
 molecule, keep the larger one.
 """
 
-import __future__
-
 from typing import TYPE_CHECKING
 
 import gypsum_dl.parallelizer as Parallelizer
-from gypsum_dl import MyMol, chem_utils, utils
-
-try:
-    from rdkit import Chem
-except Exception:
-    utils.exception("You need to install rdkit and its dependencies.")
+from gypsum_dl import MyMol, utils
 
 if TYPE_CHECKING:
     from gypsum_dl.MolContainer import MolContainer

@@ -149,6 +149,21 @@ def test_acylurea_produces_an_sdf_in_3d(tmp_path: Path) -> None:
     assert _failed_text(out) == ""
 
 
+def test_molvs_counts_the_input_among_its_tautomers() -> None:
+    # make_tauts dismisses a misleading carry-over genealogy note on the
+    # strength of this: when the Durrant-lab filters reject every tautomer, the
+    # carried-over parent was among them, so it fails at the filter step and
+    # the note is never written out. If MolVS stopped returning its input,
+    # that reasoning would need revisiting.
+    from molvs import tautomer
+
+    mol = Chem.MolFromSmiles(ACYLUREA_KETO_ANION)
+    enumerator = tautomer.TautomerEnumerator()
+    enumerated = {Chem.MolToSmiles(t) for t in enumerator.enumerate(mol)}
+
+    assert Chem.MolToSmiles(mol) in enumerated
+
+
 def test_compound_with_no_acceptable_variant_still_fails(tmp_path: Path) -> None:
     # Guards against a fix that quietly disables the filters: boron matches a
     # prohibited pattern in every form, so the compound must still fail, even
@@ -161,9 +176,9 @@ def test_compound_with_no_acceptable_variant_still_fails(tmp_path: Path) -> None
 
 @pytest.mark.parametrize("seed", [0, 1, 2, 3, 4])
 def test_make_tauts_trims_to_an_acceptable_tautomer(seed: int) -> None:
-    # The trim samples thoroughness * max_variants_per_compound candidates and
-    # ranks them by energy, so several seeds are tried: before the filters ran
-    # ahead of the trim, whether the keto form survived depended on both.
+    # Several seeds, because before the filters ran ahead of the trim, whether
+    # the keto form survived depended on the seed (the trim then sampled
+    # candidates and ranked them by a seed-dependent energy).
     seed_generators(seed)
     contnr = _acylurea_anion_contnr()
 

@@ -241,6 +241,11 @@ To compensate for this MolVS bug, by default Gypsum-DL rejects all tautomers tha
 
 Use the `--let_tautomers_change_chirality` flag if you would like to retain these tautomers instead
 
+To choose which tautomers to keep, Gypsum-DL ranks them with RDKit’s tautomer-scoring rules, the same rules RDKit uses to pick a canonical tautomer.
+These rules favor aromatic rings and carbonyl groups, so Gypsum-DL keeps, for example, an ester rather than its enol, and a 4-quinolone rather than a 4-hydroxyquinoline.
+Ties go to the tautomer the input SMILES describes.
+Gypsum-DL 2.0.0 and earlier ranked tautomers by a force-field energy instead, which cannot reliably compare tautomers, so the kept tautomer was close to arbitrary and could change with the random seed.
+
 As always, be sure to examine the structures that Gypsum-DL outputs to ensure they are chemically feasible.
 
 ### Protonated Amines

@@ -3,8 +3,6 @@ Runs the smile preparation process. Generates alternate ionization,
 tautomeric, chiral forms, etc.
 """
 
-import __future__
-
 from gypsum_dl import utils
 from gypsum_dl.steps.smiles.AddHydrogens import add_hydrogens
 from gypsum_dl.steps.smiles.DeSaltOrigSmiles import desalt_orig_smi
@@ -97,10 +95,10 @@ def prepare_smiles(contnrs, params):
     # max_variants_per_compound before this point was checked for discarding
     # a variant the filters would accept:
     #
-    # - Tautomers: the trim is real (thoroughness-bounded sampling, then an
-    #   energy ranking), so make_tauts applies the filters to each candidate
-    #   before it trims. This call stays as the authoritative check, since it
-    #   also covers tautomer-step carry-overs and runs with tautomers skipped.
+    # - Tautomers: the trim is real (a ranking by RDKit's tautomer score), so
+    #   make_tauts applies the filters to each candidate before it trims.
+    #   This call stays as the authoritative check, since it also covers
+    #   tautomer-step carry-overs and runs with tautomers skipped.
     # - Ionization: not a lossy trim. Dimorphite-DL is asked for at most
     #   max_variants_per_compound states, so the cull in add_hydrogens keeps
     #   them all. Which states Dimorphite-DL returns is protonation handling,

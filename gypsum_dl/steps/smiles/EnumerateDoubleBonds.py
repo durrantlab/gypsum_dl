@@ -1,7 +1,5 @@
 """Module for enumerating unspecified double bonds (cis vs. trans)."""
 
-import __future__
-
 import copy
 import itertools
 import math

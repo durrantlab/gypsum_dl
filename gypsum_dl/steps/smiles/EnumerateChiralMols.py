@@ -2,8 +2,6 @@
 A module for generating alternate chiralities.
 """
 
-import __future__
-
 import copy
 import itertools
 import random
