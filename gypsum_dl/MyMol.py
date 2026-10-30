@@ -235,6 +235,11 @@ class MyMol:
         self.idxs_of_confs_to_min = set([])
         self.genealogy = []  # Keep track of how the molecule came to be.
 
+        # Set by the tautomer worker for a form MolVS reached only through an
+        # imine/enamine shift, so the tautomer ranking can demote it. See
+        # chem_utils.pick_highest_scoring_tautomers.
+        self.needs_imine_shift = False
+
         # Makes the molecule if a smiles was provided. Sanitizes the molecule
         # regardless.
         sanitized = self.make_mol_frm_smiles_sanitze()

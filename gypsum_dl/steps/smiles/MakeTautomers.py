@@ -21,6 +21,13 @@ try:
 except Exception:
     utils.exception("You need to install molvs and its dependencies.")
 
+# MolVS's transforms minus its four imine/enamine shifts ("aliphatic imine f/r"
+# and "special imine f/r"). A tautomer that a second enumeration with these
+# cannot reach needed an imine shift; see parallel_make_taut.
+IMINE_FREE_TRANSFORMS = [
+    t for t in tautomer.TAUTOMER_TRANSFORMS if "imine" not in t.name
+]
+
 
 class DoubleBondStereo(TypedDict):
     """One double bond whose geometry a tautomer's parent variant specified.
@@ -233,11 +240,14 @@ def make_tauts(
     # tautomer of an enolizable compound was close to arbitrary (ester enols,
     # quinone methides, iminium gem-diols); see
     # chem_utils.pick_highest_scoring_tautomers for why and for the measured
-    # difference. The score has two known weaknesses. It overrates forms that
+    # difference. The score has known weaknesses. It overrates forms that
     # enolize a ring into aromaticity (N-bromosuccinimide to a
     # dihydroxypyrrole), which tauts_no_break_arom_rngs above discards before
-    # they are ranked; and it prefers hydroximic acids to hydroxamic acids,
-    # which a rule in the selector corrects.
+    # they are ranked. It prefers hydroximic acids to hydroxamic acids and can
+    # prefer nitronic acids to nitro groups, and it always prefers an imine to
+    # its enamine, even a conjugated enamine that is the real form; rules in
+    # the selector correct these. A C=C that migrates along a chain through
+    # keto/enol shifts is not corrected.
     chem_utils.bst_for_each_contnr_no_opt(
         contnrs,
         taut_data,
@@ -364,7 +374,7 @@ def parallel_make_taut(
        Durrant-lab filters reject. See passes_durrant_lab_filters.
     :type apply_durrant_lab_filters: bool
     :return: A list of MyMol.MyMol objects, containing the alternate
-        tautomeric forms.
+        tautomeric forms. Each carries needs_imine_shift, for the ranking.
     :rtype: list
     """
 
@@ -401,6 +411,24 @@ def parallel_make_taut(
     # max_variants_per_compound later. But this could at least help prevent the
     # combinatorial explosion at this stage.
     specified = specified_double_bonds(m)
+
+    # A second enumeration without the imine/enamine shifts tells which forms
+    # needed one, so the ranking can keep the input's imine or enamine (see
+    # chem_utils.pick_highest_scoring_tautomers). Taking the difference of the
+    # two sets needs no pattern for conjugation, and it cannot demote a form
+    # some other route also reaches. Run first, on a copy, so the main
+    # enumeration below sees m exactly as before. With fewer transforms the
+    # set grows more slowly, so under the same cap it reaches at least as far.
+    imine_free = tautomer.TautomerEnumerator(
+        transforms=IMINE_FREE_TRANSFORMS, max_tautomers=max_tauts
+    ).enumerate(Chem.Mol(m))
+    # Normalized through MyMol, exactly as the main set is below: MyMol can
+    # adjust a structure as it sanitizes it, and a mismatch would mark the
+    # input form itself as needing an imine shift.
+    reachable_without_imine_shift = {
+        chem_utils.constitution_smiles(MyMol.MyMol(t).smiles()) for t in imine_free
+    }
+
     enum = tautomer.TautomerEnumerator(max_tautomers=max_tauts)
     tauts_rdkit_mols = enum.enumerate(m)
     for taut_rdkit_mol in tauts_rdkit_mols:
@@ -408,6 +436,11 @@ def parallel_make_taut(
 
     # Make all those tautomers into MyMol objects.
     tauts_mols = [MyMol.MyMol(m) for m in tauts_rdkit_mols]
+    for t in tauts_mols:
+        t.needs_imine_shift = (
+            chem_utils.constitution_smiles(t.smiles())
+            not in reachable_without_imine_shift
+        )
 
     # Keep only those that have reasonable substructures.
     tauts_mols = [t for t in tauts_mols if not t.remove_bizarre_substruc()]

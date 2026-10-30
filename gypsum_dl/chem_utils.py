@@ -205,8 +205,11 @@ def _fill_round_robin(
     return kept
 
 
-def _constitution(smiles: object) -> str | None:
+def constitution_smiles(smiles: object) -> str | None:
     """Canonical SMILES without stereo, so tautomers compare by bonding only.
+
+    Public because the tautomer worker keys its imine-shift bookkeeping on it,
+    and the two sides must normalize SMILES the same way to match.
 
     Args:
         smiles: A SMILES string, or the None that smiles() reports on failure.
@@ -251,6 +254,15 @@ _HYDROXIMIC_ACID = Chem.MolFromSmarts(
     "[$([OX2H1]),$([OX1-])][CX3]=[NX2][$([OX2H1]),$([OX1-])]"
 )
 
+# A nitronic (aci-nitro) acid, C=N+(O-)OH, is a minor tautomer of its nitro
+# compound by many orders of magnitude, yet the scorer can rank it above the
+# nitro form. Without this, nizatidine's nitroethenediamine (CHEMBL3183075)
+# became a nitronic acid once its imine form was demoted. The nitronate anion
+# has no OH and is not matched.
+_NITRONIC_ACID = Chem.MolFromSmarts("[CX3]=[N+]([OX1-])[OX2H1]")
+
+_OVERRATED_FORMS = (_HYDROXIMIC_ACID, _NITRONIC_ACID)
+
 
 def _demoted_by_rule(mol: "MyMol") -> bool:
     """Report whether a tautomer belongs to a form the scorer is known to overrate.
@@ -259,15 +271,15 @@ def _demoted_by_rule(mol: "MyMol") -> bool:
         mol: A candidate tautomer.
 
     Returns:
-        True if the tautomer contains a hydroximic acid group, or if its SMILES
-            cannot be parsed (such a candidate is dropped before ranking
-            anyway).
+        True if the tautomer contains a hydroximic or nitronic acid group, or
+            if its SMILES cannot be parsed (such a candidate is dropped before
+            ranking anyway).
     """
     smi = mol.smiles()
     parsed = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
     if parsed is None:
         return True
-    return parsed.HasSubstructMatch(_HYDROXIMIC_ACID)
+    return any(parsed.HasSubstructMatch(p) for p in _OVERRATED_FORMS)
 
 
 def pick_highest_scoring_tautomers(
@@ -282,9 +294,23 @@ def pick_highest_scoring_tautomers(
     form about 60% of the time, and the pick changed with the seed;
     tautomer_score matched about 92%, and it is deterministic. Ties go first
     to the form the step started from (the curated input, protonated), then to
-    canonical SMILES. One correction comes before the score: a tautomer with a
-    hydroximic acid group ranks below every tautomer without one (see
-    _HYDROXIMIC_ACID). Candidates are still grouped by protonation state and
+    canonical SMILES.
+
+    Two corrections come before the score, because the score has no term for
+    what decides these cases. First, a tautomer with a hydroximic or nitronic
+    acid group ranks below every tautomer without one (see _OVERRATED_FORMS).
+    Second, a tautomer MolVS reached only through an imine/enamine shift ranks
+    below the rest (MyMol.needs_imine_shift, set in parallel_make_taut). Which
+    side of that pair dominates depends on conjugation: a simple imine beats
+    its NH enamine, but an enamine conjugated with a carbonyl, nitrile, nitro
+    group, or aryl ring (enaminones, enamino esters, arylidene hydantoins,
+    nizatidine) beats its imine. The score always prefers the imine, while
+    curated inputs draw whichever form is real, so the input's form is kept.
+    The demoted form still fills a later slot when more variants are allowed.
+    Not handled: a C=C that migrates along a chain through keto/enol shifts
+    (diethyl itaconate to citraconate), which the score cannot tell apart.
+
+    Candidates are still grouped by protonation state and
     filled round-robin, as in pick_lowest_enrgy_mols, with the groups visited
     in first-seen order: scores, like energies, do not compare across
     protonation states.
@@ -306,18 +332,19 @@ def pick_highest_scoring_tautomers(
     if len(mol_lst) <= num:
         return mol_lst
 
-    parents = {_constitution(smi) for smi in parent_smiles} - {None}
+    parents = {constitution_smiles(smi) for smi in parent_smiles} - {None}
 
-    groups: dict[Hashable, list[tuple[int, int, int, str, "MyMol"]]] = {}
+    groups: dict[Hashable, list[tuple[int, int, int, int, str, "MyMol"]]] = {}
     for mol in mol_lst:
         score = tautomer_score(mol)
         if score is None:
             continue
         smi = mol.smiles()
-        is_parent = _constitution(smi) in parents
+        is_parent = constitution_smiles(smi) in parents
         groups.setdefault(_comparable_group_key(mol), []).append(
             (
                 1 if _demoted_by_rule(mol) else 0,
+                1 if mol.needs_imine_shift else 0,
                 -score,
                 0 if is_parent else 1,
                 smi,
@@ -326,7 +353,7 @@ def pick_highest_scoring_tautomers(
         )
 
     ranked_groups = [
-        [entry[4] for entry in sorted(g, key=lambda e: e[:4])] for g in groups.values()
+        [entry[5] for entry in sorted(g, key=lambda e: e[:5])] for g in groups.values()
     ]
     return _fill_round_robin(ranked_groups, list(range(len(ranked_groups))), num)
 

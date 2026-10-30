@@ -7,10 +7,19 @@ an enolizable compound was close to arbitrary and changed with the seed.
 
 import pytest
 
+from molvs import tautomer as molvs_tautomer
+
 from gypsum_dl import MyMol, chem_utils
 from gypsum_dl.MolContainer import MolContainer
 from gypsum_dl.parallelizer import seed_generators
-from gypsum_dl.steps.smiles.MakeTautomers import make_tauts
+from gypsum_dl.steps.smiles.MakeTautomers import (
+    IMINE_FREE_TRANSFORMS,
+    make_tauts,
+    parallel_make_taut,
+)
+
+ENAMINO_ESTER = "CCOC(=O)C=C(C)N"
+ENAMINO_ESTER_IMINE = "CCOC(=O)CC(C)=N"
 
 
 def _mols(*smiles: str) -> list[MyMol.MyMol]:
@@ -144,3 +153,116 @@ def test_make_tauts_keeps_hydroxamic_acids_without_the_filters(smiles: str) -> N
     make_tauts([contnr], 1, 3, 1, "serial", False, None)
 
     assert [m.smiles() for m in contnr.mols] == [_canon(smiles)]
+
+
+def test_nitronic_acids_rank_below_their_nitro_form() -> None:
+    # The nitronic form is listed first and named as the parent, so only the
+    # rule can be what keeps the nitro group.
+    kept = chem_utils.pick_highest_scoring_tautomers(
+        _mols("CC=[N+]([O-])O", "CC[N+](=O)[O-]"), 1, {"CC=[N+]([O-])O"}
+    )
+
+    assert [m.smiles() for m in kept] == [_canon("CC[N+](=O)[O-]")]
+
+
+def test_imine_free_transforms_drop_exactly_the_imine_shifts() -> None:
+    # The transforms are selected by name, so a MolVS release that renamed or
+    # added one would otherwise change the rule silently.
+    kept = {t.name for t in IMINE_FREE_TRANSFORMS}
+    dropped = {t.name for t in molvs_tautomer.TAUTOMER_TRANSFORMS} - kept
+
+    assert dropped == {
+        "aliphatic imine f",
+        "aliphatic imine r",
+        "special imine f",
+        "special imine r",
+    }
+
+
+def test_worker_flags_only_the_forms_that_need_an_imine_shift() -> None:
+    contnr = MolContainer(ENAMINO_ESTER, "enamino_ester", 0, {})
+    contnr.add_smiles(ENAMINO_ESTER)
+
+    tauts = parallel_make_taut(contnr.mols[0], contnr.contnr_props(), 3, True)
+
+    flags = {
+        chem_utils.constitution_smiles(t.smiles()): t.needs_imine_shift
+        for t in tauts or []
+    }
+    assert flags[chem_utils.constitution_smiles(ENAMINO_ESTER)] is False
+    assert flags[chem_utils.constitution_smiles(ENAMINO_ESTER_IMINE)] is True
+
+
+def test_imine_shift_forms_rank_below_the_rest_but_keep_a_later_slot() -> None:
+    # The imine is named as the parent, so only the flag can put the enamine
+    # first; with two slots, the imine is still offered as the second variant.
+    enamine, imine = _mols(ENAMINO_ESTER, ENAMINO_ESTER_IMINE)
+    imine.needs_imine_shift = True
+
+    one = chem_utils.pick_highest_scoring_tautomers(
+        [imine, enamine], 1, {ENAMINO_ESTER_IMINE}
+    )
+    two = chem_utils.pick_highest_scoring_tautomers(
+        [imine, enamine], 2, {ENAMINO_ESTER_IMINE}
+    )
+
+    assert [m.smiles() for m in one] == [_canon(ENAMINO_ESTER)]
+    assert [m.smiles() for m in two] == [
+        _canon(ENAMINO_ESTER),
+        _canon(ENAMINO_ESTER_IMINE),
+    ]
+
+
+def _kept_constitution(smiles: str) -> str | None:
+    """Run the tautomer step at production settings and report what it kept.
+
+    Args:
+        smiles: The input form.
+
+    Returns:
+        The constitution of the one tautomer kept.
+    """
+    contnr = MolContainer(smiles, "compound", 0, {})
+    contnr.add_smiles(smiles)
+    make_tauts([contnr], 1, 3, 1, "serial", False, None)
+    assert len(contnr.mols) == 1
+    return chem_utils.constitution_smiles(contnr.mols[0].smiles())
+
+
+# Compounds from RDKit's bundled NCI sample (and nizatidine, CHEMBL3183075)
+# whose conjugated enamine the score turned into an imine.
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        pytest.param(ENAMINO_ESTER, id="nci_1086_enamino_ester"),
+        pytest.param("COc1ccc(C=C2NC(=O)NC2=O)cc1", id="nci_1232_arylidene"),
+        pytest.param("O=C1NC(=S)NC1=Cc1ccccc1O", id="nci_2592_arylidene"),
+        pytest.param("CCC(N)=CC(=O)c1ccccc1", id="nci_3153_enaminone"),
+        pytest.param("CC1=CC(C)(C)NC(=S)N1", id="nci_3270_cyclic"),
+        pytest.param("CNC(=C[N+](=O)[O-])NCCSCc1csc(CN(C)C)n1", id="nizatidine"),
+    ],
+)
+def test_make_tauts_keeps_conjugated_enamines(smiles: str) -> None:
+    assert _kept_constitution(smiles) == chem_utils.constitution_smiles(smiles)
+
+
+# Changes the same sample showed the score gets right, which the imine and
+# nitronic acid rules must leave alone.
+@pytest.mark.parametrize(
+    ("smiles", "expected"),
+    [
+        pytest.param(
+            "N=c1[nH]cc([N+](=O)[O-])s1", "Nc1ncc([N+](=O)[O-])s1", id="aminothiazole"
+        ),
+        pytest.param(
+            "CC(=O)Nc1ccc2c(O)ccnc2n1",
+            "CC(=O)Nc1ccc2c(=O)cc[nH]c2n1",
+            id="lactam",
+        ),
+        pytest.param("Nc1nc(S)c2nc[nH]c2n1", "Nc1nc(=S)c2nc[nH]c2[nH]1", id="thione"),
+    ],
+)
+def test_make_tauts_still_corrects_minor_input_forms(
+    smiles: str, expected: str
+) -> None:
+    assert _kept_constitution(smiles) == chem_utils.constitution_smiles(expected)
