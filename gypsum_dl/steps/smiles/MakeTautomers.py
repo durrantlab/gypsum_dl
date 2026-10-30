@@ -245,9 +245,9 @@ def make_tauts(
     # dihydroxypyrrole), which tauts_no_break_arom_rngs above discards before
     # they are ranked. It prefers hydroximic acids to hydroxamic acids and can
     # prefer nitronic acids to nitro groups, and it always prefers an imine to
-    # its enamine, even a conjugated enamine that is the real form; rules in
-    # the selector correct these. A C=C that migrates along a chain through
-    # keto/enol shifts is not corrected.
+    # its enamine, even a conjugated enamine that is the real form (an
+    # enaminone, say); rules in the selector correct these. A C=C that
+    # migrates along a chain through keto/enol shifts is not corrected.
     chem_utils.bst_for_each_contnr_no_opt(
         contnrs,
         taut_data,

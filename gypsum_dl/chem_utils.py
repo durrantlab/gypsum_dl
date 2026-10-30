@@ -2,8 +2,9 @@
 
 import copy
 import math
+from collections import Counter
 from collections.abc import Hashable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
@@ -261,25 +262,78 @@ _HYDROXIMIC_ACID = Chem.MolFromSmarts(
 # has no OH and is not matched.
 _NITRONIC_ACID = Chem.MolFromSmarts("[CX3]=[N+]([OX1-])[OX2H1]")
 
-_OVERRATED_FORMS = (_HYDROXIMIC_ACID, _NITRONIC_ACID)
+# A beta-imino carbonyl, C(=N)-CH-C(=O), is the minor tautomer of a
+# beta-enaminone or enamino ester, whose C=C-C=O is a vinylogous amide and
+# whose N-H is hydrogen-bonded to the carbonyl. The imine/enamine demotion
+# (MyMol.needs_imine_shift) misses forms MolVS reaches through keto/enol shifts
+# instead, as for the Gould-Jacobs intermediate diethyl
+# (3-chloroanilinomethylene)malonate (compound 3748 of RDKit's bundled NCI
+# sample); naming the form catches it whatever the route. Excluded, because
+# the imine form is the real one there: hydrazones and oximes (N-N or N-O on
+# the imine nitrogen), and imine carbons that carry N, O, or S (amidines,
+# imidates, and thioimidates such as 2-alkylthio-1-pyrrolines).
+_BETA_IMINO_CARBONYL = Chem.MolFromSmarts(
+    "[CX3;!$(C-[N,O,S])](=[NX2;!$(N-[N,O])])-[CX4;!H0]-[CX3]=[OX1]"
+)
+
+# The forms each overrated form should yield to. Either oxygen of a hydroxamic
+# acid, and its nitrogen, may carry the charge after ionization.
+_HYDROXAMIC_ACID = Chem.MolFromSmarts(
+    "[CX3](=[OX1])[$([NX3]),$([NX2-])][$([OX2H1]),$([OX1-])]"
+)
+_NITRO = Chem.MolFromSmarts("[#6][N+](=[OX1])[OX1-]")
+_BETA_ENAMINONE = Chem.MolFromSmarts("[NX3;!H0]-[CX3]=[CX3]-[CX3]=[OX1]")
+
+# Each overrated form ranks below a candidate that has the form it should
+# yield to, and only then. Demoting it below everything instead handed the slot
+# to whatever else MolVS had made: compounds 1233 and 1367 of the NCI sample
+# (2-(arylimino)methyl cyclohexanones) became ring enols, and compound 1905
+# (2-thiouracil drawn as its 5,6-dihydro imine) became an iminol, because no
+# enaminone was among their candidates to take the place of the demoted form.
+_OVERRATED_FORMS: tuple[tuple[Chem.Mol, Chem.Mol], ...] = (
+    (_HYDROXIMIC_ACID, _HYDROXAMIC_ACID),
+    (_NITRONIC_ACID, _NITRO),
+    (_BETA_IMINO_CARBONYL, _BETA_ENAMINONE),
+)
 
 
-def _demoted_by_rule(mol: "MyMol") -> bool:
-    """Report whether a tautomer belongs to a form the scorer is known to overrate.
+class RuleHits(TypedDict):
+    """Which of the _OVERRATED_FORMS pairs a candidate matches, by index."""
+
+    overrated: frozenset[int]
+    preferred: frozenset[int]
+
+
+def overrated_form_hits(mol: "MyMol") -> RuleHits:
+    """Find which overrated forms, and which preferred partners, a tautomer has.
+
+    Demotion depends on the other candidates (see _OVERRATED_FORMS), so this
+    reports both sides and leaves the decision to the selector.
 
     Args:
         mol: A candidate tautomer.
 
     Returns:
-        True if the tautomer contains a hydroximic or nitronic acid group, or
-            if its SMILES cannot be parsed (such a candidate is dropped before
-            ranking anyway).
+        The indices of the pairs whose overrated form the tautomer contains,
+            and of those whose preferred form it contains. Both are empty if
+            its SMILES cannot be parsed.
     """
     smi = mol.smiles()
     parsed = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
     if parsed is None:
-        return True
-    return any(parsed.HasSubstructMatch(p) for p in _OVERRATED_FORMS)
+        return {"overrated": frozenset(), "preferred": frozenset()}
+    return {
+        "overrated": frozenset(
+            i
+            for i, (bad, _) in enumerate(_OVERRATED_FORMS)
+            if parsed.HasSubstructMatch(bad)
+        ),
+        "preferred": frozenset(
+            i
+            for i, (_, good) in enumerate(_OVERRATED_FORMS)
+            if parsed.HasSubstructMatch(good)
+        ),
+    }
 
 
 def pick_highest_scoring_tautomers(
@@ -297,8 +351,10 @@ def pick_highest_scoring_tautomers(
     canonical SMILES.
 
     Two corrections come before the score, because the score has no term for
-    what decides these cases. First, a tautomer with a hydroximic or nitronic
-    acid group ranks below every tautomer without one (see _OVERRATED_FORMS).
+    what decides these cases. First, a tautomer with a hydroximic acid,
+    nitronic acid, or beta-imino carbonyl group ranks below the other
+    candidates when one of them has the form it should yield to (a hydroxamic
+    acid, a nitro group, or a beta-enaminone); see _OVERRATED_FORMS.
     Second, a tautomer MolVS reached only through an imine/enamine shift ranks
     below the rest (MyMol.needs_imine_shift, set in parallel_make_taut). Which
     side of that pair dominates depends on conjugation: a simple imine beats
@@ -337,28 +393,41 @@ def pick_highest_scoring_tautomers(
     # the order is what later steps and the output list, and a demoted form
     # belongs after the forms that outrank it whether or not anything is cut.
     unscorable: list["MyMol"] = []
-    groups: dict[Hashable, list[tuple[int, int, int, int, str, "MyMol"]]] = {}
+    scored: dict[Hashable, list[tuple[int, RuleHits, "MyMol"]]] = {}
     for mol in mol_lst:
         score = tautomer_score(mol)
         if score is None:
             unscorable.append(mol)
             continue
-        smi = mol.smiles()
-        is_parent = constitution_smiles(smi) in parents
-        groups.setdefault(_comparable_group_key(mol), []).append(
-            (
-                1 if _demoted_by_rule(mol) else 0,
-                1 if mol.needs_imine_shift else 0,
-                -score,
-                0 if is_parent else 1,
-                smi,
-                mol,
-            )
+        scored.setdefault(_comparable_group_key(mol), []).append(
+            (score, overrated_form_hits(mol), mol)
         )
 
-    ranked_groups = [
-        [entry[5] for entry in sorted(g, key=lambda e: e[:5])] for g in groups.values()
-    ]
+    ranked_groups: list[list["MyMol"]] = []
+    for members in scored.values():
+        # Partners count within the protonation group only, the same scope
+        # the ranking itself has, and only on another candidate: a form cannot
+        # yield to itself.
+        partner_counts = Counter(i for _, h, _ in members for i in h["preferred"])
+        keyed = []
+        for score, hits, mol in members:
+            smi = mol.smiles()
+            elsewhere = {
+                i
+                for i in hits["overrated"]
+                if partner_counts[i] - (1 if i in hits["preferred"] else 0) > 0
+            }
+            keyed.append(
+                (
+                    1 if elsewhere else 0,
+                    1 if mol.needs_imine_shift else 0,
+                    -score,
+                    0 if constitution_smiles(smi) in parents else 1,
+                    smi,
+                    mol,
+                )
+            )
+        ranked_groups.append([e[5] for e in sorted(keyed, key=lambda e: e[:5])])
     kept = _fill_round_robin(ranked_groups, list(range(len(ranked_groups))), num)
 
     # When nothing has to be cut, nothing is: an unscorable candidate is kept

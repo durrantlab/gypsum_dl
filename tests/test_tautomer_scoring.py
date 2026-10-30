@@ -266,3 +266,92 @@ def test_make_tauts_still_corrects_minor_input_forms(
     smiles: str, expected: str
 ) -> None:
     assert _kept_constitution(smiles) == chem_utils.constitution_smiles(expected)
+
+
+GOULD_JACOBS = "CCOC(=O)C(=CNc1cccc(Cl)c1)C(=O)OCC"
+GOULD_JACOBS_IMINE = "CCOC(=O)C(C=Nc1cccc(Cl)c1)C(=O)OCC"
+
+
+def test_beta_imino_carbonyls_rank_below_their_enaminone() -> None:
+    # Compound 3748 of the NCI sample: MolVS reaches this imine through
+    # keto/enol shifts, so the imine-shift flag stays False and only the
+    # pattern can demote it. The imine is the parent, so the tie-break cannot.
+    enamine, imine = _mols(GOULD_JACOBS, GOULD_JACOBS_IMINE)
+    assert imine.needs_imine_shift is False
+
+    kept = chem_utils.pick_highest_scoring_tautomers(
+        [imine, enamine], 1, {GOULD_JACOBS_IMINE}
+    )
+
+    assert [m.smiles() for m in kept] == [_canon(GOULD_JACOBS)]
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        pytest.param("CC(=NNc1ccccc1)CC(C)=O", id="hydrazone"),
+        pytest.param("CC(=NO)CC(C)=O", id="oxime"),
+        pytest.param("NC(=N)CC(C)=O", id="amidine"),
+        pytest.param("CSC(=N)CC(C)=O", id="thioimidate"),
+    ],
+)
+def test_beta_imino_carbonyl_rule_spares_forms_that_are_real(smiles: str) -> None:
+    hits = chem_utils.overrated_form_hits(MyMol.MyMol(smiles))
+    assert hits["overrated"] == frozenset()
+
+
+def test_make_tauts_keeps_the_gould_jacobs_enamine() -> None:
+    assert _kept_constitution(GOULD_JACOBS) == chem_utils.constitution_smiles(
+        GOULD_JACOBS
+    )
+
+
+def test_make_tauts_still_prefers_the_cyclic_thioimidate() -> None:
+    # Compound 4418 of the NCI sample, drawn as an NH ketene N,S-acetal with
+    # no acceptor on its C=C; the 2-alkylthio-1-pyrroline is the stable form,
+    # and the beta-imino carbonyl rule must not stand in the way.
+    assert _kept_constitution(
+        "CCCCCCCCCCCCSC1=CCCN1"
+    ) == chem_utils.constitution_smiles("CCCCCCCCCCCCSC1=NCCC1")
+
+
+def test_overrated_form_stays_put_when_its_partner_is_absent() -> None:
+    # Compound 1367 of the NCI sample: the beta-imino ketone's enaminone was
+    # not among its candidates, and demoting it anyway handed the slot to a
+    # ring enol the score ranks three points lower.
+    imine, enol = _mols(
+        "CCOC(=O)c1ccc(N=CC2CCCCC2=O)cc1", "CCOC(=O)c1ccc(N=CC2CCCC=C2O)cc1"
+    )
+
+    kept = chem_utils.pick_highest_scoring_tautomers([enol, imine], 1, set())
+
+    assert [m.smiles() for m in kept] == [_canon(imine.smiles())]
+
+
+@pytest.mark.parametrize(
+    ("smiles", "acceptable"),
+    [
+        pytest.param(
+            "COc1ccc(N=CC2CCCCC2=O)c([N+](=O)[O-])c1",
+            "COc1ccc(NC=C2CCCCC2=O)c([N+](=O)[O-])c1",
+            id="nci_1233",
+        ),
+        pytest.param(
+            "CCOC(=O)c1ccc(N=CC2CCCCC2=O)cc1",
+            "CCOC(=O)c1ccc(NC=C2CCCCC2=O)cc1",
+            id="nci_1367",
+        ),
+        pytest.param("O=C1CC=NC(=S)N1", "O=C1C=CNC(=S)N1", id="nci_1905"),
+    ],
+)
+def test_make_tauts_keeps_the_input_or_its_enaminone(
+    smiles: str, acceptable: str
+) -> None:
+    # Either the input or its enaminone is a sound pick; the enol and iminol
+    # these became under an unconditional demotion are not.
+    kept = _kept_constitution(smiles)
+
+    assert kept in {
+        chem_utils.constitution_smiles(smiles),
+        chem_utils.constitution_smiles(acceptable),
+    }
