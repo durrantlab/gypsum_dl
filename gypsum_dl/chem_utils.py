@@ -324,20 +324,24 @@ def pick_highest_scoring_tautomers(
 
     Returns:
         Up to num tautomers, best first within each protonation state.
-            Candidates that cannot be scored are dropped.
+            Candidates that cannot be scored are dropped, unless every
+            candidate fits within num, in which case they come last.
     """
 
     # First-seen order, as in pick_lowest_enrgy_mols.
     mol_lst = list(dict.fromkeys(mol_lst))
-    if len(mol_lst) <= num:
-        return mol_lst
 
     parents = {constitution_smiles(smi) for smi in parent_smiles} - {None}
 
+    # Ranked even when every candidate fits, since scoring costs no embedding:
+    # the order is what later steps and the output list, and a demoted form
+    # belongs after the forms that outrank it whether or not anything is cut.
+    unscorable: list["MyMol"] = []
     groups: dict[Hashable, list[tuple[int, int, int, int, str, "MyMol"]]] = {}
     for mol in mol_lst:
         score = tautomer_score(mol)
         if score is None:
+            unscorable.append(mol)
             continue
         smi = mol.smiles()
         is_parent = constitution_smiles(smi) in parents
@@ -355,7 +359,14 @@ def pick_highest_scoring_tautomers(
     ranked_groups = [
         [entry[5] for entry in sorted(g, key=lambda e: e[:5])] for g in groups.values()
     ]
-    return _fill_round_robin(ranked_groups, list(range(len(ranked_groups))), num)
+    kept = _fill_round_robin(ranked_groups, list(range(len(ranked_groups))), num)
+
+    # When nothing has to be cut, nothing is: an unscorable candidate is kept
+    # after the ranked ones, as pick_lowest_enrgy_mols keeps every candidate
+    # when they all fit.
+    if len(mol_lst) <= num:
+        kept += unscorable
+    return kept
 
 
 def remove_highly_charged_molecules(mol_lst):

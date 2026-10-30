@@ -432,9 +432,13 @@ def test_make_tauts_scales_enumerator_budget_by_thoroughness(monkeypatch) -> Non
 
         Args:
             max_tautomers: The stopping size under test.
+            transforms: The transform list, which the worker's imine-free
+                enumeration passes and the main enumeration leaves out.
         """
 
-        def __init__(self, max_tautomers: int) -> None:
+        def __init__(
+            self, max_tautomers: int, transforms: object | None = None
+        ) -> None:
             budgets.append(max_tautomers)
 
         def enumerate(self, mol: object) -> list[object]:
@@ -452,14 +456,17 @@ def test_make_tauts_scales_enumerator_budget_by_thoroughness(monkeypatch) -> Non
         MakeTautomers.tautomer, "TautomerEnumerator", _RecordingEnumerator
     )
 
+    # Two enumerators per variant: the imine-free pass and the main one. They
+    # must share the budget, or the imine-shift flags would compare sets built
+    # under different caps.
     contnr = _container("CC(=O)CC", "butanone")
     make_tauts([contnr], 5, 3, 1, "serial", False, None)
-    assert budgets == [15]
+    assert budgets == [15, 15]
 
     budgets.clear()
     contnr = _container("CC(=O)CC", "butanone")
     make_tauts([contnr], 1, 3, 1, "serial", False, None)
-    assert budgets == [3]
+    assert budgets == [3, 3]
 
 
 _REAL_MAKE_TAUT = MakeTautomers.parallel_make_taut
