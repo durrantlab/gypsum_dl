@@ -1,0 +1,54 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"   # e.g. v1.2.0 -> setuptools-scm produces version 1.2.0
+
+jobs:
+  build:
+    name: Test, build, and check distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # setuptools-scm needs the full history and tags to compute the version.
+          # A shallow clone gives 0.1.dev1-style versions instead of the tag.
+          fetch-depth: 0
+
+      - uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          environments: dev
+          cache: true
+
+      - name: Run tests
+        run: pixi run -e dev tests
+
+      - name: Build and check distribution
+        run: pixi run -e dev check-dist
+
+      - name: Show built files
+        run: ls -l dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/gypsum-dl
+    permissions:
+      id-token: write   # PyPI trusted publishing; no API token secret needed
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
