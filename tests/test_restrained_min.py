@@ -17,8 +17,14 @@ from rdkit.Chem import AllChem
 from rdkit.ForceField.rdForceField import ForceField
 from rdkit.Geometry import Point3D
 
+
 SCRIPT = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "restrained_min_tests", "test.py"
+)
+# Adding line to skip if above file doesn't exist
+pytestmark = pytest.mark.skipif(
+    not os.path.exists(SCRIPT),
+    reason="restrained_min_tests/test.py is not in the repo",
 )
 
 # Atoms 0-5 are the phenyl ring, 6-7 the ethylene linker, 8-13 the pyridine.
