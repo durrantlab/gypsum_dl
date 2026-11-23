@@ -73,6 +73,7 @@ coverage = { cmd = ["coverage", "report"] }
 cleanup-build = { cmd = ["rm", "-rf", "./build", "./dist", "./gypsum_dl.egg-info"] }
 build = { cmd = ["python", "-m", "build"], depends-on = ["cleanup-build"]}
 check-dist = { cmd = ["twine", "check", "--strict", "dist/*"], depends-on = ["build"] }
+publish-test = { cmd = ["twine", "upload", "--repository", "testpypi", "dist/*"] }
 
 [feature.dev.pypi-dependencies]
 build = ">=1.2.2.post1,<2"
