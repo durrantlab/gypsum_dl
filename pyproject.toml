@@ -27,11 +27,18 @@ dependencies = [
 [project.optional-dependencies]
 mpi = ["mpi4py>=4.0.1,<5"]
 
+[project.urls]
+Documentation = "https://durrantlab.pitt.edu/gypsum-dl/"
+Repository = "https://github.com/durrantlab/gypsum_dl"
+Issues = "https://github.com/durrantlab/gypsum_dl/issues"
+Changelog = "https://github.com/durrantlab/gypsum_dl/blob/main/CHANGELOG.md"
+
 [project.scripts]
 gypsum-dl = "gypsum_dl.run:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "setuptools-scm>=8", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]

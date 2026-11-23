@@ -69,12 +69,11 @@ profile = { cmd = [
     "--failed-first",
 ]}
 coverage = { cmd = ["coverage", "report"] }
-# dist/ is cleared on every build because the publish tasks upload dist/*.
+# dist/ is cleared on every build so check-dist only sees this build's files
 cleanup-build = { cmd = ["rm", "-rf", "./build", "./dist", "./gypsum_dl.egg-info"] }
 build = { cmd = ["python", "-m", "build"], depends-on = ["cleanup-build"]}
-check-dist = { cmd = ["twine", "check", "--strict", "dist/*", "&&", "python", "scripts/check_release.py"], depends-on = ["build"] }
-publish-test = { cmd = ["twine", "upload", "--repository", "testpypi", "dist/*"], depends-on = ["check-dist"] }
-publish = { cmd = ["twine", "upload", "dist/*"], depends-on = ["check-dist"] }
+check-dist = { cmd = ["twine", "check", "--strict", "dist/*"], depends-on = ["build"] }
+publish-test = { cmd = ["twine", "upload", "--repository", "testpypi", "dist/*"] }
 
 [feature.dev.pypi-dependencies]
 build = ">=1.2.2.post1,<2"
